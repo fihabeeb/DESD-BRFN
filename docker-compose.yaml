@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+
+  webapp:
+    build: .
+    container_name: brfn-app
+    volumes:
+      - ./server:/usr/src/app
+    ports:
+    - "1111:1111"
+    environment:
+      - DB_NAME=brfn-main-db
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_HOST=root  # Must match your existing MySQL container name
+      - DB_PORT=3393
