@@ -1,0 +1,42 @@
+<!-- product_detail.html -->
+
+<h1>Product Details</h1>
+<h2>Detail of a specific product</h2>
+
+<!-- Category Filter -->
+<div class="categories">
+    <a href="{% url 'product_list' %}">All</a>
+    {% for category in categories %}
+        <a href="?category={{ category.id }}">{{ category.name }}</a>
+    {% endfor %}
+</div>
+
+<!-- Product Detail -->
+<div class="products">
+    <p>Below are the details of the product</p>
+        <div class="product-card">
+            <!-- {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+            {% endif %} -->
+
+            <!-- example of storing iamges below -->
+            {% load static %}
+            <img src="{% static 'products/example.jpeg' %}" alt="test image">
+
+
+            <h3>{{ product.name }}</h3>
+            <p>{{ prodicut.description }}</p>
+
+
+            <p>£{{ product.price }} per {{ product.unit }}</p>
+            <p>Stock: {{ product.stock_quantity }}</p>
+            {% if product.is_organic %}
+                <span class="organic-badge">Organic</span>
+            {% endif %}
+            
+            <p>Date harvested: {{ product.harvest_date }}</p>
+            <p>Last updated: {{ product.updated_at }}</p>
+            <p>Status: {{ product.get_availability_display }}</p>
+            <button>Add to Cart</button>
+        </div>
+</div>
