@@ -1,11 +1,4 @@
 from django.db import models
-<<<<<<< HEAD
-
-# Create your models here.
-class Products(models.Model):
-    
-    name=models.CharField(max_length=50)
-=======
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
@@ -177,4 +170,3 @@ class ProductCategory(models.Model):
     # user class should have a one to one extension
     # - helps maintain 1 unique username and email per user
     # - a producer can be a buyer and vice versa
->>>>>>> aliff

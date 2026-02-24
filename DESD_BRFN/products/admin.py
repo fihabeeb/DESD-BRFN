@@ -1,8 +1,4 @@
 from django.contrib import admin
-<<<<<<< HEAD
-
-# Register your models here.
-=======
 from .models import Product, ProductCategory
 
 @admin.register(ProductCategory)
@@ -58,4 +54,3 @@ class ProductAdmin(admin.ModelAdmin):
             # can auto-set producer here 
             pass
         super().save_model(request, obj, form, change)
->>>>>>> aliff

@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-from django.shortcuts import render
-
-# Create your views here.
-=======
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Product, ProductCategory
@@ -70,4 +65,3 @@ def product_detail(request, product_id):
     return render(request, 'products/product_detail.html', {
         'product': product
     })
->>>>>>> aliff
