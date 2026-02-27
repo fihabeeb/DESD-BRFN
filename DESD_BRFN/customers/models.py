@@ -83,7 +83,7 @@ class CustomerAddress(models.Model):
         indexes = [models.Index(fields=["postcode"]), models.Index(fields=["customer"])]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(postcode__gt=""), name="customeraddress_postcode_non_empty"
+                condition=models.Q(postcode__gt=""), name="customeraddress_postcode_non_empty"
             )
         ]
 
@@ -235,7 +235,7 @@ class OrderSub(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=models.Q(subtotal__gte=0), name="suborder_subtotal_non_negative"),
+            models.CheckConstraint(condition=models.Q(subtotal__gte=0), name="suborder_subtotal_non_negative"),
         ]
         indexes = [models.Index(fields=["producer", "delivery_date"])]
 
@@ -262,8 +262,8 @@ class OrderItem(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=models.Q(quantity__gte=1), name="orderitem_quantity_positive"),
-            models.CheckConstraint(check=models.Q(total_price__gte=0), name="orderitem_total_non_negative"),
+            models.CheckConstraint(condition=models.Q(quantity__gte=1), name="orderitem_quantity_positive"),
+            models.CheckConstraint(condition=models.Q(total_price__gte=0), name="orderitem_total_non_negative"),
         ]
         indexes = [models.Index(fields=["product", "suborder"])]
 

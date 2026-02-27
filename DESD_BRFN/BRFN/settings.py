@@ -37,11 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-<<<<<<< HEAD:DESD_BRFN/BRFN/settings.py
-    'products'
-=======
-    'customers'
->>>>>>> saif:BRFN/settings.py
+    'products',
+    #'customers',
 ]
 
 MIDDLEWARE = [
@@ -129,4 +126,3 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'static_collected'
-
