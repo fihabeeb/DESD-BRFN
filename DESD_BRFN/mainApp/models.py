@@ -6,7 +6,7 @@ from django.contrib.auth.models import AbstractUser
 class RegularUser():
     #is_editor = models.BooleanField(default=False)
     contact_name = models.CharField('Producer Contact',max_length=50)
-    producer_name = models.CharField('Producer',max_length=50)
+    user_name = models.CharField('Producer',max_length=50)
     phone_number = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
     email = models.EmailField(max_length=255)
