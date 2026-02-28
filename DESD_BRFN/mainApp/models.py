@@ -15,7 +15,7 @@ class RegularUser():
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-# maybe tables for set orders and delivery
+#maybe tables for set orders and delivery
 #class Post(models.Model):
 #    title = models.CharField(max_length=100)
 #    content = models.TextField()
