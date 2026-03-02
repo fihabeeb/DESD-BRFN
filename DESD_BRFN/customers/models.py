@@ -85,9 +85,6 @@ class Order(models.Model):
         self.save(update_fields=["total_amount"])
 
     def __str__(self):
-<<<<<<< HEAD
-        return f"Order {self.order_number}"
-=======
         return f"Order {self.order_number} ({self.customer})"
 
 
@@ -119,7 +116,6 @@ class OrderSub(models.Model):
 
     def __str__(self):
         return f"SubOrder {self.id} for {self.producer}"
->>>>>>> bacda0d (Turned off customers app)
 
 
 class OrderItem(models.Model):
@@ -129,8 +125,6 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
 
-<<<<<<< HEAD
-=======
     class Meta:
         constraints = [
             models.CheckConstraint(condition=models.Q(quantity__gte=1), name="orderitem_quantity_positive"),
@@ -138,7 +132,6 @@ class OrderItem(models.Model):
         ]
         indexes = [models.Index(fields=["product", "suborder"])]
 
->>>>>>> bacda0d (Turned off customers app)
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
 
