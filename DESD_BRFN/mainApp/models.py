@@ -19,10 +19,10 @@ class RegularUser(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class CustomerProfile(models.Model):
-    user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='customer_profile')
-    # customer-specific fields
-    shipping_address = models.TextField(blank=True)
+#class CustomerProfile(models.Model):
+#   user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='customer_profile')
+#    # customer-specific fields
+#    shipping_address = models.TextField(blank=True)
     # ...
 
 class ProducerProfile(models.Model):

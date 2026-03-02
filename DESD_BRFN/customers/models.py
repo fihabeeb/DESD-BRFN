@@ -28,15 +28,6 @@ class CustomerAddress(models.Model):
     city = models.CharField(max_length=100)
     postcode = models.CharField(max_length=12)
     is_default = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        indexes = [models.Index(fields=["postcode"]), models.Index(fields=["customer"])]
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(postcode__gt=""), name="customeraddress_postcode_non_empty"
-            )
-        ]
 
     def save(self, *args, **kwargs):
         if self.is_default:
@@ -85,37 +76,7 @@ class Order(models.Model):
         self.save(update_fields=["total_amount"])
 
     def __str__(self):
-        return f"Order {self.order_number} ({self.customer})"
-
-
-class OrderSub(models.Model):
-    """
-    Per-producer sub-order linked to a top-level Order.
-    """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="suborders")
-    producer = models.ForeignKey(
-        "producers.Producer", on_delete=models.PROTECT, related_name="suborders"
-    )
-    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    payout_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    delivery_date = models.DateField(null=True, blank=True)
-    lead_time_hours = models.PositiveIntegerField(default=48)
-
-    class Meta:
-        constraints = [
-            models.CheckConstraint(condition=models.Q(subtotal__gte=0), name="suborder_subtotal_non_negative"),
-        ]
-        indexes = [models.Index(fields=["producer", "delivery_date"])]
-
-    def is_within_lead_time(self, delivery_date):
-        """Return True if delivery_date respects producer lead time."""
-        if not delivery_date:
-            return False
-        min_date = (timezone.now() + timezone.timedelta(hours=self.lead_time_hours)).date()
-        return delivery_date >= min_date
-
-    def __str__(self):
-        return f"SubOrder {self.id} for {self.producer}"
+        return f"Order {self.order_number}"
 
 
 class OrderItem(models.Model):
@@ -124,13 +85,6 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
-
-    class Meta:
-        constraints = [
-            models.CheckConstraint(condition=models.Q(quantity__gte=1), name="orderitem_quantity_positive"),
-            models.CheckConstraint(condition=models.Q(total_price__gte=0), name="orderitem_total_non_negative"),
-        ]
-        indexes = [models.Index(fields=["product", "suborder"])]
 
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"

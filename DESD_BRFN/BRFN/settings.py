@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'products',
     'mainApp',
     'customers',
+    'producers',
 ]
 
 AUTH_USER_MODEL = 'mainApp.RegularUser'

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from producers import RegularUser
+from mainApp.models import RegularUser
 
 
 # Create your models here.
