@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Producer Login{% endblock %}
+{% block content %}
+<!-- Display producer info -->
+<h1>{{ producer.user.username }}'s Products</h1>
+
+<!-- Stats dashboard -->
+<div class="stats">
+    <div>Total Products: {{ stats.total }}</div>
+    <div>Active: {{ stats.active }}</div>
+    <div>Low Stock: {{ stats.low_stock }}</div>
+    <div>Out of Stock: {{ stats.out_of_stock }}</div>
+    <div>Organic: {{ stats.organic }}</div>
+    <div>In Season: {{ stats.in_season }}</div>
+    <div>Total Value: £{{ stats.total_stock_value }}</div>
+</div>
+
+<!-- Filter form -->
+<form method="get">
+    <select name="availability">
+        <option value="">All Availability</option>
+        {% for value, label in availability_choices %}
+            <option value="{{ value }}" {% if current_filters.availability == value %}selected{% endif %}>
+                {{ label }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <input type="text" name="search" placeholder="Search products..." value="{{ search }}">
+    
+    <label>
+        <input type="checkbox" name="organic" value="true" {% if current_filters.organic %}checked{% endif %}>
+        Organic Only
+    </label>
+    
+    <label>
+        <input type="checkbox" name="low_stock" value="true" {% if current_filters.low_stock %}checked{% endif %}>
+        Low Stock
+    </label>
+    
+    <button type="submit">Apply Filters</button>
+</form>
+
+<!-- Products table -->
+<table>
+    <thead>
+        <tr>
+            <th><a href="?sort={% if sort == 'name' %}-name{% else %}name{% endif %}">Name</a></th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Availability</th>
+            <th>Organic</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in products %}
+        <tr {% if product.is_low_stock %}class="low-stock"{% endif %}>
+            <td>{{ product.name }}</td>
+            <td>£{{ product.price }}/{{ product.unit }}</td>
+            <td>
+                {{ product.stock_quantity }}
+                {% if product.is_low_stock %}
+                    <span class="warning">(Low Stock!)</span>
+                {% endif %}
+            </td>
+            <td>{{ product.get_availability_display }}</td>
+            <td>{% if product.is_organic %}Yes{% endif %}</td>
+            <td>
+                <a href="{% url 'producer_product_edit' product.id %}">Edit</a>
+                <!-- <a href="% url 'producer_product_duplicate' product.id %">Duplicate</a> -->
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No products found. <a href="{% url 'producer_product_add' %}">Add your first product</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Pagination -->
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; first</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">previous</a>
+    {% endif %}
+    
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">last &raquo;</a>
+    {% endif %}
+</div>
+{% endblock %}
