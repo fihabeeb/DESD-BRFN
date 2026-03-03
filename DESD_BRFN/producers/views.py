@@ -28,7 +28,7 @@ def register_view(request):
         password2 = request.POST['password2']
         if password1 != password2:
             return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(email=email).exists():
             return render(request, 'producer_register.html', {'error': 'Username already taken'})
         user = User.objects.create_user(username=username, email=email, password=password1)
         user.role = 'producer'
