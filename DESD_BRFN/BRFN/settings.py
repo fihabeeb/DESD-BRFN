@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'products',
     'mainApp',
+    'customers',
+    'producers',
 ]
 
 AUTH_USER_MODEL = 'mainApp.RegularUser'

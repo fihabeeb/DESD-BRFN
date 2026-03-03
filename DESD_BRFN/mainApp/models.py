@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
 
 class RegularUser(AbstractUser):
     #Inherits: username, first_name, last_name, email, is_staff, is_active, date_joined, password, last_login
@@ -17,10 +19,10 @@ class RegularUser(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class CustomerProfile(models.Model):
-    user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='customer_profile')
-    # customer-specific fields
-    shipping_address = models.TextField(blank=True)
+#class CustomerProfile(models.Model):
+#   user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='customer_profile')
+#    # customer-specific fields
+#    shipping_address = models.TextField(blank=True)
     # ...
 
 class ProducerProfile(models.Model):
