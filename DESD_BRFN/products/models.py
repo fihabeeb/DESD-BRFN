@@ -29,10 +29,13 @@ class Product(models.Model):
 
     slug = models.SlugField(unique=True, blank=True)
 
-    # Relationships
-    # TODO
-    # producer id ig
-    #
+    producer = models.ForeignKey(
+        'mainApp.ProducerProfile',
+        on_delete=models.SET_NULL,
+        related_name='products',
+        null=True,
+        blank=True,
+    )
 
     availability = models.CharField(
         max_length=20,
@@ -67,7 +70,7 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     class Meta:
         verbose_name = "product"
         verbose_name_plural = "products"
@@ -102,9 +105,9 @@ class Product(models.Model):
     def in_season(self):
         if not(self.season_start and self.season_end):
             return True # assume always in season
-        
+
         current_month = timezone.now().month
-        
+
         if self.season_start <= self.season_end:
             # for normal season that doesn't overlap between Dec and Jan
             return self.season_start <= current_month <= self.season_end
@@ -118,7 +121,7 @@ class Product(models.Model):
             self.save(update_fields=['stock_quantity'])
             return True
         return False
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -128,7 +131,7 @@ class Product(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
-    
+
     @property
     def is_low_stock(self):
         return 0 < self.stock_quantity < 10
@@ -155,7 +158,7 @@ class ProductCategory(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     ### Functions
     def save(self, *args, **kwargs):
         if not self.slug:
