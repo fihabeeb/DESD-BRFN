@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('producers.urls')),
     path('', include('mainApp.urls')),
     path("customers/", include("customers.urls")),
+    path("accounts/", include("django.contrib.auth.urls")),
 ]
 
 urlpatterns += staticfiles_urlpatterns()
