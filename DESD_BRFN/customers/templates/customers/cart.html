@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Your Cart</h2>
+
+    {% if items %}
+        <table class="table table-bordered mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Unit Price</th>
+                    <th>Quantity</th>
+                    <th>Line Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td>£{{ item.unit_price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>£{{ item.line_total }}</td>
+                    <td>
+                        <a href="{% url 'remove_from_cart' item.id %}" 
+                           class="btn btn-sm btn-danger">
+                            Remove
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="text-end">
+            <h4>Total: £{{ total }}</h4>
+        </div>
+
+        <div class="text-end mt-3">
+            <a href="#" class="btn btn-success disabled">Checkout (coming soon)</a>
+        </div>
+
+    {% else %}
+        <p>Your cart is empty.</p>
+    {% endif %}
+</div>
+{% endblock %}
