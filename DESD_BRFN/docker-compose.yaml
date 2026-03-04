@@ -19,6 +19,9 @@ services:
       - DB_PASSWORD=demo_password
       - DB_HOST=db
       - DB_PORT=5432
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=secret
     depends_on:
       - db
 
@@ -36,6 +39,5 @@ services:
 
 volumes:
   db:
-    external: true
+    external: false
     name: desd-brfn_db
-  

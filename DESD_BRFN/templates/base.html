@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}My Site{% endblock %}</title>
+</head>
+<body>
+    <nav>
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'product_list' %}">Product List</a>
+        {% if user.is_authenticated %}
+        <p>Welcome, {{ user.username }}! ({{ user.role }})</p>
+        <a href="{% url 'logout' %}">Logout</a>
+        {% else %}
+        <a href="{% url 'admin:index' %}">Admin Login</a>
+        <a href="{% url 'producer_login' %}">Producer Login</a>
+        <a href="{% url 'producer_register' %}">Producer Register</a>
+        {% endif %}
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>My Footer</p>
+    </footer>
+</body>
+</html>

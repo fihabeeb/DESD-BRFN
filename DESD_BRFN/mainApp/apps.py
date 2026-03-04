@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 
-class ServerConfig(AppConfig):
-    name = 'server'
+class MainAppConfig(AppConfig):
+    name = 'mainApp'
 
 
 #texdt
