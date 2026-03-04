@@ -20,7 +20,7 @@ def add_product(request):
             is_organic=request.POST.get('is_organic', False),
             availability=request.POST['availability'],
 
-            # producer = request.user.producer
+            producer = request.user.producer
         )
 
         if 'image' in request.FILES:

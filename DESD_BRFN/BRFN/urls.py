@@ -20,9 +20,9 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('products.urls')),
-    path('', include('producers.urls')),
     path('', include('mainApp.urls')),
+
+    # TODO: to depreciate below
     path("customers/", include("customers.urls")),
     path("accounts/", include("django.contrib.auth.urls")),
 ]

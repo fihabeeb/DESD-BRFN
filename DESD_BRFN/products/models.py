@@ -55,10 +55,6 @@ class Product(models.Model):
     # media
     image = models.ImageField(upload_to='products/',null=True,blank=True)
 
-    # Relationships
-    # TODO
-    # producer id ig
-
     category = models.ForeignKey(
         'ProductCategory',
         on_delete=models.SET_NULL,

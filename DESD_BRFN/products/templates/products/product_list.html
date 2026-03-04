@@ -1,5 +1,7 @@
 <!-- product_list.html -->
-
+{% extends 'base.html' %}
+{% block title %}Producer Login{% endblock %}
+{% block content %}
 
 <h1>Marketplace Products</h1>
 <h2>List of all Products on the platform</h2>
@@ -32,3 +34,4 @@
         <p>No products available.</p>
     {% endfor %}
 </div>
+{% endblock %}
