@@ -51,13 +51,32 @@ class Cart(models.Model):
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
-    product_name = models.CharField(max_length=255)  # simple placeholder
+    product = models.ForeignKey(
+        "products.Product",
+        on_delete=models.PROTECT,
+        related_name="cart_items",
+        null=True,
+        blank=True
+    )  
+    product_name= models.CharField(max_length=255, blank=True) #snapshot of the product
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     @property
     def line_total(self):
-        return (self.unit_price or Decimal("0.00")) * self.quantity
+        price = self.unit_price if self.unit_price is not None else Decimal(0.00)
+        return price * self.quantity
+    
+    def save(self, *args, **kwargs):
+        "populate snapshots if not available"
+
+        if self.product:
+            if not self.product_name:
+                self.product_name = self.product.pygame.freetype.name
+            if self.unit_price is None:
+                self.unit_price = self.product.price
+        super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
