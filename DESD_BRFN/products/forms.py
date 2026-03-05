@@ -3,6 +3,7 @@ from products.models import Product, ProductCategory
 from django.utils import timezone
 from django import forms
 from products.models import Allergen, Product
+from django.forms import CheckboxInput #
 
 class ProductForm(forms.ModelForm):
     """
@@ -60,7 +61,7 @@ class ProductForm(forms.ModelForm):
         
         # Add CSS classes
         for field in self.fields:
-            if field != 'allergen_list':
+            if field not in ['allergen_list', 'is_organic']:
                 self.fields[field].widget.attrs.update({'class': 'form-control'})
 
         if self.instance and self.instance.pk:
@@ -115,22 +116,26 @@ class ProductForm(forms.ModelForm):
 
         if commit:
             product.save()
-            # Handle many-to-many relationships if any
 
-            if self.allergen_list is not None:
+            # Set many-to-many allergens
+            if allergen_list:
                 product.allergens.set(allergen_list)
+            else:
+                product.allergens.clear()
 
-            if not product.allergen_notes:
-                if allergen_list and allergen_list.exist():
-                    names = [a.get_name_display() for a in allergen_list]
-                    if len(names) > 3:
-                        product.allergen_notes = f"Contains: {', '.join(names[:3])} and others"
-                    else:
-                        product.allergen_notes = f"Contains: {', '.join(names)}"
-                    product.save(update_fields=['allergen_notes', 'has_allergens'])
+            # Auto generate allergen notes
+            if allergen_list:
+                names = [a.get_name_display() for a in allergen_list]
+
+                if len(names) > 3:
+                    product.allergen_notes = f"Contains: {', '.join(names[:3])} and others"
                 else:
-                    product.allergen_notes = "No common allergens"
-                    product.save(update_fields=['allergen_notes', 'has_allergens'])
-            
+                    product.allergen_notes = f"Contains: {', '.join(names)}"
+
+            else:
+                product.allergen_notes = "No common allergens"
+
+            product.save(update_fields=['allergen_notes', 'has_allergens'])
+
         return product
 
