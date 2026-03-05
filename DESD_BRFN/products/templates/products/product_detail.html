@@ -37,6 +37,19 @@
             <p>Date harvested: {{ product.harvest_date }}</p>
             <p>Last updated: {{ product.updated_at }}</p>
             <p>Status: {{ product.get_availability_display }}</p>
-            <button>Add to Cart</button>
+            
+            {% if user.is_authenticated %}
+                <form action="{% url 'add_to_cart' product.id %}" method="post">
+                    {% csrf_token %}
+                    <label>
+                        Qty
+                        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}">
+                    </label>
+                    <button type="submit">Add to Cart</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}?next={% url 'product_detail' product.id %}">Log in to add to cart</a>
+            {% endif %}
+
         </div>
 </div>
