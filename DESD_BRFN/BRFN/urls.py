@@ -25,7 +25,7 @@ urlpatterns = [
     path('', include('mainApp.urls')),
 
     # TODO: to depreciate below
-    path("customers/", include("customers.urls")),
+    # path("customers/", include("customers.urls")),
     path("accounts/", include("django.contrib.auth.urls")),
 ]
 

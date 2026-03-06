@@ -10,5 +10,6 @@ urlpatterns = [
     # treat this as main URL routing
     path('', include('producers.urls')),
     path('', include('products.urls')),
+    path('', include("customers.urls")),
 
 ]
