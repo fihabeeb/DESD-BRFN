@@ -4,7 +4,7 @@ from . import views
 app_name = 'customers'
 
 urlpatterns = [
-    path("customer-register/", views.register_customer, name="register_customer"),
+    path("customer-register/", views.register_customer, name="register"),
 
     # Cart operations
     path("customer/cart/add/<int:product_id>/", views.add_to_cart, name="add_to_cart"),

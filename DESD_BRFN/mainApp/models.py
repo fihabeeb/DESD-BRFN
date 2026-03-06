@@ -15,7 +15,7 @@ class RegularUser(AbstractUser):
     phone_number = models.CharField(max_length=100)
     address = models.CharField(max_length=20)
     post_code = models.CharField(max_length=20)
-    #created_at = models.DateTimeField(auto_now_add=True)
+    # created_at = models.DateTimeField(auto_now_add=True) # DONT UNCOMMENT: Already has date_joined 
     updated_at = models.DateTimeField(auto_now=True)
 
 

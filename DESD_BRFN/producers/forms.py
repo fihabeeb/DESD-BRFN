@@ -134,6 +134,13 @@ class ProducerRegistrationForm(UserCreationForm):
             'password1', 'password2', 'phone_number', 'address', 'post_code'
         ]
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("This email address is already registered. Please use a different email or login.")
+        
+        return email
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']

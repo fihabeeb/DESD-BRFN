@@ -1,18 +1,227 @@
 {% extends 'base.html' %}
-{% block title %}Producer Register{% endblock %}
+
+{% block title %}Producer Registration{% endblock %}
+
 {% block content %}
-    <h1>Register</h1>
-    <form method="post">
-        {% csrf_token %}
-        <label>Username</label><br>
-        <input type="text" name="username" required><br><br>
-        <label>Email</label><br>
-        <input type="email" name="email" required><br><br>
-        <label>Password</label><br>
-        <input type="password" name="password1" required><br><br>
-        <label>Confirm Password</label><br>
-        <input type="password" name="password2" required><br><br>
-        <button type="submit">Register</button>
-    </form>
-    <p>Already have an account? <a href="{% url 'mainApp:producers:producer_login' %}">Login</a></p>
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="flex justify-center mb-4">
+                <i class="bi bi-truck-front text-5xl text-green-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900">Become a Producer</h2>
+            <p class="text-sm text-gray-600 mt-2">Join our network of local food producers</p>
+        </div>
+
+        <!-- Error Messages (non-field errors) -->
+        {% if form.non_field_errors %}
+            <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                <div class="flex items-center">
+                    <i class="bi bi-exclamation-triangle-fill text-red-500 mr-3"></i>
+                    <div class="text-sm text-red-700">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Success/Info Messages from Django messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-6 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 rounded-r-lg">
+                    <div class="flex items-center">
+                        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-green-500{% else %}bi-info-circle-fill text-blue-500{% endif %} mr-3"></i>
+                        <p class="text-sm {% if message.tags == 'success' %}text-green-700{% else %}text-blue-700{% endif %}">
+                            {{ message }}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Registration Form -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Column - Account Information -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
+                        <i class="bi bi-person-badge text-green-600 mr-2"></i>
+                        Account Information
+                    </h3>
+                    
+                    <!-- Username -->
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-person mr-2"></i>Username *
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                        {% if form.username.help_text %}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.username.help_text }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Email -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-envelope mr-2"></i>Email *
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- First Name -->
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-person mr-2"></i>First Name *
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Last Name -->
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-person mr-2"></i>Last Name *
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Right Column - Producer Information -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
+                        <i class="bi bi-shop text-green-600 mr-2"></i>
+                        Producer Information
+                    </h3>
+                    
+                    <!-- Company Name -->
+                    <div>
+                        <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-building mr-2"></i>Farm/Business Name *
+                        </label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.company_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Phone Number -->
+                    <div>
+                        <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-telephone mr-2"></i>Phone Number *
+                        </label>
+                        {{ form.phone_number }}
+                        {% if form.phone_number.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Address -->
+                    <div>
+                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-geo-alt mr-2"></i>Address *
+                        </label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.address.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Post Code -->
+                    <div>
+                        <label for="{{ form.post_code.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-mailbox mr-2"></i>Post Code *
+                        </label>
+                        {{ form.post_code }}
+                        {% if form.post_code.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.post_code.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Password Section - Full Width -->
+            <div class="pt-4 border-t border-gray-200">
+                <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="bi bi-shield-lock text-green-600 mr-2"></i>
+                    Security
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Password -->
+                    <div>
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-lock mr-2"></i>{{ form.password1.label }} *
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                        {% if form.password1.help_text %}
+                            <div class="text-xs text-gray-500 mt-2 space-y-1">
+                                {{ form.password1.help_text|safe }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Confirm Password -->
+                    <div>
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-lock-fill mr-2"></i>{{ form.password2.label }} *
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-6">
+                <button type="submit" 
+                        class="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Register as Producer</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Login Link -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+                Already have a producer account?
+                <a href="{% url 'mainApp:producers:login' %}" 
+                   class="font-medium text-green-600 hover:text-green-700 ml-1">
+                    Login here <i class="bi bi-arrow-right ml-1"></i>
+                </a>
+            </p>
+        </div>
+
+        <!-- Switch to Customer Registration -->
+        <div class="mt-4 pt-4 border-t border-gray-200 text-center">
+            <p class="text-xs text-gray-500">
+                Are you a customer? 
+                <a href="{% url 'mainApp:customers:register' %}" class="text-green-600 hover:text-green-700">
+                    Customer Registration
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -11,6 +11,7 @@ from mainApp.models import RegularUser
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timezone
+from producers.forms import ProducerRegistrationForm
 # Create your views here.
 
 User = get_user_model()
@@ -29,22 +30,53 @@ User = get_user_model()
 #     return render(request, 'producer_login.html')
 
 
+# def register_view(request):
+#     if request.method == 'POST':
+#         username = request.POST['username']
+#         email = request.POST['email']
+#         password1 = request.POST['password1']
+#         password2 = request.POST['password2']
+#         if password1 != password2:
+#             return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
+#         if User.objects.filter(username=username).exists():
+#             return render(request, 'producer_register.html', {'error': 'Username already taken'})
+#         user = User.objects.create_user(username=username, email=email, password=password1)
+#         user.role = 'producer'
+#         user.save()
+#         ProducerProfile.objects.create(user=user)
+#         return redirect('producer_login')
+#     return render(request, 'producer_register.html')
+
 def register_view(request):
+    """
+    Producer registration view using the form
+    """
+    # Redirect if already logged in
+    if request.user.is_authenticated:
+        return redirect('home')
+    
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password1 = request.POST['password1']
-        password2 = request.POST['password2']
-        if password1 != password2:
-            return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
-        if User.objects.filter(username=username).exists():
-            return render(request, 'producer_register.html', {'error': 'Username already taken'})
-        user = User.objects.create_user(username=username, email=email, password=password1)
-        user.role = 'producer'
-        user.save()
-        ProducerProfile.objects.create(user=user)
-        return redirect('producer_login')
-    return render(request, 'producer_register.html')
+        form = ProducerRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            
+            # Optional: Auto-login after registration
+            # login(request, user)
+            
+            messages.success(request, f'Welcome {user.username}! Your producer account has been created successfully.')
+            messages.info(request, 'Please log in to access your producer dashboard.')
+            return redirect('mainApp:producers:login')
+        else:
+            # Form errors will be displayed in the template
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ProducerRegistrationForm()
+    
+    context = {
+        'form': form,
+        'title': 'Producer Registration'
+    }
+    return render(request, 'producer_register.html', context)
 
 @login_required
 def myproduct_view(request):
