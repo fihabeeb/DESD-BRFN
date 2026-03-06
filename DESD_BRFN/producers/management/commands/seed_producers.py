@@ -57,7 +57,7 @@ class Command(BaseCommand):
             # Create producer profile
             profile = ProducerProfile.objects.create(
                 user=user,
-                company_name=random.choice(farm_names),
+                business_name=random.choice(farm_names),
             #     farm_description=f"A family-run farm providing fresh, local produce to the {random.choice(cities)} area.",
             #     farm_address=f"{random.randint(1, 50)} Farm Lane",
             #     farm_city=random.choice(cities),

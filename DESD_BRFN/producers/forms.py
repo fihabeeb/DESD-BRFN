@@ -95,7 +95,7 @@ class ProducerRegistrationForm(UserCreationForm):
     )
     
     # Producer specific fields
-    company_name = forms.CharField(
+    business_name = forms.CharField(
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
@@ -136,8 +136,8 @@ class ProducerRegistrationForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise ValidationError("This email address is already registered. Please use a different email or login.")
+        if User.objects.filter(email=email, role=User.Role.PRODUCER).exists():
+            raise ValidationError("This email address is already registered as a producer. Please use a different email or login.")
         
         return email
 
@@ -156,7 +156,7 @@ class ProducerRegistrationForm(UserCreationForm):
             # Create producer profile
             ProducerProfile.objects.create(
                 user=user,
-                company_name=self.cleaned_data['company_name']
+                business_name=self.cleaned_data['business_name']
             )
         
         return user

@@ -10,7 +10,7 @@ urlpatterns = [
 
     # basic
     path('producer/login', auth_views.LoginView.as_view(
-        template_name='producer_login.html',
+        template_name='producers/login.html',
         authentication_form=ProducerLoginForm,
         redirect_authenticated_user=True,
         extra_context={'title': 'Producer Login'},

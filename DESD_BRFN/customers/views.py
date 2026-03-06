@@ -3,30 +3,60 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from .forms import CustomerRegistrationForm
-from .models import Customer, Cart, CartItem
-from mainApp.models import RegularUser
+from customers.forms import CustomerRegistrationForm
+from django.contrib import messages
+# from django.urls import reverse_lazy
+from mainApp.models import CustomerProfile
+
+# from .forms import CustomerRegistrationForm
+from .models import Cart, CartItem
+# from mainApp.models import RegularUser
 from products.models import Product
 
 
 def register_customer(request):
+
+    if request.user.is_authenticated:
+        return redirect('mainApp:home')
+    
     if request.method == "POST":
         form = CustomerRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.role = RegularUser.Role.CUSTOMER
-            user.set_password(form.cleaned_data["password"])
-            user.save()
+            user = form.save()
 
-            customer = Customer.objects.create(user=user)
-            Cart.objects.create(customer=customer)
+            # login(request,user)
 
-            login(request, user)
-            return redirect("home")
+            messages.success(request, f"Welcome {user.username}! Your customer account has been created successfully.")
+            messages.info(request, 'Please log in to continue.')
+            return redirect('mainApp:customers:login')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = CustomerRegistrationForm()
 
-    return render(request, "customers/register.html", {"form": form})
+    context = {
+        'form': form,
+        'title': 'Customer Registration'
+    }
+    return render(request, 'customers/register.html', context)
+
+    # if request.method == "POST":
+    #     form = CustomerRegistrationForm(request.POST)
+    #     if form.is_valid():
+    #         user = form.save(commit=False)
+    #         user.role = RegularUser.Role.CUSTOMER
+    #         user.set_password(form.cleaned_data["password"])
+    #         user.save()
+
+    #         customer = Customer.objects.create(user=user)
+    #         Cart.objects.create(customer=customer)
+
+    #         login(request, user)
+    #         return redirect("home")
+    # else:
+    #     form = CustomerRegistrationForm()
+
+    # return render(request, "customers/register.html", {"form": form})
 
 
 @login_required
@@ -44,7 +74,7 @@ def add_to_cart(request, product_id):
     # Ensure customer profile exists
     customer = getattr(request.user, "customer_profile", None)
     if customer is None:
-        customer = Customer.objects.create(user=request.user)
+        customer = CustomerProfile.objects.create(user=request.user)
         Cart.objects.create(customer=customer)
 
     cart, _ = Cart.objects.get_or_create(customer=customer)

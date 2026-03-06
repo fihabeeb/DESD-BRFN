@@ -52,7 +52,7 @@
                     <button type="submit">Add to Cart</button>
                 </form>
             {% else %}
-                <a href="{% url 'login' %}?next={% url 'mainApp:products:product_detail' product.id %}">Log in to add to cart</a>
+                <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}">Log in to add to cart</a>
             {% endif %}
 
         </div>
