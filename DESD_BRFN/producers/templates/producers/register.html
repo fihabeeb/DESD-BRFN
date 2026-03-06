@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Customer Registration{% endblock %}
+{% block title %}Producer Registration{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -8,27 +8,13 @@
         <!-- Header -->
         <div class="text-center mb-8">
             <div class="flex justify-center mb-4">
-                <i class="bi bi-person-plus text-5xl text-green-600"></i>
+                <i class="bi bi-truck-front text-5xl text-green-600"></i>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900">Create Customer Account</h2>
-            <p class="text-sm text-gray-600 mt-2">Join our community of local food enthusiasts</p>
+            <h2 class="text-2xl font-bold text-gray-900">Become a Producer</h2>
+            <p class="text-sm text-gray-600 mt-2">Join our network of local food producers</p>
         </div>
 
-        <!-- Django Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="mb-6 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-green-500{% elif message.tags == 'error' %}bi-exclamation-triangle-fill text-red-500{% else %}bi-info-circle-fill text-blue-500{% endif %} mr-3"></i>
-                        <p class="text-sm {% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %}">
-                            {{ message }}
-                        </p>
-                    </div>
-                </div>
-            {% endfor %}
-        {% endif %}
-
-        <!-- Non-Field Errors -->
+        <!-- Error Messages (non-field errors) -->
         {% if form.non_field_errors %}
             <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
                 <div class="flex items-center">
@@ -42,17 +28,18 @@
             </div>
         {% endif %}
 
-        <!-- Producer Email Warning -->
-        {% if form.producer_email_exists %}
-            <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                <div class="flex items-center">
-                    <i class="bi bi-exclamation-triangle text-yellow-500 mr-3"></i>
-                    <div class="text-sm text-yellow-700">
-                        <strong>Note:</strong> This email is already used for a producer account. 
-                        You can still create a separate customer account with the same email.
+        <!-- Success/Info Messages from Django messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-6 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 rounded-r-lg">
+                    <div class="flex items-center">
+                        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-green-500{% else %}bi-info-circle-fill text-blue-500{% endif %} mr-3"></i>
+                        <p class="text-sm {% if message.tags == 'success' %}text-green-700{% else %}text-blue-700{% endif %}">
+                            {{ message }}
+                        </p>
                     </div>
                 </div>
-            </div>
+            {% endfor %}
         {% endif %}
 
         <!-- Registration Form -->
@@ -60,11 +47,11 @@
             {% csrf_token %}
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Left Column - Personal Information -->
+                <!-- Left Column - Account Information -->
                 <div class="space-y-4">
                     <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
                         <i class="bi bi-person-badge text-green-600 mr-2"></i>
-                        Personal Information
+                        Account Information
                     </h3>
                     
                     <!-- Username -->
@@ -76,6 +63,9 @@
                         {% if form.username.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
                         {% endif %}
+                        {% if form.username.help_text %}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.username.help_text }}</p>
+                        {% endif %}
                     </div>
                     
                     <!-- Email -->
@@ -85,7 +75,7 @@
                         </label>
                         {{ form.email }}
                         {% if form.email.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0|safe }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
                         {% endif %}
                     </div>
                     
@@ -112,12 +102,23 @@
                     </div>
                 </div>
                 
-                <!-- Right Column - Contact Information -->
+                <!-- Right Column - Producer Information -->
                 <div class="space-y-4">
                     <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
-                        <i class="bi bi-telephone text-green-600 mr-2"></i>
-                        Contact Information
+                        <i class="bi bi-shop text-green-600 mr-2"></i>
+                        Producer Information
                     </h3>
+                    
+                    <!-- Company Name -->
+                    <div>
+                        <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-building mr-2"></i>Farm/Business Name *
+                        </label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.company_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                     
                     <!-- Phone Number -->
                     <div>
@@ -128,7 +129,6 @@
                         {% if form.phone_number.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
                         {% endif %}
-                        <p class="text-xs text-gray-500 mt-1">For delivery coordination</p>
                     </div>
                     
                     <!-- Address -->
@@ -151,7 +151,6 @@
                         {% if form.post_code.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.post_code.errors.0 }}</p>
                         {% endif %}
-                        <!-- <p class="text-xs text-gray-500 mt-1">For calculating food miles</p> -->
                     </div>
                 </div>
             </div>
@@ -173,12 +172,11 @@
                         {% if form.password1.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
                         {% endif %}
-                        <div class="text-xs text-gray-500 mt-2 space-y-1">
-                            <!-- <p>• Your password can't be too similar to your other personal information.</p>
-                            <p>• Your password must contain at least 8 characters.</p>
-                            <p>• Your password can't be a commonly used password.</p>
-                            <p>• Your password can't be entirely numeric.</p> -->
-                        </div>
+                        {% if form.password1.help_text %}
+                            <div class="text-xs text-gray-500 mt-2 space-y-1">
+                                {{ form.password1.help_text|safe }}
+                            </div>
+                        {% endif %}
                     </div>
                     
                     <!-- Confirm Password -->
@@ -194,22 +192,12 @@
                 </div>
             </div>
 
-            <!-- Terms and Conditions -->
-            <div class="flex items-center">
-                <input type="checkbox" name="terms" id="terms" required
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <label for="terms" class="ml-2 block text-sm text-gray-700">
-                    I agree to the <a href="#" class="text-green-600 hover:text-green-700">Terms and Conditions</a> and 
-                    <a href="#" class="text-green-600 hover:text-green-700">Privacy Policy</a> *
-                </label>
-            </div>
-
             <!-- Submit Button -->
-            <div class="pt-2">
+            <div class="pt-6">
                 <button type="submit" 
                         class="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
                     <i class="bi bi-person-plus"></i>
-                    <span>Create Customer Account</span>
+                    <span>Register as Producer</span>
                 </button>
             </div>
         </form>
@@ -217,20 +205,20 @@
         <!-- Login Link -->
         <div class="mt-6 text-center">
             <p class="text-sm text-gray-600">
-                Already have a customer account?
-                <a href="{% url 'mainApp:customers:login' %}" 
+                Already have a producer account?
+                <a href="{% url 'mainApp:producers:login' %}" 
                    class="font-medium text-green-600 hover:text-green-700 ml-1">
                     Login here <i class="bi bi-arrow-right ml-1"></i>
                 </a>
             </p>
         </div>
 
-        <!-- Switch to Producer Registration -->
+        <!-- Switch to Customer Registration -->
         <div class="mt-4 pt-4 border-t border-gray-200 text-center">
             <p class="text-xs text-gray-500">
-                Want to sell your products? 
-                <a href="{% url 'mainApp:producers:register' %}" class="text-green-600 hover:text-green-700">
-                    Register as a Producer
+                Are you a customer? 
+                <a href="{% url 'mainApp:customers:register' %}" class="text-green-600 hover:text-green-700">
+                    Customer Registration
                 </a>
             </p>
         </div>

@@ -1,0 +1,180 @@
+
+body {
+    background-color: #f4f4f4;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+nav {
+    background-color: #333;
+    padding: 10px;
+}
+
+a {
+    text-decoration: none;
+}
+
+nav a {
+    color: white; /* this colour changes all a in nav */
+    margin-right: 15px;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+nav p {
+    display: inline;
+    color: #ddd;
+    margin-right: 15px;
+}
+
+nav form {
+    display: inline;
+}
+
+nav button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    margin-right: 15px;
+}
+
+nav button:hover {
+    text-decoration: underline;
+}
+
+main {
+    padding: 20px;
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    margin-top: 40px;
+}
+
+
+
+
+/* ===== DROPDOWN MENU STYLES - ADD THESE ===== */
+
+/* Target dropdown container and all its children specifically */
+nav .absolute,
+nav [x-data] {
+    /* Ensure dropdown appears above other content */
+    z-index: 9999;
+}
+
+/* Override ALL dropdown links - these are the clickable options */
+nav .absolute a,
+nav [x-show] a,
+nav .dropdown-menu a {
+    color: #374151 !important;  /* Dark gray text */
+    background-color: white;
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px 16px !important;
+    margin: 0 !important;
+    font-size: 0.875rem !important;
+    text-decoration: none !important;
+    border: none !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Hover state for dropdown links */
+nav .absolute a:hover,
+nav [x-show] a:hover,
+nav .dropdown-menu a:hover {
+    background-color: #22c55e !important;  /* Green background */
+    color: white !important;
+    text-decoration: none !important;
+}
+
+/* Override the icons in dropdown */
+nav .absolute a i,
+nav [x-show] a i,
+nav .dropdown-menu a i {
+    color: #6b7280 !important;  /* Gray icons */
+    width: 1.25rem;
+    font-size: 1rem;
+}
+
+/* Icon color on hover */
+nav .absolute a:hover i,
+nav [x-show] a:hover i,
+nav .dropdown-menu a:hover i {
+    color: white !important;
+}
+
+/* Dropdown section headers */
+nav .absolute .bg-gray-100,
+nav .absolute .bg-gray-50,
+nav [x-show] .bg-gray-100,
+nav [x-show] .bg-gray-50 {
+    color: #374151 !important;
+    background-color: #f3f4f6 !important;
+    padding: 8px 16px !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+}
+
+/* Dropdown button - the main Account button */
+nav [x-data] > button {
+    background-color: #22c55e !important;  /* Green background */
+    color: white !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    border: none !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+}
+
+/* Dropdown button hover */
+nav [x-data] > button:hover {
+    background-color: #16a34a !important;  /* Darker green */
+    text-decoration: none !important;
+}
+
+/* Dropdown container background */
+nav .absolute,
+nav [x-show] {
+    background-color: white !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    min-width: 16rem !important;
+}
+
+/* Dividers */
+nav .absolute .border-t,
+nav [x-show] .border-t {
+    border-color: #e5e7eb !important;
+    margin: 4px 0 !important;
+}
+
+/* Rotate chevron animation */
+.rotate-180 {
+    transform: rotate(180deg);
+}
+
+/* Ensure dropdown is visible and above other content */
+nav .relative {
+    position: relative !important;
+    z-index: 1000;
+}
+
+/* Remove any conflicting margins */
+nav .absolute a,
+nav [x-show] a {
+    margin-right: 0 !important;
+}

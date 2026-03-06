@@ -20,15 +20,21 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td>{{ item.product_name }}</td>
+                    <td>
+                        {% if item.product %}
+                            <a href="{% url 'mainApp:products:product_detail' item.product.id %}">{{ item.product_name }}</a>
+                        {% else %}
+                            {{ item.product_name }}
+                        {% endif %}
+                    </td>
                     <td>£{{ item.unit_price }}</td>
                     <td>{{ item.quantity }}</td>
                     <td>£{{ item.line_total }}</td>
                     <td>
-                        <a href="{% url 'remove_from_cart' item.id %}" 
-                           class="btn btn-sm btn-danger">
-                            Remove
-                        </a>
+                        <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}

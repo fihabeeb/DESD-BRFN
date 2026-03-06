@@ -1,59 +1,111 @@
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from .forms import CustomerRegistrationForm
-from .models import Customer, Cart, CartItem
-from mainApp.models import RegularUser
+from django.views.decorators.http import require_POST
+from customers.forms import CustomerRegistrationForm
+from django.contrib import messages
+# from django.urls import reverse_lazy
+from mainApp.models import CustomerProfile
+
+# from .forms import CustomerRegistrationForm
+from .models import Cart, CartItem
+# from mainApp.models import RegularUser
 from products.models import Product
 
 
 def register_customer(request):
+
+    if request.user.is_authenticated:
+        return redirect('mainApp:home')
+    
     if request.method == "POST":
         form = CustomerRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.role = RegularUser.Role.CUSTOMER
-            user.set_password(form.cleaned_data["password"])
-            user.save()
+            user = form.save()
 
-            customer = Customer.objects.create(user=user)
-            Cart.objects.create(customer=customer)
+            # login(request,user)
 
-            login(request, user)
-            return redirect("home")
+            messages.success(request, f"Welcome {user.username}! Your customer account has been created successfully.")
+            messages.info(request, 'Please log in to continue.')
+            return redirect('mainApp:customers:login')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = CustomerRegistrationForm()
 
-    return render(request, "customers/register.html", {"form": form})
+    context = {
+        'form': form,
+        'title': 'Customer Registration'
+    }
+    return render(request, 'customers/register.html', context)
+
+    # if request.method == "POST":
+    #     form = CustomerRegistrationForm(request.POST)
+    #     if form.is_valid():
+    #         user = form.save(commit=False)
+    #         user.role = RegularUser.Role.CUSTOMER
+    #         user.set_password(form.cleaned_data["password"])
+    #         user.save()
+
+    #         customer = Customer.objects.create(user=user)
+    #         Cart.objects.create(customer=customer)
+
+    #         login(request, user)
+    #         return redirect("home")
+    # else:
+    #     form = CustomerRegistrationForm()
+
+    # return render(request, "customers/register.html", {"form": form})
 
 
 @login_required
+@require_POST
 def add_to_cart(request, product_id):
+    """
+    Add a product to the logged-in customer's cart.
+    Expects POST and optional 'quantity' in POST data.
+    """
     product = get_object_or_404(Product, id=product_id)
+    quantity = int(request.POST.get("quantity", 1))
+    if quantity < 1:
+        quantity = 1
 
-    # Get the customer's cart
-    cart = request.user.customer_profile.cart
+    # Ensure customer profile exists
+    customer = getattr(request.user, "customer_profile", None)
+    if customer is None:
+        customer = CustomerProfile.objects.create(user=request.user)
+        Cart.objects.create(customer=customer)
 
-    # Check if item already exists in cart
-    item, created = CartItem.objects.get_or_create(
-        cart=cart,
-        product_name=product.name,
-        unit_price=product.price,
-    )
+    cart, _ = Cart.objects.get_or_create(customer=customer)
 
-    if not created:
-        item.quantity += 1
-        item.save()
+    # Use product FK to find existing cart item
+    cart_item = cart.items.filter(product=product).first()
+    if cart_item:
+        cart_item.quantity += quantity
+        cart_item.save()
+    else:
+        CartItem.objects.create(
+            cart=cart,
+            product=product,
+            product_name=product.name,
+            unit_price=product.price,
+            quantity=quantity,
+        )
 
-    return redirect("view_cart")
+    return redirect("mainApp:customers:view_cart")
 
 
 @login_required
 def view_cart(request):
-    cart = request.user.customer_profile.cart
-    items = cart.items.all()
-    total = cart.total_amount()
+    customer = getattr(request.user, "customer_profile", None)
+    if not customer:
+        # empty cart view
+        return render(request, "customers/cart.html", {"cart": None, "items": [], "total": Decimal("0.00")})
 
+    cart, _ = Cart.objects.get_or_create(customer=customer)
+    items = cart.items.select_related("product").all()
+    total = cart.total_amount()
     return render(request, "customers/cart.html", {
         "cart": cart,
         "items": items,
@@ -62,8 +114,19 @@ def view_cart(request):
 
 
 @login_required
+@require_POST
 def remove_from_cart(request, item_id):
-    cart = request.user.customer_profile.cart
+    """
+    Remove a cart item. POST only.
+    """
+    customer = getattr(request.user, "customer_profile", None)
+    if not customer:
+        return redirect("mainApp:customers:view_cart")
+
+    cart = getattr(customer, "cart", None)
+    if not cart:
+        return redirect("mainApp:customers:view_cart")
+
     item = get_object_or_404(CartItem, id=item_id, cart=cart)
     item.delete()
-    return redirect("view_cart")
+    return redirect("mainApp:customers:view_cart")

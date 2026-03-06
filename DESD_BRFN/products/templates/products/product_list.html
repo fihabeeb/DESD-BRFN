@@ -8,7 +8,7 @@
 
 <!-- Category Filter -->
 <div class="categories">
-    <a href="{% url 'product_list' %}">All</a>
+    <a href="{% url 'mainApp:products:product_list' %}">All</a>
     {% for category in categories %}
         <a href="?category={{ category.id }}">{{ category.name }}</a>
     {% endfor %}
@@ -21,14 +21,23 @@
             {% if product.image %}
                 <img src="{{ product.image.url }}" alt="{{ product.name }}">
             {% endif %}
-            <h3><a href="{% url 'product_detail' product.id %}">{{ product.name }}</a></h3>
+            <h3><a href="{% url 'mainApp:products:product_detail' product.id %}">{{ product.name }}</a></h3>
             <p>£{{ product.price }} per {{ product.unit }}</p>
             <p>Stock: {{ product.stock_quantity }}</p>
             {% if product.is_organic %}
                 <span class="organic-badge">Organic</span>
             {% endif %}
             <p>Status: {{ product.get_availability_display }}</p>
-            <button>Add to Cart</button>
+            
+            {% if user.is_authenticated %}
+                <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit">Add to Cart</button>
+                </form>
+            {% else %}
+                <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_list' %}">Log in to add</a>
+            {% endif %}
         </div>
     {% empty %}
         <p>No products available.</p>

@@ -11,60 +11,86 @@ from mainApp.models import RegularUser
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timezone
+from producers.forms import ProducerRegistrationForm
+from django.db.models import Q
+from mainApp.decorators import producer_required
+
 # Create your views here.
 
 User = get_user_model()
 
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect('home')
-        else:
-            return render(request, 'producer_login.html', {'error': 'Invalid credentials'})
-    return render(request, 'producer_login.html')
+# TODO: function below to remove after testing
+# def login_view(request):
+#     if request.method == 'POST':
+#         username = request.POST['username']
+#         password = request.POST['password']
+#         user = authenticate(request, username=username, password=password)
+#         if user:
+#             login(request, user)
+#             return redirect('home')
+#         else:
+#             return render(request, 'producer_login.html', {'error': 'Invalid credentials'})
+#     return render(request, 'producer_login.html')
 
+
+# def register_view(request):
+#     if request.method == 'POST':
+#         username = request.POST['username']
+#         email = request.POST['email']
+#         password1 = request.POST['password1']
+#         password2 = request.POST['password2']
+#         if password1 != password2:
+#             return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
+#         if User.objects.filter(username=username).exists():
+#             return render(request, 'producer_register.html', {'error': 'Username already taken'})
+#         user = User.objects.create_user(username=username, email=email, password=password1)
+#         user.role = 'producer'
+#         user.save()
+#         ProducerProfile.objects.create(user=user)
+#         return redirect('producer_login')
+#     return render(request, 'producer_register.html')
 
 def register_view(request):
+    """
+    Producer registration view using the form
+    """
+    # Redirect if already logged in
+    if request.user.is_authenticated:
+        return redirect('mainApp:home')
+    
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password1 = request.POST['password1']
-        password2 = request.POST['password2']
-        if password1 != password2:
-            return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
-        if User.objects.filter(username=username).exists():
-            return render(request, 'producer_register.html', {'error': 'Username already taken'})
-        user = User.objects.create_user(username=username, email=email, password=password1)
-        user.role = 'producer'
-        user.save()
-        ProducerProfile.objects.create(user=user)
-        return redirect('producer_login')
-    return render(request, 'producer_register.html')
+        form = ProducerRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            
+            # Optional: Auto-login after registration
+            # login(request, user)
+            
+            messages.success(request, f"Welcome {user.username}! Your producer account has been created successfully.")
+            messages.info(request, 'Please log in to access your producer dashboard.')
+            return redirect('mainApp:producers:login')
+        else:
+            # Form errors will be displayed in the template
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ProducerRegistrationForm()
+    
+    context = {
+        'form': form,
+        'title': 'Producer Registration'
+    }
+    return render(request, 'producers/register.html', context)
 
 @login_required
+@producer_required
 def myproduct_view(request):
     """
     Display products for the logged-in producer
+
+    All the q functions dont work btw
     """
-    # Check if user has a producer profile
-    try:
-        # Access the producer profile through the correct related_name
-        producer_profile = request.user.producer_profile  # Note: 'producer_profile' not 'producerprofile'
-    except ProducerProfile.DoesNotExist:
-        return render(request, 'error.html', {
-            'message': 'You do not have a producer account. Please register as a producer first.'
-        })
-    
-    # Also check if the user's role is actually 'producer' (extra validation)
-    if request.user.role != RegularUser.Role.PRODUCER:
-        return render(request, 'error.html', {
-            'message': 'Your account is not set up as a producer. Please contact support.'
-        })
-    
+    producer_profile = request.user.producer_profile 
+
     # Base queryset - filter products by this producer
     products = Product.objects.filter(producer=producer_profile)
     
@@ -133,22 +159,13 @@ def myproduct_view(request):
     return render(request, 'producers/myproduct.html', context)
 
 @login_required
+@producer_required
 def addproduct_view(request):
     """
     View for producers to add new products (TC-003)
     """
-    # Check if user has producer profile
-    try:
-        producer_profile = request.user.producer_profile
-    except ProducerProfile.DoesNotExist:
-        messages.error(request, 'You need a producer account to add products.')
-        return redirect('become_producer')
-    
-    # Verify role
-    if request.user.role != RegularUser.Role.PRODUCER:
-        messages.error(request, 'Your account is not configured as a producer.')
-        return redirect('home')
-    
+    producer_profile = request.user.producer_profile
+
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES, producer=producer_profile)
         
@@ -190,17 +207,10 @@ def addproduct_view(request):
     return render(request, 'producers/addproduct.html', context)
 
 @login_required
+@producer_required
 def product_edit_view(request, product_id):
-    """
-    View for producers to edit their existing products (TC-011, TC-016)
-    """
-    # Check if user has producer profile
-    try:
-        producer_profile = request.user.producer_profile
-    except ProducerProfile.DoesNotExist:
-        messages.error(request, 'You need a producer account to edit products.')
-        return redirect('producer_login')
-    
+    producer_profile = request.user.producer_profile
+
     # Get the product and verify ownership
     product = get_object_or_404(
         Product, 

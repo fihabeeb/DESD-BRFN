@@ -1,14 +1,15 @@
 from django import forms
-from mainApp.models import RegularUser
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from mainApp.models import CustomerProfile
+from mainApp.models import ProducerProfile
 
 User = get_user_model()
 
-
-class CustomerLoginForm(AuthenticationForm):
+class ProducerLoginForm(AuthenticationForm):
+    """
+    Custom login form for producers that checks user role
+    """
     username = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
@@ -23,14 +24,17 @@ class CustomerLoginForm(AuthenticationForm):
     )
 
     def confirm_login_allowed(self, user):
-        if user.role != User.Role.CUSTOMER:
+        """
+        Ensure only users with producer role can login
+        """
+        if user.role != User.Role.PRODUCER:
             raise ValidationError(
-                "This account is not registered as a Customer.",
+                "This account is not registered as a producer. Please use the customer login.",
                 code='invalid_role',
             )
         
         # Also check if producer profile exists
-        if not hasattr(user, 'customer_profile'):
+        if not hasattr(user, 'producer_profile'):
             raise ValidationError(
                 "Your producer profile is not set up correctly. Please contact support.",
                 code='no_profile',
@@ -38,7 +42,11 @@ class CustomerLoginForm(AuthenticationForm):
         
         super().confirm_login_allowed(user)
 
-class CustomerRegistrationForm(UserCreationForm):
+
+class ProducerRegistrationForm(UserCreationForm):
+    """
+    Form for producers to register
+    """
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
@@ -87,6 +95,14 @@ class CustomerRegistrationForm(UserCreationForm):
     )
     
     # Producer specific fields
+    business_name = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
+            'placeholder': 'Enter your farm/business name'
+        })
+    )
+    
     phone_number = forms.CharField(
         required=True,
         widget=forms.TextInput(attrs={
@@ -120,11 +136,10 @@ class CustomerRegistrationForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email, role=User.Role.CUSTOMER).exists():
-            raise ValidationError("This email address is already registered as a customer. Please use a different email or login.")
+        if User.objects.filter(email=email, role=User.Role.PRODUCER).exists():
+            raise ValidationError("This email address is already registered as a producer. Please use a different email or login.")
         
         return email
-    
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -134,20 +149,14 @@ class CustomerRegistrationForm(UserCreationForm):
         user.phone_number = self.cleaned_data['phone_number']
         user.address = self.cleaned_data['address']
         user.post_code = self.cleaned_data['post_code']
-        user.role = User.Role.CUSTOMER
+        user.role = User.Role.PRODUCER
         
         if commit:
             user.save()
-            CustomerProfile.objects.create(
+            # Create producer profile
+            ProducerProfile.objects.create(
                 user=user,
-                shipping_address=None,
+                business_name=self.cleaned_data['business_name']
             )
         
         return user
-
-# class CustomerRegistrationForm(forms.ModelForm):
-#     password = forms.CharField(widget=forms.PasswordInput)
-
-#     class Meta:
-#         model = RegularUser
-#         fields = ["username", "email", "password", "phone_number", "address", "post_code"]

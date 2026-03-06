@@ -1,11 +1,13 @@
-<!-- product_detail.html -->
+{% extends 'base.html' %}
+{% block title %}Product Details{% endblock %}
+{% block content %}
 
 <h1>Product Details</h1>
 <h2>Detail of a specific product</h2>
 
 <!-- Category Filter -->
 <div class="categories">
-    <a href="{% url 'product_list' %}">All</a>
+    <a href="{% url 'mainApp:products:product_list' %}">Go back</a>
     {% for category in categories %}
         <a href="?category={{ category.id }}">{{ category.name }}</a>
     {% endfor %}
@@ -37,6 +39,23 @@
             <p>Date harvested: {{ product.harvest_date }}</p>
             <p>Last updated: {{ product.updated_at }}</p>
             <p>Status: {{ product.get_availability_display }}</p>
-            <button>Add to Cart</button>
+            <p>Allergens: {{ product.allergen_display }}</p>
+            <!-- <button>Add to Cart</button> -->
+            
+            {% if user.is_authenticated %}
+                <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post">
+                    {% csrf_token %}
+                    <label>
+                        Qty
+                        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}">
+                    </label>
+                    <button type="submit">Add to Cart</button>
+                </form>
+            {% else %}
+                <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}">Log in to add to cart</a>
+            {% endif %}
+
         </div>
 </div>
+
+{% endblock %}
