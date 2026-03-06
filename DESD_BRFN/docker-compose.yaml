@@ -7,8 +7,10 @@ services:
       sh -c "
             python manage.py makemigrations &&
             python manage.py migrate &&
-            python manage.py seed_products
-            python manage.py seed_allergen
+            python manage.py seed_producers &&
+            python manage.py seed_products &&
+            python manage.py seed_allergens &&
+            python manage.py seed_admins &&
             python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
