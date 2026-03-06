@@ -8,18 +8,18 @@ def home(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('home')
+    return redirect('mainApp:home')
 
 
 def profile_redirect(request):
     user = request.user
 
     if user.role == RegularUser.Role.PRODUCER:
-            return redirect('producer_myproduct')  #TODO: maybe profiles to be implemented
+        return redirect('mainApp:producers:myproduct')  #TODO: maybe profiles to be implemented
     elif user.role == RegularUser.Role.CUSTOMER:
-        return redirect('customer_profile')  # Customer sees their profile/order history
+        return redirect('mainApp:customers:profile')  # Customer sees their profile/order history
     elif user.role == RegularUser.Role.COMMUNITY_MEMBER:
-        return redirect('community_profile')
+        return redirect('mainApp:customers:profile')
     elif user.role == RegularUser.Role.SYSTEM_ADMIN:
         return redirect('admin:index')
     else:

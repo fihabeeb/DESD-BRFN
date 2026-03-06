@@ -83,7 +83,7 @@
     <nav class="bg-gray-800 text-white py-3 px-4">
     <div class="container mx-auto flex items-center justify-between">
         <!-- Logo/Brand -->
-        <a href="{% url 'home' %}">
+        <a href="{% url 'mainApp:home' %}">
         <div class="flex items-center space-x-2">
             <i class="bi bi-shop text-green-400 text-xl"></i>
             <span class="font-bold text-lg">Bristol Food Network</span>
@@ -92,11 +92,7 @@
 
         <!-- Navigation Links -->
         <div class="flex items-center space-x-6">
-            <!-- <a href="{% url 'home' %}" class="hover:text-green-400 transition flex items-center space-x-1">
-                <i class="bi bi-house-door"></i>
-                <span>Home</span>
-            </a> -->
-            <a href="{% url 'product_list' %}" class="hover:text-green-400 transition flex items-center space-x-1">
+            <a href="{% url 'mainApp:products:product_list' %}" class="hover:text-green-400 transition flex items-center space-x-1">
                 <i class="bi bi-basket"></i>
                 <span>Marketplace</span>
             </a>
@@ -107,7 +103,7 @@
             {% if user.is_authenticated %}
                 <!-- Authenticated User Menu -->
                 <div class="flex items-center space-x-4">
-                    <a href="{% url 'producer_myproduct' %}">
+                    <a href="{% url 'mainApp:profile' %}">
                         <div class="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-lg">
                             <i class="bi bi-person-circle text-green-400"></i>
                             <span class="text-sm">
@@ -118,7 +114,7 @@
                             </span>
                         </div>
                     </a>
-                    <form action="{% url 'logout' %}" method="post" class="inline">
+                    <form action="{% url 'mainApp:logout' %}" method="post" class="inline">
                         {% csrf_token %}
                         <button type="submit" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition">
                             <i class="bi bi-box-arrow-right"></i>
@@ -170,11 +166,11 @@
                             <i class="bi bi-truck text-gray-700"></i>
                             <span class="font-semibold text-gray-700 text-sm">Producer</span>
                         </div>
-                        <a href="{% url 'producer_login' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
+                        <a href="{% url 'mainApp:producers:producer_login' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
                             <i class="bi bi-box-arrow-in-right group-hover:text-white text-gray-500"></i>
                             <span>Login</span>
                         </a>
-                        <a href="{% url 'producer_register' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
+                        <a href="{% url 'mainApp:producers:producer_register' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
                             <i class="bi bi-pencil-square group-hover:text-white text-gray-500"></i>
                             <span>Register</span>
                         </a>
@@ -190,7 +186,7 @@
                             <i class="bi bi-box-arrow-in-right group-hover:text-white text-gray-500"></i>
                             <span>Login</span>
                         </a>
-                        <a href="{% url 'register_customer' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition rounded-b-lg group">
+                        <a href="{% url 'mainApp:customers:register_customer' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition rounded-b-lg group">
                             <i class="bi bi-pencil-square group-hover:text-white text-gray-500"></i>
                             <span>Register</span>
                         </a>

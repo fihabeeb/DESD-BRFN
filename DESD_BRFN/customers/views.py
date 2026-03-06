@@ -63,7 +63,7 @@ def add_to_cart(request, product_id):
             quantity=quantity,
         )
 
-    return redirect("view_cart")
+    return redirect("mainApp:customers:view_cart")
 
 
 @login_required
@@ -91,12 +91,12 @@ def remove_from_cart(request, item_id):
     """
     customer = getattr(request.user, "customer_profile", None)
     if not customer:
-        return redirect("view_cart")
+        return redirect("mainApp:customers:view_cart")
 
     cart = getattr(customer, "cart", None)
     if not cart:
-        return redirect("view_cart")
+        return redirect("mainApp:customers:view_cart")
 
     item = get_object_or_404(CartItem, id=item_id, cart=cart)
     item.delete()
-    return redirect("view_cart")
+    return redirect("mainApp:customers:view_cart")

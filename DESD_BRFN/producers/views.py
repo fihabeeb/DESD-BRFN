@@ -15,17 +15,18 @@ from datetime import timezone
 
 User = get_user_model()
 
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect('home')
-        else:
-            return render(request, 'producer_login.html', {'error': 'Invalid credentials'})
-    return render(request, 'producer_login.html')
+# TODO: function below to remove after testing
+# def login_view(request):
+#     if request.method == 'POST':
+#         username = request.POST['username']
+#         password = request.POST['password']
+#         user = authenticate(request, username=username, password=password)
+#         if user:
+#             login(request, user)
+#             return redirect('home')
+#         else:
+#             return render(request, 'producer_login.html', {'error': 'Invalid credentials'})
+#     return render(request, 'producer_login.html')
 
 
 def register_view(request):

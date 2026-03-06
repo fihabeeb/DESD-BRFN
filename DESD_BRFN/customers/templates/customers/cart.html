@@ -22,7 +22,7 @@
                 <tr>
                     <td>
                         {% if item.product %}
-                            <a href="{% url 'product_detail' item.product.id %}">{{ item.product_name }}</a>
+                            <a href="{% url 'mainApp:products:product_detail' item.product.id %}">{{ item.product_name }}</a>
                         {% else %}
                             {{ item.product_name }}
                         {% endif %}
@@ -31,7 +31,7 @@
                     <td>{{ item.quantity }}</td>
                     <td>£{{ item.line_total }}</td>
                     <td>
-                        <form action="{% url 'remove_from_cart' item.id %}" method="post" style="display:inline;">
+                        <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm btn-danger">Remove</button>
                         </form>

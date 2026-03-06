@@ -41,7 +41,7 @@
     <button type="submit">Apply Filters</button>
 </form>
 
-<a href="{% url 'producer_product_add' %}"a>Add product</a>
+<a href="{% url 'mainApp:producers:add_product' %}"a>Add product</a>
 <!-- Products table -->
 <table>
     <thead>
@@ -68,13 +68,13 @@
             <td>{{ product.get_availability_display }}</td>
             <td>{% if product.is_organic %}Yes{% endif %}</td>
             <td>
-                <a href="{% url 'producer_product_edit' product.id %}">Edit</a>
+                <a href="{% url 'mainApp:producers:edit_product' product.id %}">Edit</a>
                 <!-- <a href="% url 'producer_product_duplicate' product.id %">Duplicate</a> -->
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6">No products found. <a href="{% url 'producer_product_add' %}">Add your first product</a></td>
+            <td colspan="6">No products found. <a href="{% url 'mainApp:producers:add_product' %}">Add your first product</a></td>
         </tr>
         {% endfor %}
     </tbody>
