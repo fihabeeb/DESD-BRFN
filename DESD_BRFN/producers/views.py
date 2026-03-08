@@ -180,7 +180,7 @@ def addproduct_view(request):
                 messages.warning(request, f'Note: "{product.name}" has low stock. Consider adding more inventory.')
             
             # Redirect to product list or product detail
-            return redirect('producer_myproduct')  # or 'producer_product_detail' with product.id
+            return redirect('mainApp:producers:myproduct')  # or 'producer_product_detail' with product.id
         else:
             # Form errors will be displayed in template
             messages.error(request, 'Please correct the errors below.')
@@ -238,7 +238,7 @@ def product_edit_view(request, product_id):
                 )
             
             messages.success(request, f'"{updated_product.name}" has been updated successfully!')
-            return redirect('producer_myproduct')
+            return redirect('mainApp:producers:myproduct')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:

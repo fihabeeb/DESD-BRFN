@@ -1,6 +1,17 @@
 {% extends 'base.html' %}
 {% block title %}{% if is_edit %}Edit{% else %}Add New{% endif %} Product{% endblock %}
 
+
+{% block extra_css %}
+<style>
+    a {
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->

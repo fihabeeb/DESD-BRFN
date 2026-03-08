@@ -14,8 +14,8 @@
             <p class="text-sm text-gray-600 mt-2">Join our community of local food enthusiasts</p>
         </div>
 
-        <!-- Django Messages -->
-        {% if messages %}
+        <!-- Django Messages (moved to base.html) -->
+        <!-- {% if messages %}
             {% for message in messages %}
                 <div class="mb-6 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 rounded-r-lg">
                     <div class="flex items-center">
@@ -26,7 +26,7 @@
                     </div>
                 </div>
             {% endfor %}
-        {% endif %}
+        {% endif %} -->
 
         <!-- Non-Field Errors -->
         {% if form.non_field_errors %}

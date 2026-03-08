@@ -52,3 +52,5 @@ make environmentally conscious purchases.
 - [ ] Search products on markeplace
 
 - [ ] TC-011 (in progress) As a producer, I want to update my product inventory so that customers only see available products I have.
+
+- [ ] myProducts delete a product listing

@@ -28,8 +28,8 @@
             </div>
         {% endif %}
 
-        <!-- Success/Info Messages from Django messages -->
-        {% if messages %}
+        <!-- Django Messages (moved to base.html) -->
+        <!-- {% if messages %}
             {% for message in messages %}
                 <div class="mb-6 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 rounded-r-lg">
                     <div class="flex items-center">
@@ -40,7 +40,7 @@
                     </div>
                 </div>
             {% endfor %}
-        {% endif %}
+        {% endif %} -->
 
         <!-- Registration Form -->
         <form method="post" class="space-y-6">
@@ -114,9 +114,9 @@
                         <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="bi bi-building mr-2"></i>Farm/Business Name *
                         </label>
-                        {{ form.company_name }}
-                        {% if form.company_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.company_name.errors.0 }}</p>
+                        {{ form.business_name }}
+                        {% if form.business_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.business_name.errors.0 }}</p>
                         {% endif %}
                     </div>
                     
