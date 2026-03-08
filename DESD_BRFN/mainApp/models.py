@@ -98,7 +98,7 @@ class RegularUser(AbstractUser):
 class CustomerProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='customer_profile')
     # customer-specific fields
-    # shipping_address = models.TextField(blank=True,null=True)
+    shipping_address = models.TextField(blank=True,null=True)
     # ...
 
 class ProducerProfile(models.Model):
