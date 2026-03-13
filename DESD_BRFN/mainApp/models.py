@@ -105,6 +105,9 @@ class ProducerProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='producer_profile')
     # producer-specific fields
     business_name = models.CharField(max_length=200)
+    # TC-013 food miles — set automatically from user.post_code via postcodes.io on registration
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     # ...
 
 class CommunityMemberProfile(models.Model):

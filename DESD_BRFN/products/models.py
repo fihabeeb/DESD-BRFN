@@ -163,6 +163,18 @@ class Product(models.Model):
     @property
     def is_low_stock(self):
         return 0 < self.stock_quantity < 10
+
+    @property
+    def food_miles(self):
+        """
+        TC-013: Distance in miles from the producer's farm to Bristol city centre.
+        Returns None if the producer has no geocoded location.
+        """
+        from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
+        producer = self.producer
+        if not producer or not producer.latitude or not producer.longitude:
+            return None
+        return round(haversine_miles(producer.latitude, producer.longitude, BRISTOL_LAT, BRISTOL_LON), 1)
     
     @property
     def allergen_display(self):

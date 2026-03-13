@@ -1,0 +1,104 @@
+/* ===== CART PAGE STYLES ===== */
+
+.cart-wrapper { max-width: 860px; margin: 2rem auto; padding: 0 1rem 4rem; }
+
+.cart-header { margin-bottom: 1.5rem; }
+.cart-header h2 { font-size: 1.75rem; font-weight: 700; margin: 0; }
+.cart-header p  { color: #6c757d; margin: 0.25rem 0 0; font-size: 0.9rem; }
+
+/* Producer section card */
+.producer-section {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+}
+
+.producer-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    background: #f8faf8;
+    border-bottom: 1px solid #e8ede8;
+    gap: 0.75rem;
+}
+
+.producer-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.producer-name i { color: #2d6a2d; }
+
+/* Food miles badge */
+.food-miles-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.food-miles-badge.local   { background: #d1fae5; color: #065f46; }
+.food-miles-badge.medium  { background: #fef3c7; color: #92400e; }
+.food-miles-badge.far     { background: #fee2e2; color: #991b1b; }
+.food-miles-badge.unknown { background: #f3f4f6; color: #6b7280; }
+
+/* Items table inside a section */
+.producer-section table { margin: 0; border: none; }
+.producer-section table th { font-size: 0.8rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; border-top: none; }
+.producer-section table td { vertical-align: middle; border-color: #f0f0f0; }
+.producer-section table tr:last-child td { border-bottom: none; }
+
+/* Cart summary */
+.cart-summary {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 1.25rem 1.5rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cart-total { font-size: 1.35rem; font-weight: 700; }
+.cart-total span { color: #2d6a2d; }
+
+.btn-checkout {
+    background-color: #2d6a2d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Empty cart */
+.cart-empty {
+    text-align: center;
+    padding: 5rem 1rem;
+    color: #6c757d;
+}
+
+.cart-empty i { font-size: 3.5rem; display: block; margin-bottom: 1rem; color: #adb5bd; }
+.cart-empty p { font-size: 1.1rem; margin: 0 0 1.5rem; }
