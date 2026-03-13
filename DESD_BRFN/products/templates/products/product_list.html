@@ -1,10 +1,78 @@
 <!-- product_list.html -->
 {% extends 'base.html' %}
 {% block title %}Producer Login{% endblock %}
+{% block extra_css %}
+<style>
+    /* search section */
+.search-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-box input {
+    flex: 1;
+    max-width: 400px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.search-box button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.search-box button:hover {
+    background: #0056b3;
+}
+
+/* Highlight search matches (optional) */
+.highlight {
+    background-color: yellow;
+    font-weight: bold;
+}
+</style>
+
+{% endblock %}
 {% block content %}
 
 <h1>Marketplace Products</h1>
 <h2>List of all Products on the platform</h2>
+
+<!-- search bar -->
+<div class="search-section">
+    <form method="get" action="{% url 'mainApp:products:product_list' %}">
+        <div class="search-box">
+            <input type="text" 
+                   name="q" 
+                   placeholder="Search products..." 
+                   value="{{ search_query }}"
+                   style="padding: 8px; width: 300px;">
+            <button type="submit" style="padding: 8px 16px;">Search</button>
+            
+            <!-- Preserve category filter when searching -->
+            {% if current_category %}
+                <input type="hidden" name="category" value="{{ current_category }}">
+            {% endif %}
+        </div>
+    </form>
+    
+    <!-- Show search results info -->
+    {% if search_query %}
+        <p>Search results for: <strong>"{{ search_query }}"</strong> 
+        ({{ products.count }} products found)</p>
+    {% endif %}
+</div>
 
 <!-- Category Filter -->
 <div class="categories">

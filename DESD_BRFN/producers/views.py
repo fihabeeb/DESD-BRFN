@@ -258,3 +258,20 @@ def product_edit_view(request, product_id):
     }
 
     return render(request, 'producers/addproduct.html', context)  # Reuse the same template
+
+@login_required
+@producer_required
+def delete_product(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    
+    if product.producer != request.user.producer_profile:
+        messages.error(request, "Permission denied.")
+        return redirect('mainApp:producers:myproduct')
+    
+    if request.method == 'POST':
+        product_name = product.name
+        product.delete()
+        messages.success(request, f'"{product_name}" deleted.')
+        return redirect('mainApp:producers:myproduct')
+    
+    return redirect('mainApp:producers:myproduct')

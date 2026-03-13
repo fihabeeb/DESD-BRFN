@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Product, ProductCategory
+from django.db.models import Q
 
 @login_required
 def add_product(request):
@@ -41,18 +42,30 @@ def product_list(request):
     '''
     Display products for customers to browse
     '''
-    category_id = request.GET.get('category')
     products = Product.objects.filter(availability__in=['available', 'in_season'])
 
+    search_query = request.GET.get('q', '')
+    if search_query:
+        products = products.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(category__name__icontains=search_query)
+
+            # TODO:
+            ## add producer name when available
+        )
+
+    category_id = request.GET.get('category')
     if category_id:
         products = products.filter(category_id=category_id)
-
     categories = ProductCategory.objects.filter(is_active=True)
 
+    # products = products.order_by(category_id=category_id)
     context = {
         'products': products,
         'categories': categories,
         'current_categories': category_id,
+        'search_query': search_query,
     }
 
     return render(request, 'products/product_list.html', context)
