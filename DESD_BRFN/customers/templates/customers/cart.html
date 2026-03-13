@@ -28,7 +28,19 @@
                         {% endif %}
                     </td>
                     <td>£{{ item.unit_price }}</td>
-                    <td>{{ item.quantity }}</td>
+                    <td>
+                        <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="d-flex">
+                            {% csrf_token %}
+                            <input type="number" 
+                                name="quantity" 
+                                value="{{ item.quantity }}" 
+                                min="1" 
+                                max="{{ item.product.stock_quantity }}"
+                                class="form-control form-control-sm me-2"
+                                style="width: 70px;">
+                            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                        </form>
+                    </td>
                     <td>£{{ item.line_total }}</td>
                     <td>
                         <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post" style="display:inline;">
