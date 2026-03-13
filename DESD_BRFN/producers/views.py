@@ -167,6 +167,20 @@ def addproduct_view(request):
     producer_profile = request.user.producer_profile
 
     if request.method == 'POST':
+        username = request.POST['username']
+        email = request.POST['email']
+        password1 = request.POST['password1']
+        password2 = request.POST['password2']
+        if password1 != password2:
+            return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
+        if User.objects.filter(email=email).exists():
+            return render(request, 'producer_register.html', {'error': 'Username already taken'})
+        user = User.objects.create_user(username=username, email=email, password=password1)
+        user.role = 'producer'
+        user.save()
+        ProducerProfile.objects.create(user=user)
+        return redirect('producer_login')
+    return render(request, 'producer_register.html')
         form = ProductForm(request.POST, request.FILES, producer=producer_profile)
         
         if form.is_valid():
