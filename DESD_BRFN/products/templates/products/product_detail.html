@@ -1,18 +1,33 @@
 {% extends 'base.html' %}
-{% block title %}Product Details{% endblock %}
+{% load static %}
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'products/product_detail.css' %}">
+{% endblock %}
+
 {% block content %}
+<div class="detail-wrapper">
 
-<h1>Product Details</h1>
-<h2>Detail of a specific product</h2>
+    <a href="{% url 'mainApp:products:product_list' %}" class="detail-back">
+        <i class="bi bi-arrow-left"></i> Back to Marketplace
+    </a>
 
-<!-- Category Filter -->
-<div class="categories">
-    <a href="{% url 'mainApp:products:product_list' %}">Go back</a>
-    {% for category in categories %}
-        <a href="?category={{ category.id }}">{{ category.name }}</a>
-    {% endfor %}
-</div>
+    <div class="detail-card">
 
+        <!-- Left: image -->
+        <div class="detail-image">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+            {% else %}
+                <div class="no-image">
+                    <i class="bi bi-image"></i>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: info -->
+        <div class="detail-info">
 <!-- Product Detail -->
 <div class="products">
     <p>Below are the details of the product</p>
@@ -25,37 +40,104 @@
             {% load static %}
             <!-- <img src="{% static 'products/example.jpeg' %}" alt="test image"> -->
 
+            <!-- Badges -->
+            <div class="detail-badges">
+                {% if product.is_organic %}
+                    <span class="badge-organic"><i class="bi bi-leaf"></i> Organic</span>
+                {% endif %}
+                <span class="badge-availability
+                    {% if product.availability == 'in_season' %}in-season
+                    {% elif product.availability == 'available' %}available
+                    {% elif product.availability == 'unavailable' %}unavailable
+                    {% else %}out-season{% endif %}">
+                    {{ product.get_availability_display }}
+                </span>
+            </div>
 
-            <h3>{{ product.name }}</h3>
-            <p>{{ product.description }}</p>
+            <h1 class="detail-name">{{ product.name }}</h1>
 
+            <div class="detail-price">
+                £{{ product.price }} <span>per {{ product.unit }}</span>
+            </div>
 
-            <p>£{{ product.price }} per {{ product.unit }}</p>
-            <p>Stock: {{ product.stock_quantity }}</p>
-            {% if product.is_organic %}
-                <span class="organic-badge">Organic</span>
+            <p class="detail-description">{{ product.description }}</p>
+
+            <!-- Food miles -->
+            {% if product.food_miles is not None %}
+                {% if product.food_miles <= 30 %}
+                    <div class="detail-food-miles local">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        {{ product.food_miles }} miles from Bristol &mdash; Local
+                    </div>
+                {% elif product.food_miles <= 100 %}
+                    <div class="detail-food-miles medium">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        {{ product.food_miles }} miles from Bristol &mdash; Regional
+                    </div>
+                {% else %}
+                    <div class="detail-food-miles far">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        {{ product.food_miles }} miles from Bristol &mdash; Long distance
+                    </div>
+                {% endif %}
             {% endif %}
-            
-            <p>Date harvested: {{ product.harvest_date }}</p>
-            <p>Last updated: {{ product.updated_at }}</p>
-            <p>Status: {{ product.get_availability_display }}</p>
-            <p>Allergens: {{ product.allergen_display }}</p>
-            <!-- <button>Add to Cart</button> -->
-            
-            {% if user.is_authenticated %}
-                <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post">
-                    {% csrf_token %}
-                    <label>
-                        Qty
-                        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}">
-                    </label>
-                    <button type="submit">Add to Cart</button>
-                </form>
-            {% else %}
-                <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}">Log in to add to cart</a>
-            {% endif %}
+
+            <!-- Metadata -->
+            <ul class="detail-meta">
+                <li>
+                    <i class="bi bi-box-seam"></i>
+                    <strong>Stock</strong>
+                    {% if product.is_low_stock %}
+                        <span class="stock-low">Only {{ product.stock_quantity }} left!</span>
+                    {% else %}
+                        {{ product.stock_quantity }} available
+                    {% endif %}
+                </li>
+                {% if product.harvest_date %}
+                <li>
+                    <i class="bi bi-calendar3"></i>
+                    <strong>Harvested</strong> {{ product.harvest_date }}
+                </li>
+                {% endif %}
+                <li>
+                    <i class="bi bi-shop"></i>
+                    <strong>Producer</strong>
+                    {% if product.producer %}{{ product.producer.business_name }}{% else %}—{% endif %}
+                </li>
+                <li>
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Allergens</strong> {{ product.allergen_display }}
+                </li>
+                <li>
+                    <i class="bi bi-clock"></i>
+                    <strong>Updated</strong> {{ product.updated_at|date:"d M Y" }}
+                </li>
+            </ul>
+
+            <!-- Add to cart / login -->
+            <div class="detail-cart-form">
+                {% if user.is_authenticated %}
+                    <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post"
+                          style="display:contents;">
+                        {% csrf_token %}
+                        <label>
+                            <i class="bi bi-hash"></i> Qty
+                            <input class="qty-input" type="number" name="quantity"
+                                   value="1" min="1" max="{{ product.stock_quantity }}">
+                        </label>
+                        <button type="submit" class="btn-add-cart">
+                            <i class="bi bi-cart-plus"></i> Add to Cart
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}"
+                       class="btn-login-prompt">
+                        <i class="bi bi-box-arrow-in-right"></i> Log in to add to cart
+                    </a>
+                {% endif %}
+            </div>
 
         </div>
+    </div>
 </div>
-
 {% endblock %}

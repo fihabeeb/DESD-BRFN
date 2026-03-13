@@ -3,6 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from mainApp.models import ProducerProfile
+from mainApp.utils import geocode_postcode
 
 User = get_user_model()
 
@@ -153,10 +154,13 @@ class ProducerRegistrationForm(UserCreationForm):
         
         if commit:
             user.save()
-            # Create producer profile
+            # Geocode postcode for food miles (TC-013)
+            lat, lon = geocode_postcode(user.post_code)
             ProducerProfile.objects.create(
                 user=user,
-                business_name=self.cleaned_data['business_name']
+                business_name=self.cleaned_data['business_name'],
+                latitude=lat,
+                longitude=lon,
             )
-        
+
         return user

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
@@ -5,12 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from customers.forms import CustomerRegistrationForm
 from django.contrib import messages
-# from django.urls import reverse_lazy
 from mainApp.models import CustomerProfile
-
-# from .forms import CustomerRegistrationForm
+from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
 from .models import Cart, CartItem
-# from mainApp.models import RegularUser
 from products.models import Product
 
 
@@ -100,15 +98,37 @@ def add_to_cart(request, product_id):
 def view_cart(request):
     customer = getattr(request.user, "customer_profile", None)
     if not customer:
-        # empty cart view
-        return render(request, "customers/cart.html", {"cart": None, "items": [], "total": Decimal("0.00")})
+        return render(request, "customers/cart.html", {"cart": None, "producer_sections": [], "total": Decimal("0.00")})
 
     cart, _ = Cart.objects.get_or_create(customer=customer)
-    items = cart.items.select_related("product").all()
+    items = cart.items.select_related("product__producer").all()
+
+    # TC-013: Group cart items by producer, compute food miles once per producer
+    grouped = defaultdict(list)
+    for item in items:
+        producer = item.product.producer if item.product else None
+        grouped[producer].append(item)
+
+    producer_sections = []
+    for producer, producer_items in grouped.items():
+        food_miles = None
+        if producer and producer.latitude and producer.longitude:
+            food_miles = round(
+                haversine_miles(producer.latitude, producer.longitude, BRISTOL_LAT, BRISTOL_LON), 1
+            )
+        producer_sections.append({
+            "producer": producer,
+            "items": producer_items,
+            "food_miles": food_miles,
+        })
+
+    # Sort sections: known producers first, then unknown
+    producer_sections.sort(key=lambda s: s["producer"].business_name if s["producer"] else "")
+
     total = cart.total_amount()
     return render(request, "customers/cart.html", {
         "cart": cart,
-        "items": items,
+        "producer_sections": producer_sections,
         "total": total,
     })
 
