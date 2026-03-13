@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.template.defaultfilters import slugify
+from products.utility import product_image_path
 
 class Product(models.Model):
     '''
@@ -53,7 +54,7 @@ class Product(models.Model):
     season_end = models.IntegerField(choices=MONTH_CHOICES, null=True, blank=True)
 
     # media
-    image = models.ImageField(upload_to='products/',null=True,blank=True)
+    image = models.ImageField(upload_to=product_image_path,null=True,blank=True, help_text="Product image")
 
     category = models.ForeignKey(
         'ProductCategory',
@@ -136,6 +137,17 @@ class Product(models.Model):
         return False
 
     def save(self, *args, **kwargs):
+        try:
+            # Check if this is an existing product being updated
+            if self.pk:
+                old_product = Product.objects.get(pk=self.pk)
+                
+                # If there was an old image and it's different from the new one
+                if old_product.image and old_product.image != self.image:
+                    old_product.image.delete(save=False) 
+        except Product.DoesNotExist:
+            pass
+
         if not self.slug:
             self.slug = slugify(self.name)
             original_slug = self.slug
@@ -159,6 +171,16 @@ class Product(models.Model):
                 self.allergen_notes = "No common allergens"
 
         super().save(*args, **kwargs)
+
+        # TODO:
+        # async for image processing tumbnails
+        # if self.image:
+            # from 
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            self.image.delete(save=False)
+        super().delete(*args,**kwargs)
 
     @property
     def is_low_stock(self):

@@ -28,6 +28,17 @@
 
         <!-- Right: info -->
         <div class="detail-info">
+<!-- Product Detail -->
+<div class="products">
+    <p>Below are the details of the product</p>
+        <div class="product-card">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+            {% endif %}
+
+            <!-- example of storing iamges below -->
+            {% load static %}
+            <!-- <img src="{% static 'products/example.jpeg' %}" alt="test image"> -->
 
             <!-- Badges -->
             <div class="detail-badges">

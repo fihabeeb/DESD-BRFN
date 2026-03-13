@@ -150,3 +150,44 @@ def remove_from_cart(request, item_id):
     item = get_object_or_404(CartItem, id=item_id, cart=cart)
     item.delete()
     return redirect("mainApp:customers:view_cart")
+
+
+
+@login_required
+@require_POST
+def update_cart_item(request, item_id):
+    """
+    Update the quantity of a cart item.
+    """
+    customer = getattr(request.user, "customer_profile", None)
+    if not customer:
+        messages.error(request, "No customer profile found.")
+        return redirect("mainApp:customers:view_cart")
+
+    cart = getattr(customer, "cart", None)
+    if not cart:
+        messages.error(request, "No cart found.")
+        return redirect("mainApp:customers:view_cart")
+
+    item = get_object_or_404(CartItem, id=item_id, cart=cart)
+
+    try:
+        new_quantity = int(request.POST.get("quantity", 1))
+    except ValueError:
+        messages.error(request, "Invalid quantity.")
+        return redirect("mainApp:customers:view_cart")
+
+    if new_quantity < 1:
+        messages.warning(request, "Quantity must be at least 1.")
+        new_quantity = 1
+
+    # Optional: enforce stock limit
+    if item.product and new_quantity > item.product.stock_quantity:
+        messages.error(request, f"Only {item.product.stock_quantity} units available.")
+        new_quantity = item.product.stock_quantity
+
+    item.quantity = new_quantity
+    item.save()
+
+    messages.success(request, f"Updated quantity for {item.product_name}.")
+    return redirect("mainApp:customers:view_cart")

@@ -4,6 +4,9 @@ from django.utils import timezone
 from django import forms
 from products.models import Allergen, Product
 from django.forms import CheckboxInput #
+import os
+
+ALLOWED_MB_IMAGE = 5 # this will be used for the allowed image size to accept
 
 class ProductForm(forms.ModelForm):
     """
@@ -95,6 +98,26 @@ class ProductForm(forms.ModelForm):
             cleaned_data['allergen_statement'] = f"Contains: {', '.join([a.get_name_display() for a in allergen_list])}"
         
         return cleaned_data
+    
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+
+        if not image:
+            return image
+        
+        if image.size > ALLOWED_MB_IMAGE * 1024 * 1024:
+            raise forms.ValidationError(f"Image file too large (max {ALLOWED_MB_IMAGE}MB)")
+        
+        # valid_types = ['image/jpeg', 'image/png', 'image/jpg']
+        # if image.content_type not in valid_types:
+        #     raise forms.ValidationError(f"Invalid file type. Allowed: {', '.join(valid_types)}")
+        
+        # ext = os.path.splitext(image.name)[1].lower()
+        # valid_extensions = ['.jpg', '.jpeg', '.png']
+        # if ext not in valid_extensions:
+        #     raise forms.ValidationError(f"Invalid file extension. Allowed: {', '.join(valid_extensions)}")
+        
+        return image
 
     def save(self, commit=True):
         product = super().save(commit=False)
@@ -138,4 +161,30 @@ class ProductForm(forms.ModelForm):
             product.save(update_fields=['allergen_notes', 'has_allergens'])
 
         return product
+
+
+# Scrapping the class below cuz idk how we want to store multiple images tbh
+
+# class ProductImageForm(forms.Form):
+#     '''
+#     For multiple image uploads (experimenting)
+#     '''
+#     images = forms.ImageField(
+#         widget=forms.ClearableFileInput(attrs={'multiple': True}),
+#         required=False
+#     )
+
+#     def clean_images(self):
+#         images = self.files.getlist('images')
+        
+#         if len(images) > 5:
+#             raise forms.ValidationError("Maximum 5 images per product")
+        
+#         for image in images:
+#             # Same validation as above for each image
+#             if image.size > ALLOWED_MB_IMAGE * 1024 * 1024:
+#                 raise forms.ValidationError(f"Each image must be less than {ALLOWED_MB_IMAGE}MB")
+        
+#         return images
+    
 

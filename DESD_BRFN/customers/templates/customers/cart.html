@@ -94,6 +94,59 @@
                 </tbody>
             </table>
 
+<div class="container mt-4">
+    <h2>Your Cart</h2>
+
+    {% if items %}
+        <table class="table table-bordered mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Unit Price</th>
+                    <th>Quantity</th>
+                    <th>Line Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>
+                        {% if item.product %}
+                            <a href="{% url 'mainApp:products:product_detail' item.product.id %}">{{ item.product_name }}</a>
+                        {% else %}
+                            {{ item.product_name }}
+                        {% endif %}
+                    </td>
+                    <td>£{{ item.unit_price }}</td>
+                    <td>
+                        <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="d-flex">
+                            {% csrf_token %}
+                            <input type="number" 
+                                name="quantity" 
+                                value="{{ item.quantity }}" 
+                                min="1" 
+                                max="{{ item.product.stock_quantity }}"
+                                class="form-control form-control-sm me-2"
+                                style="width: 70px;">
+                            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                        </form>
+                    </td>
+                    <td>£{{ item.line_total }}</td>
+                    <td>
+                        <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="text-end">
+            <h4>Total: £{{ total }}</h4>
         </div>
         {% endfor %}
 
