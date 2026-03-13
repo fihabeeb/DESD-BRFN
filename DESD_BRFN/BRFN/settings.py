@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 #TODO : change passowrd limit after development
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -43,6 +47,8 @@ INSTALLED_APPS = [
     'mainApp',
     'customers',
     'producers',
+
+    'storages',
 ]
 
 AUTH_USER_MODEL = 'mainApp.RegularUser'
@@ -97,6 +103,28 @@ DATABASES = {
     }
 }
 
+AWS_ACCESS_KEY_ID = os.getenv("B2_APPLICATION_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv('B2_APPLICATION_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('B2_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('B2_REGION')
+AWS_S3_ENDPOINT_URL = f'https://s3.{AWS_S3_REGION_NAME}.backblazeb2.com'
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
+AWS_QUERYSTRING_AUTH = True
+
+print(f"AWS_ACCESS_KEY_ID: {'SET' if AWS_ACCESS_KEY_ID else 'NOT SET'}")
+print(f"AWS_SECRET_ACCESS_KEY: {'SET' if AWS_SECRET_ACCESS_KEY else 'NOT SET'}")
+print(f"AWS_STORAGE_BUCKET_NAME: {'SET' if AWS_STORAGE_BUCKET_NAME else 'NOT SET'}")
+print(f"AWS_S3_REGION_NAME: {'SET' if AWS_S3_REGION_NAME else 'NOT SET'}")
+print(f"AWS_S3_ENDPOINT_URL: {AWS_S3_ENDPOINT_URL}")
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
