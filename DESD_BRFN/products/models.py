@@ -55,10 +55,6 @@ class Product(models.Model):
     # media
     image = models.ImageField(upload_to='products/',null=True,blank=True)
 
-    # Relationships
-    # TODO
-    # producer id ig
-
     category = models.ForeignKey(
         'ProductCategory',
         on_delete=models.SET_NULL,
@@ -66,6 +62,23 @@ class Product(models.Model):
         related_name='products',
         help_text='Product category'
     )
+
+    # Allergen information
+    allergens = models.ManyToManyField(
+        "Allergen",
+        blank=True,
+        related_name='products',
+        help_text="Select all allergens present in this product"
+    )
+    allergen_statement = models.TextField(
+        blank=True,
+        help_text="Additional allergen information or preparation notes (e.g., 'May contain traces of nuts due to shared equipment')"
+    )
+    has_allergens= models.BooleanField(default=False,help_text="Does this product contain any allergens?")
+    allergen_notes = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Brief allergen warning for quick display")
 
 
     def __str__(self):
@@ -130,11 +143,37 @@ class Product(models.Model):
             while Product.objects.filter(slug=self.slug).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
+
+        # allergen
+        if not self.allergen_notes and self.pk:
+            allergen_list = self.allergens.all()
+            if allergen_list:
+                self.has_allergens = True
+                names = [a.get_name_display() for a in allergen_list]
+                if len(names) > 3:
+                    self.allergen_notes = f"Contains: {', '.join(names[:3])} and others"
+                else:
+                    self.allergen_notes = f"Contains: {', '.join(names)}"
+            else:
+                self.has_allergens = False
+                self.allergen_notes = "No common allergens"
+
         super().save(*args, **kwargs)
 
     @property
     def is_low_stock(self):
         return 0 < self.stock_quantity < 10
+    
+    @property
+    def allergen_display(self):
+        if not self.has_allergens:
+            return "No common allergens"
+
+        allergen_list = self.allergens.all()
+        if not allergen_list:
+            return "No common allergens"
+        
+        return f"Contatins: {', '.join([a.get_name_display() for a in allergen_list])}"
 
 class ProductCategory(models.Model):
     '''
@@ -164,6 +203,43 @@ class ProductCategory(models.Model):
         if not self.slug:
             self.slug = slugify(self.name) # set url path to use the name of the category
         super().save(*args, **kwargs)
+
+
+class Allergen(models.Model):
+    """
+    TC-015 & TC-03 allergen information
+    """
+    ALLERGEN_CHOICES = [
+        ('celery', 'Celery'),
+        ('cereals_gluten', 'Cereals containing gluten (wheat, rye, barley, oats)'),
+        ('crustaceans', 'Crustaceans (prawns, crabs, lobster)'),
+        ('eggs', 'Eggs'),
+        ('fish', 'Fish'),
+        ('lupin', 'Lupin'),
+        ('milk', 'Milk'),
+        ('molluscs', 'Molluscs (mussels, oysters, snails)'),
+        ('mustard', 'Mustard'),
+        ('nuts', 'Nuts (almonds, hazelnuts, walnuts, etc.)'),
+        ('peanuts', 'Peanuts'),
+        ('sesame', 'Sesame seeds'),
+        ('soya', 'Soya'),
+        ('sulphites', 'Sulphur dioxide / sulphites'),
+    ]
+
+    name = models.CharField(max_length=50, choices=ALLERGEN_CHOICES, unique=True)
+    display_name = models.CharField(max_length=100, help_text="Display name for the allergen")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.display_name
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = "allergen"
+        verbose_name_plural = "allergens"
+
+    def get_name_display(self):
+        return self.display_name
 
 # class ProductReview(models.Model):
 #     # TODO

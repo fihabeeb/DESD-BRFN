@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_edit %}Edit{% else %}Add New{% endif %} Product{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    a {
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">
+            {% if is_edit %}
+                Edit Product: {{ product.name }}
+            {% else %}
+                Add New Product
+            {% endif %}
+        </h1>
+        <p class="text-gray-600">
+            {% if is_edit %}
+                Update your product details below
+            {% else %}
+                List a new product for customers to purchase (TC-003)
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left Column -->
+            <div>
+                <!-- Product Name (Required) -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                        Product Name *
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Category -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="category">
+                        Category *
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.category.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Price and Unit -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="price">
+                            Price (£) *
+                        </label>
+                        {{ form.price }}
+                        {% if form.price.errors %}
+                            <p class="text-red-500 text-xs italic">{{ form.price.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="unit">
+                            Unit *
+                        </label>
+                        {{ form.unit }}
+                        {% if form.unit.errors %}
+                            <p class="text-red-500 text-xs italic">{{ form.unit.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-gray-500 text-xs mt-1">e.g., kg, dozen, each</p>
+                    </div>
+                </div>
+
+                <!-- Stock Quantity -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="stock_quantity">
+                        Stock Quantity *
+                    </label>
+                    {{ form.stock_quantity }}
+                    {% if form.stock_quantity.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.stock_quantity.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.stock_quantity.value|default:0 < 10 and form.stock_quantity.value|default:0 > 0 %}
+                        <p class="text-yellow-600 text-xs mt-1">Low stock - customers will see limited availability</p>
+                    {% endif %}
+                </div>
+
+                <!-- Organic Certification (TC-014) -->
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        {{ form.is_organic }}
+                        <span class="ml-2 text-sm text-gray-700">This product is organically certified</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div>
+                <!-- Description -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+                        Description *
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-gray-500 text-xs mt-1">Describe your product, including taste, uses, and qualities</p>
+                </div>
+
+                <!-- Availability (TC-016) -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="availability">
+                        Availability Status
+                    </label>
+                    {{ form.availability }}
+                    {% if form.availability.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.availability.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Seasonal Availability (TC-016) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="season_start">
+                            Season Start
+                        </label>
+                        <select name="season_start" class="form-control">
+                            <option value="">-- Select Month --</option>
+                            {% for month_num, month_name in month_choices %}
+                                <option value="{{ month_num }}" {% if form.season_start.value == month_num %}selected{% endif %}>
+                                    {{ month_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="season_end">
+                            Season End
+                        </label>
+                        <select name="season_end" class="form-control">
+                            <option value="">-- Select Month --</option>
+                            {% for month_num, month_name in month_choices %}
+                                <option value="{{ month_num }}" {% if form.season_end.value == month_num %}selected{% endif %}>
+                                    {{ month_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Harvest Date -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="harvest_date">
+                        Harvest Date
+                    </label>
+                    {{ form.harvest_date }}
+                    {% if form.harvest_date.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.harvest_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Product Image -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="image">
+                        Product Image
+                    </label>
+                    {% if is_edit and product.image %}
+                        <div class="mb-2">
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-32 h-32 object-cover rounded">
+                            <label class="inline-flex items-center mt-2">
+                                <input type="checkbox" name="image-clear">
+                                <span class="ml-2 text-sm text-gray-700">Remove current image</span>
+                            </label>
+                        </div>
+                    {% endif %}
+                    {{ form.image }}
+                    {% if form.image.errors %}
+                        <p class="text-red-500 text-xs italic">{{ form.image.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Allergen Information - To be added when model includes it (TC-015) -->
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+                Allergen Information
+            </label>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {{ form.allergen_list }}
+            </div>
+
+            {% if form.allergen_list.errors %}
+                <p class="text-red-500 text-xs italic">{{ form.allergen_list.errors.0 }}</p>
+            {% endif %}
+
+            <p class="text-gray-500 text-xs mt-2">
+                Select all allergens present in this product
+            </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end space-x-4 mt-6 pt-4 border-t">
+            <a href="{% url 'mainApp:producers:myproduct' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                Cancel
+            </a>
+            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                {% if is_edit %}Update{% else %}List{% endif %} Product
+            </button>
+        </div>
+    </form>
+
+    {% if not is_edit %}
+    <!-- Tips for new products
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="text-blue-500 text-xl"></span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Tips for great product listings:</strong><br>
+                    • Add clear, high-quality photos of your product<br>
+                    • Include detailed descriptions of taste and uses<br>
+                    • Set accurate seasonal availability to manage customer expectations (TC-016)<br>
+                    • Update stock levels regularly to prevent overselling (TC-011)<br>
+                    • Add organic certification if applicable (TC-014)
+                </p>
+            </div>
+        </div>
+    </div> -->
+    {% endif %}
+</div>
+{% endblock %}
