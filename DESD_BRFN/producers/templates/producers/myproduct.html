@@ -69,7 +69,6 @@
             <td>{% if product.is_organic %}Yes{% endif %}</td>
             <td>
                 <a href="{% url 'mainApp:producers:edit_product' product.id %}">Edit</a>
-                <a href="{% url 'mainApp:producers:edit_product' product.id %}">Edit</a>
                 <form method="post" action="{% url 'mainApp:producers:delete_product' product.id %}" 
                     style="display: inline; margin-left: 10px;">
                     {% csrf_token %}
