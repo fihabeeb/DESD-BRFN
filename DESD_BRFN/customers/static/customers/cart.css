@@ -77,20 +77,18 @@
 .cart-total span { color: #2d6a2d; }
 
 .btn-checkout {
-    background-color: #2d6a2d;
+    background-color: #30c230;
     color: white;
     border: none;
     border-radius: 8px;
     padding: 0.65rem 1.5rem;
     font-weight: 600;
     font-size: 0.95rem;
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     text-decoration: none;
-    opacity: 0.6;
-    pointer-events: none;
+    opacity: 1;
 }
 
 /* Empty cart */

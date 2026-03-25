@@ -44,7 +44,21 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def total_amount(self):
-        return sum((item.line_total for item in self.items.all()), Decimal("0.00"))
+        subtotal = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
+        commission = subtotal * Decimal('0.05')
+        total = round(subtotal + commission,2)
+        return total
+    
+    def subtotal(self):
+        subtotal = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
+        return round(subtotal,2)
+
+    def commission(self):
+        commission = self.subtotal() * Decimal('0.05')
+        return round(commission,2)
+    
+    def item_count(self):
+        return sum(item.quantity for item in self.items.all())
 
     def __str__(self):
         return f"Cart({self.customer})"

@@ -1,0 +1,18 @@
+<!-- templates/orders/success.html -->
+{% extends 'base.html' %}
+
+{% block title %}Order Confirmed{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="mb-4">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2">
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+    </div>
+    <h1>Thank You for Your Order!</h1>
+    <p class="lead">Your order has been confirmed.</p>
+    <p>We'll send you an email confirmation with your order details.</p>
+    <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-primary">Continue Shopping</a>
+</div>
+{% endblock %}

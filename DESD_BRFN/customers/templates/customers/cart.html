@@ -18,10 +18,9 @@
     </div>
 
     {% if producer_sections %}
-
+        <!-- Producer sections view -->
         {% for section in producer_sections %}
         <div class="producer-section">
-
             <!-- Producer header with food miles -->
             <div class="producer-section-header">
                 <div class="producer-name">
@@ -93,12 +92,23 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>  <!-- Close producer-section -->
         {% endfor %}
-    {% else %}
-        <div class="container mt-4">
-            <h2>Your Cart</h2>
 
-            {% if items %}
+        <!-- Total and checkout for producer sections -->
+        <div class="cart-summary">
+            <div class="cart-total">Total: <span>£{{ total }}</span></div>
+            <a href="{% url 'mainApp:orders:checkout' %}" class="btn-checkout">
+                Proceed to Checkout
+            </a>
+        </div>
+
+    {% else %}
+        <!-- Simple cart view (fallback) -->
+        {% if items %}
+            <div class="container mt-4">
+                <h2>Your Cart</h2>
+
                 <table class="table table-bordered mt-3">
                     <thead class="table-light">
                         <tr>
@@ -109,13 +119,12 @@
                             <th></th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {% for item in items %}
                         <tr>
                             <td>
                                 {% if item.product %}
-                                    <a href="{% url 'mainApp:products:product_detail' item.product.id %}">{{ item.product_name }}</a>
+                                    <a href="{% url 'mainApp:products:product_detail' item.product.slug %}">{{ item.product_name }}</a>
                                 {% else %}
                                     {{ item.product_name }}
                                 {% endif %}
@@ -150,24 +159,24 @@
                     <h4>Total: £{{ total }}</h4>
                 </div>
 
-                <!-- Order summary -->
                 <div class="cart-summary">
                     <div class="cart-total">Total: <span>£{{ total }}</span></div>
-                    <a href="#" class="btn-checkout">
-                        <i class="bi bi-lock"></i> Checkout (coming soon)
+                    <a href="{% url 'mainApp:orders:checkout' %}" class="btn-checkout">
+                        <i class="bi bi-lock"></i> Proceed to Checkout
                     </a>
                 </div>
+            </div>
 
-            {% else %}
-                <div class="cart-empty">
-                    <i class="bi bi-cart-x"></i>
-                    <p>Your cart is empty.</p>
-                    <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-success">
-                        <i class="bi bi-basket"></i> Browse the Marketplace
-                    </a>
-                </div>
-            {% endif %}
-        </div>
+        {% else %}
+            <div class="cart-empty">
+                <i class="bi bi-cart-x"></i>
+                <p>Your cart is empty.</p>
+                <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-success">
+                    <i class="bi bi-basket"></i> Browse the Marketplace
+                </a>
+            </div>
+        {% endif %}
     {% endif %}
-    
+
+</div>  <!-- Close cart-wrapper -->
 {% endblock %}
