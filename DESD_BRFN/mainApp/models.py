@@ -36,7 +36,7 @@ class Address(models.Model):
     # System to fill this up:
     # TC 013 foodmile
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longtitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     address_type = models.CharField(max_length=20, choices=ADDRESS_TYPES, default='home')
     is_default = models.BooleanField(default=False)

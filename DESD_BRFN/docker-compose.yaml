@@ -8,6 +8,7 @@ services:
             python manage.py makemigrations &&
             python manage.py migrate &&
             python manage.py seed_producers &&
+            python manage.py seed_customers &&
             python manage.py seed_products &&
             python manage.py seed_allergens &&
             python manage.py seed_admins &&

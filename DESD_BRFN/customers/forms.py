@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from mainApp.models import CustomerProfile, Address
+from mainApp.utils import geocode_postcode
 
 User = get_user_model()
 
@@ -175,22 +176,23 @@ class CustomerRegistrationForm(UserCreationForm):
             user.save()
             CustomerProfile.objects.create(
                 user=user,
-                shipping_address=None,
             )
+
+        lat, lon = geocode_postcode(self.cleaned_data['post_code'])
         
-        # Address.objects.create(
-        #         user=user,
-        #         address_line1=self.cleaned_data['address_line1'],
-        #         address_line2=self.cleaned_data.get('address_line2', ''),
-        #         city=self.cleaned_data['city'],
-        #         county=self.cleaned_data.get('county', ''),
-        #         post_code=self.cleaned_data['post_code'],
-        #         country='UK',
-        #         address_type='home',
-        #         is_default=True,
-        #         latitude=lat,
-        #         longitude=lon,
-        #     )
+        Address.objects.create(
+                user=user,
+                address_line1=self.cleaned_data['address_line1'],
+                address_line2=self.cleaned_data.get('address_line2', ''),
+                city=self.cleaned_data['city'],
+                county=self.cleaned_data.get('county', ''),
+                post_code=self.cleaned_data['post_code'],
+                country='UK',
+                address_type='home',
+                is_default=True,
+                latitude=lat,
+                longitude=lon,
+            )
 
         return user
 

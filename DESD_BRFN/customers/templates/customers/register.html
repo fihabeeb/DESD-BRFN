@@ -14,20 +14,6 @@
             <p class="text-sm text-gray-600 mt-2">Join our community of local food enthusiasts</p>
         </div>
 
-        <!-- Django Messages (moved to base.html) -->
-        <!-- {% if messages %}
-            {% for message in messages %}
-                <div class="mb-6 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-green-500{% elif message.tags == 'error' %}bi-exclamation-triangle-fill text-red-500{% else %}bi-info-circle-fill text-blue-500{% endif %} mr-3"></i>
-                        <p class="text-sm {% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %}">
-                            {{ message }}
-                        </p>
-                    </div>
-                </div>
-            {% endfor %}
-        {% endif %} -->
-
         <!-- Non-Field Errors -->
         {% if form.non_field_errors %}
             <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
@@ -110,14 +96,6 @@
                             <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
                         {% endif %}
                     </div>
-                </div>
-                
-                <!-- Right Column - Contact Information -->
-                <div class="space-y-4">
-                    <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
-                        <i class="bi bi-telephone text-green-600 mr-2"></i>
-                        Contact Information
-                    </h3>
                     
                     <!-- Phone Number -->
                     <div>
@@ -130,15 +108,57 @@
                         {% endif %}
                         <p class="text-xs text-gray-500 mt-1">For delivery coordination</p>
                     </div>
+                </div>
+                
+                <!-- Right Column - Address Information -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
+                        <i class="bi bi-geo-alt text-green-600 mr-2"></i>
+                        Delivery Address
+                    </h3>
                     
-                    <!-- Address -->
+                    <!-- Address Line 1 -->
                     <div>
-                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-geo-alt mr-2"></i>Address *
+                        <label for="{{ form.address_line1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-house-door mr-2"></i>Address Line 1 *
                         </label>
-                        {{ form.address }}
-                        {% if form.address.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.address.errors.0 }}</p>
+                        {{ form.address_line1 }}
+                        {% if form.address_line1.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.address_line1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Address Line 2 (Optional) -->
+                    <div>
+                        <label for="{{ form.address_line2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-building mr-2"></i>Address Line 2 <span class="text-gray-400 text-xs">(Optional)</span>
+                        </label>
+                        {{ form.address_line2 }}
+                        {% if form.address_line2.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.address_line2.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">Apartment, suite, unit, etc.</p>
+                    </div>
+                    
+                    <!-- City -->
+                    <div>
+                        <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-building mr-2"></i>City *
+                        </label>
+                        {{ form.city }}
+                        {% if form.city.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.city.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- County (Optional) -->
+                    <div>
+                        <label for="{{ form.county.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-map mr-2"></i>County <span class="text-gray-400 text-xs">(Optional)</span>
+                        </label>
+                        {{ form.county }}
+                        {% if form.county.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.county.errors.0 }}</p>
                         {% endif %}
                     </div>
                     
@@ -151,7 +171,7 @@
                         {% if form.post_code.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.post_code.errors.0 }}</p>
                         {% endif %}
-                        <!-- <p class="text-xs text-gray-500 mt-1">For calculating food miles</p> -->
+                        <p class="text-xs text-gray-500 mt-1">Used to calculate food miles from local producers</p>
                     </div>
                 </div>
             </div>
@@ -173,11 +193,10 @@
                         {% if form.password1.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
                         {% endif %}
-                        <div class="text-xs text-gray-500 mt-2 space-y-1">
-                            <!-- <p>• Your password can't be too similar to your other personal information.</p>
-                            <p>• Your password must contain at least 8 characters.</p>
-                            <p>• Your password can't be a commonly used password.</p>
-                            <p>• Your password can't be entirely numeric.</p> -->
+                        <div class="text-xs text-gray-500 mt-2">
+                            <p>• At least 8 characters long</p>
+                            <p>• Can't be too similar to your personal information</p>
+                            <p>• Can't be a commonly used password</p>
                         </div>
                     </div>
                     
@@ -195,9 +214,11 @@
             </div>
 
             <!-- Terms and Conditions -->
-            <div class="flex items-center">
-                <input type="checkbox" name="terms" id="terms" required
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+            <div class="flex items-start">
+                <div class="flex items-center h-5">
+                    <input type="checkbox" name="terms" id="terms" required
+                           class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                </div>
                 <label for="terms" class="ml-2 block text-sm text-gray-700">
                     I agree to the <a href="#" class="text-green-600 hover:text-green-700">Terms and Conditions</a> and 
                     <a href="#" class="text-green-600 hover:text-green-700">Privacy Policy</a> *
