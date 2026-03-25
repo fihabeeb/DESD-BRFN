@@ -1,0 +1,13 @@
+<!-- templates/orders/cancel.html -->
+{% extends 'base.html' %}
+
+{% block title %}Order Cancelled{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <h1>Order Cancelled</h1>
+    <p>Your payment was not completed. No charges were made.</p>
+    <a href="{% url 'mainApp:orders:checkout' %}" class="btn btn-primary">Try Again</a>
+    <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-outline-secondary">Continue Shopping</a>
+</div>
+{% endblock %}

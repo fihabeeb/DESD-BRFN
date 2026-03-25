@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'mainApp',
     'customers',
     'producers',
-
+    'orders',
     'storages',
 ]
 
@@ -120,11 +120,11 @@ STORAGES = {
 
 AWS_QUERYSTRING_AUTH = True
 
-print(f"AWS_ACCESS_KEY_ID: {'SET' if AWS_ACCESS_KEY_ID else 'NOT SET'}")
-print(f"AWS_SECRET_ACCESS_KEY: {'SET' if AWS_SECRET_ACCESS_KEY else 'NOT SET'}")
-print(f"AWS_STORAGE_BUCKET_NAME: {'SET' if AWS_STORAGE_BUCKET_NAME else 'NOT SET'}")
-print(f"AWS_S3_REGION_NAME: {'SET' if AWS_S3_REGION_NAME else 'NOT SET'}")
-print(f"AWS_S3_ENDPOINT_URL: {AWS_S3_ENDPOINT_URL}")
+# print(f"AWS_ACCESS_KEY_ID: {'SET' if AWS_ACCESS_KEY_ID else 'NOT SET'}")
+# print(f"AWS_SECRET_ACCESS_KEY: {'SET' if AWS_SECRET_ACCESS_KEY else 'NOT SET'}")
+# print(f"AWS_STORAGE_BUCKET_NAME: {'SET' if AWS_STORAGE_BUCKET_NAME else 'NOT SET'}")
+# print(f"AWS_S3_REGION_NAME: {'SET' if AWS_S3_REGION_NAME else 'NOT SET'}")
+# print(f"AWS_S3_ENDPOINT_URL: {AWS_S3_ENDPOINT_URL}")
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -170,3 +170,13 @@ LOGOUT_REDIRECT_URL = 'home'
 STATICFILES_DIRS = [
     BASE_DIR / "static",  
 ]
+
+
+import stripe
+
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+
+
+stripe.api_key = STRIPE_SECRET_KEY

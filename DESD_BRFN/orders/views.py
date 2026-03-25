@@ -1,0 +1,258 @@
+from django.shortcuts import render, get_object_or_404, redirect
+from mainApp.decorators import customer_required
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse
+from django.urls import reverse
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from decimal import Decimal
+import stripe
+from datetime import date, timedelta, datetime
+from customers.models import Cart
+from mainApp.models import Address
+from orders.models import Order, OrderItem
+from decimal import ROUND_HALF_UP
+from django.contrib.auth import get_user_model 
+
+
+User = get_user_model()
+
+
+@login_required
+def checkout(request):
+
+    try:
+        cart = request.user.customer_profile.cart
+    except (AttributeError, Cart.DoesNotExist):
+        return redirect('products:product_list')
+
+    if cart.items.count() == 0:
+        return redirect('products:product_list')
+    
+    addresses = request.user.addresses.all()
+    default_address = addresses.filter(is_default=True).first()
+    
+    # Calculate totals
+    subtotal = cart.subtotal()
+    commission = cart.commission()
+    total = subtotal + commission
+    
+    min_delivery_date = (date.today()+ timedelta(days=2)).strftime('%Y-%m-%d')
+
+    context = {
+        'cart': cart,
+        'cart_items': cart.items.select_related('product').all(),
+        'subtotal': subtotal,
+        'commission': commission,
+        'total': total,
+        'addresses': addresses,
+        'default_address': default_address,
+        'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+        'min_delivery_date': min_delivery_date,
+    }
+    
+    return render(request, "orders/checkout.html", context)
+
+
+
+@login_required
+def create_checkout_session(request):
+    """Create Stripe Checkout Session"""
+    
+    if request.method != 'POST':
+        return redirect('mainApp:orders:checkout')
+    
+    # Get address from form
+    address_id = request.POST.get('address_id')
+    delivery_date_str = request.POST.get('delivery_date')
+    if delivery_date_str:
+        delivery_date = datetime.strptime(delivery_date_str, '%Y-%m-%d').date()
+        if delivery_date < date.today() + timedelta(days=2):
+            return JsonResponse({'error': 'Delivery date must be at least 48 hours from now'}, status=400)
+    
+    try:
+        address = Address.objects.get(id=address_id, user=request.user)
+    except Address.DoesNotExist:
+        return JsonResponse({'error': 'Please select a valid address'}, status=400)
+    
+    # Get cart
+    try:
+        cart = request.user.customer_profile.cart
+    except (AttributeError, Cart.DoesNotExist):
+        return JsonResponse({'error': 'Cart not found'}, status=400)
+    
+    if cart.items.count() == 0:
+        return JsonResponse({'error': 'Cart is empty'}, status=400)
+    
+    # Build line items for Stripe
+    line_items = []
+    
+    for cart_item in cart.items.select_related('product').all():
+        price_in_cents = int(cart_item.product.price * 100)#.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        line_items.append({
+            'price_data': {
+                'currency': 'gbp',
+                'product_data': {
+                    'name': cart_item.product.name,
+                    'description': cart_item.product.description[:100] if cart_item.product.description else "",
+                },
+                'unit_amount': price_in_cents,
+            },
+            'quantity': cart_item.quantity,
+        })
+    
+    # Add commission as a line item
+    commission_in_cents = int(cart.commission() * 100)
+    if commission_in_cents > 0:
+        line_items.append({
+            'price_data': {
+                'currency': 'gbp',
+                'product_data': {
+                    'name': 'Network Commission (5%)',
+                    'description': 'Supports the Bristol Regional Food Network',
+                },
+                'unit_amount': commission_in_cents,
+            },
+            'quantity': 1,
+        })
+    
+    try:
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url=request.build_absolute_uri(reverse('mainApp:orders:success')) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=request.build_absolute_uri(reverse('mainApp:orders:cancel')),
+            customer_email=request.user.email,
+            metadata={
+                'user_id': request.user.id,
+                'address_id': address.id,
+                'delivery_date': delivery_date or '',
+            }
+        )
+        
+        # # Create order record
+        # order = Order.objects.create(
+        #     customer=request.user.customer_profile,
+        #     user=request.user,
+        #     stripe_session_id=checkout_session.id,
+        #     subtotal=cart.subtotal(),
+        #     commission=cart.commission(),
+        #     total_amount=cart.total_amount(),
+        #     shipping_address=address.full_address,
+        #     shipping_address_id=address.id,
+        #     delivery_date=delivery_date or None,
+        #     status='pending'
+        # )
+        
+        # # Create order items from cart items
+        # for cart_item in cart.items.select_related('product').all():
+        #     OrderItem.objects.create(
+        #         order=order,
+        #         product=cart_item.product,
+        #         producer=cart_item.product.producer,
+        #         product_name=cart_item.product.name,
+        #         product_price=cart_item.product.price,
+        #         quantity=cart_item.quantity,
+        #         unit=cart_item.product.unit,
+        #     )
+        
+        return JsonResponse({'sessionId': checkout_session.id})
+        
+    except stripe.error.StripeError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {e}'}, status=400)
+
+@login_required
+def success(request):
+    """Handle successful payment"""
+    session_id = request.GET.get('session_id')
+    
+    order = Order.objects.filter(stripe_session_id=session_id).first()
+    return render(request, 'orders/success.html', {'order': order})
+    
+
+def cancel(request):
+    """Handle cancelled payment"""
+    return render(request, 'orders/cancel.html')
+
+@csrf_exempt
+def stripe_webhook(request):
+    """Handle Stripe webhook events"""
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        return HttpResponse(status=400)
+    
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+
+        # Don't create a duplicate if webhook fires twice
+        if Order.objects.filter(stripe_session_id=session['id']).exists():
+            return HttpResponse(status=200)
+
+        metadata = session.get('metadata', {})
+        user_id = metadata.get('user_id')
+        address_id = metadata.get('address_id')
+        delivery_date_str = metadata.get('delivery_date')
+
+        try:
+            user = User.objects.get(id=user_id)
+            address = Address.objects.get(id=address_id)
+            cart = user.customer_profile.cart
+
+            order = Order.objects.create(
+                customer=user.customer_profile,
+                user=user,
+                stripe_session_id=session['id'],
+                stripe_payment_intent_id=session['payment_intent'],
+                subtotal=cart.subtotal(),
+                commission=cart.commission(),
+                total_amount=cart.total_amount(),
+                shipping_address=address.full_address,
+                shipping_address_id=address.id,
+                delivery_date=delivery_date_str or None,
+                status='confirmed',  # Created already confirmed, skip 'pending' entirely
+            )
+
+            for cart_item in cart.items.select_related('product').all():
+                OrderItem.objects.create(
+                    order=order,
+                    product=cart_item.product,
+                    producer=cart_item.product.producer,
+                    product_name=cart_item.product.name,
+                    product_price=cart_item.product.price,
+                    quantity=cart_item.quantity,
+                    unit=cart_item.product.unit,
+                )
+
+            # Deduct stock and clear cart here
+            for item in order.items.all():
+                if item.product:
+                    item.product.deduct_stock(item.quantity)
+
+            cart.items.all().delete()
+
+        except Exception as e:
+            # Log this — a webhook failure is serious
+            print(f"Webhook order creation failed: {e}")
+            return HttpResponse(status=500)
+    return HttpResponse(status=200)
+
+
+#TODO:
+# bug 
+# move all post payment logic to stripe webhook. 
+
+# TODO:
+

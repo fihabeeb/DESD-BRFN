@@ -54,3 +54,7 @@ make environmentally conscious purchases.
 - [x] TC-011 (in progress) As a producer, I want to update my product inventory so that customers only see available products I have.
 
 - [x] myProducts delete a product listing
+
+
+
+- Flatten urls end of sprint 2
