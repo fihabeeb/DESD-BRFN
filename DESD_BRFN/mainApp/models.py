@@ -93,22 +93,49 @@ class RegularUser(AbstractUser):
     # created_at = models.DateTimeField(auto_now_add=True) # DONT UNCOMMENT: Already has date_joined 
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Moving address to master table
+    # address = models.CharField(max_length=20)
+    # post_code = models.CharField(max_length=20)
+
+    @property
+    def default_address(self):
+        return self.address.filter(is_default=True).first()
+    
+    @property
+    def default_shipping_address(self):
+        """Get user's default shipping address"""
+        return self.addresses.filter(address_type='shipping', is_default=True).first()
+    
+    @property
+    def default_billing_address(self):
+        """Get user's default billing address"""
+        return self.addresses.filter(address_type='billing', is_default=True).first()
+
+    def __str__(self):
+        return f"{self.username} ({self.get_role_display()})"
+
 
 
 class CustomerProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='customer_profile')
     # customer-specific fields
-    shipping_address = models.TextField(blank=True,null=True)
+
+    # Moving address to master table
+    # shipping_address = models.TextField(blank=True,null=True)
     # ...
 
 class ProducerProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='producer_profile')
     # producer-specific fields
     business_name = models.CharField(max_length=200)
+
     # TC-013 food miles — set automatically from user.post_code via postcodes.io on registration
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    # ...
+
+    @property
+    def farm_address(self):
+        return self.user.address.filter(address_type='farm', is_default=True).first()
 
 class CommunityMemberProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='community_member_profile')
