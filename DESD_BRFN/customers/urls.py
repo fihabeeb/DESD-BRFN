@@ -22,5 +22,6 @@ urlpatterns = [
     path("customer/cart/", views.view_cart, name="view_cart"),
     path("customer/cart/remove/<int:item_id>/", views.remove_from_cart, name="remove_from_cart"),
     path("customer/cart/update/<int:item_id>/", views.update_cart_item, name="update_cart_item"),
-
+    path("customer/profile", views.customer_profile_view, name="profile"),
+    path("customer/personal-info", views.customer_personal_info_view, name="personal_info"),
 ]

@@ -6,10 +6,14 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from customers.forms import CustomerRegistrationForm
 from django.contrib import messages
-from mainApp.models import CustomerProfile
+from mainApp.models import Address, CustomerProfile
 from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
 from .models import Cart, CartItem
 from products.models import Product
+from django.contrib.auth import logout
+from .forms import CustomerPersonalInfoForm
+from django.contrib import messages
+
 
 
 def register_customer(request):
@@ -90,6 +94,8 @@ def add_to_cart(request, product_id):
             unit_price=product.price,
             quantity=quantity,
         )
+
+    messages.success(request, f"{product.name} added to your cart")
 
     return redirect("mainApp:customers:view_cart")
 
@@ -191,3 +197,58 @@ def update_cart_item(request, item_id):
 
     messages.success(request, f"Updated quantity for {item.product_name}.")
     return redirect("mainApp:customers:view_cart")
+
+
+@login_required
+def customer_profile_view(request):
+    """
+    Customer dashboard: future order history + button to view personal info.
+    """
+    return render(request, "customers/profile_page.html", {})
+
+
+@login_required
+def customer_personal_info_view(request):
+    user = request.user
+
+    # Ensure customer profile exists
+    CustomerProfile.objects.get_or_create(user=user)
+
+    # Ensure home address exists
+    if not user.addresses.filter(address_type="home", is_default=True).exists():
+        Address.objects.create(
+            user=user,
+            address_line1="",
+            city="",
+            post_code="",
+            country="UK",
+            address_type="home",
+            is_default=True,
+        )
+
+    # DELETE ACCOUNT
+    if request.method == "POST" and "delete_account" in request.POST:
+        user.delete()
+        logout(request)
+        return redirect("mainApp:home")
+
+    # UPDATE ACCOUNT
+    if request.method == "POST":
+        form = CustomerPersonalInfoForm(request.POST, user=user)
+        if form.is_valid():
+            form.save()
+            logout(request)
+            return redirect("mainApp:customers:login")
+    else:
+        form = CustomerPersonalInfoForm(
+            user=user,
+            initial={
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone_number": user.phone_number,
+            },
+        )
+
+    return render(request, "customers/personal_info.html", {"form": form})

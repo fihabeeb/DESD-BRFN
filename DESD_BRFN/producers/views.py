@@ -18,6 +18,12 @@ from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
 from orders.models import Order, OrderItem
 
+from django.contrib.auth import logout
+from producers.forms_personal_info import ProducerPersonalInfoForm
+from mainApp.models import Address
+
+
+
 # Create your views here.
 
 User = get_user_model()
@@ -363,3 +369,59 @@ def quality_scan_view(request):
             return JsonResponse({'success': False, 'error': f'Prediction failed: {e}'}, status=500)
 
     return render(request, 'producers/quality_scan.html')
+
+@login_required
+@producer_required
+def personal_info_view(request):
+    user = request.user
+
+    # Ensure producer profile exists
+    ProducerProfile.objects.get_or_create(user=user)
+
+    # Ensure farm address exists
+    if not user.addresses.filter(address_type="farm", is_default=True).exists():
+        Address.objects.create(
+            user=user,
+            address_line1="",
+            city="",
+            post_code="",
+            country="UK",
+            address_type="farm",
+            is_default=True
+        )
+
+    # DELETE ACCOUNT HANDLER
+    if request.method == "POST" and "delete_account" in request.POST:
+        # Delete the user and all related objects
+        user.delete()
+
+        # Log out the session
+        logout(request)
+
+        # Redirect to home or login
+        return redirect("mainApp:home")
+
+    # UPDATE ACCOUNT HANDLER
+    if request.method == "POST":
+        form = ProducerPersonalInfoForm(request.POST, user=user)
+        if form.is_valid():
+            form.save()
+
+            # FORCE LOGOUT after updating credentials
+            logout(request)
+
+            # Redirect to producer login
+            return redirect("mainApp:producers:login")
+    else:
+        form = ProducerPersonalInfoForm(
+            user=user,
+            initial={
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone_number": user.phone_number,
+            }
+        )
+
+    return render(request, "producers/personal_info.html", {"form": form})

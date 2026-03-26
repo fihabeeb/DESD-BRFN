@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Personal Information{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <h2 class="mb-3">Personal Information</h2>
+    <p class="text-muted">View and update your account and delivery details.</p>
+
+    {% if form.errors %}
+    <div class="alert alert-danger mb-3">
+        <strong>Please correct the errors below.</strong>
+    </div>
+    {% endif %}
+
+    <!-- EDIT BUTTON -->
+    <button id="editBtn" type="button" class="btn btn-primary mb-3">
+        Edit Information
+    </button>
+
+    <form method="post" id="infoForm">
+        {% csrf_token %}
+
+        <!-- PERSONAL INFO -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Personal Information</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                {{ form.first_name }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                {{ form.last_name }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+                {{ form.phone_number }}
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- DELIVERY ADDRESS -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Delivery Address</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.home_address_line1.id_for_label }}">Address Line 1</label>
+                {{ form.home_address_line1 }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.home_address_line2.id_for_label }}">Address Line 2 (Optional)</label>
+                {{ form.home_address_line2 }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.home_city.id_for_label }}">City</label>
+                {{ form.home_city }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.home_county.id_for_label }}">County (Optional)</label>
+                {{ form.home_county }}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.home_post_code.id_for_label }}">Post Code</label>
+                {{ form.home_post_code }}
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- SECURITY -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Security</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.password.id_for_label }}">New Password</label>
+                {{ form.password }}
+                <small class="text-muted d-block">
+                    Leave blank to keep your current password.
+                </small>
+            </div>
+        </div>
+
+        <!-- BUTTONS -->
+        <button type="submit" id="saveBtn" class="btn btn-success mt-3 w-100" style="display:none;">
+            Save Changes
+        </button>
+
+        <button type="submit" name="delete_account" value="1" id="deleteBtn" class="btn btn-danger mt-3 w-100"
+            style="display:none;">
+            Delete Account
+        </button>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById("infoForm");
+    const inputs = form.querySelectorAll("input");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+
+    // Make all fields read-only initially
+    inputs.forEach(i => i.setAttribute("readonly", true));
+
+    // When clicking Edit → unlock fields and show buttons
+    editBtn.addEventListener("click", () => {
+        inputs.forEach(i => i.removeAttribute("readonly"));
+        editBtn.style.display = "none";
+        saveBtn.style.display = "block";
+        deleteBtn.style.display = "block";
+    });
+</script>
+{% endblock %}

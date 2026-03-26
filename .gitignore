@@ -13,3 +13,5 @@ media
 DESD_BRFN/TODOX.md
 .gitignore
 DESD_BRFN/ml/best_model.keras
+.idea/
+.idea
