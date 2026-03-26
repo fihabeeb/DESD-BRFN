@@ -111,7 +111,9 @@ AWS_S3_ENDPOINT_URL = f'https://s3.{AWS_S3_REGION_NAME}.backblazeb2.com'
 
 STORAGES = {
     'default': {
-        'BACKEND': 'storages.backends.s3.S3Storage',
+        # 'BACKEND': 'storages.backends.s3.S3Storage',
+        # 'BACKEND': 'storages.backends.b2boto3.B2Boto3Storage',
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'
     },
     'staticfiles': {
         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
@@ -180,3 +182,5 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
 
 
 stripe.api_key = STRIPE_SECRET_KEY
+
+DEV_NAME= os.environ.get("DEV_NAME")

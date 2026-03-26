@@ -1,6 +1,7 @@
 import os
 from uuid import uuid4
 from django.utils import timezone
+from django.conf import settings
 
 def product_image_path(instance, filename):
     '''
@@ -13,6 +14,6 @@ def product_image_path(instance, filename):
     unique_id = uuid4().hex[:4]
 
     product_id =instance.id or 'temp'
+    dev_prefix = settings.DEV_NAME if settings.DEBUG else 'default'
 
-    print(unique_id)
-    return f"products/{product_id}/{timestamp}_{unique_id}.{extension}"
+    return f"products/{dev_prefix}/{product_id}/{timestamp}_{unique_id}.{extension}"
