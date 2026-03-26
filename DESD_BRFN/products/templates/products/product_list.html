@@ -59,15 +59,17 @@
 
 <!-- Search bar -->
 <div class="search-bar-area">
-    <form method="get" action="{% url 'mainApp:products:product_list' %}" class="search-box">
+    <form method="get" action="{% url 'mainApp:products:product_list' %}" class="search-box" id="product-search-form">
+        <i class="bi bi-search" style="color:#6c757d;"></i>
         <input type="text"
                name="q"
+               id="product-search-input"
                placeholder="Search products..."
-               value="{{ search_query }}">
+               value="{{ search_query }}"
+               autocomplete="off">
         {% if current_category %}
             <input type="hidden" name="category" value="{{ current_category }}">
         {% endif %}
-        <button type="submit"><i class="bi bi-search"></i> Search</button>
     </form>
     {% if search_query %}
     <p class="search-results-info">
@@ -167,4 +169,18 @@
     {% endfor %}
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var input = document.getElementById('product-search-input');
+    if (!input) return;
+    var timer;
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () { input.form.submit(); }, 500);
+    });
+})();
+</script>
 {% endblock %}

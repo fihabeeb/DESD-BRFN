@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import get_user_model
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from mainApp.models import ProducerProfile
 from django.contrib.auth import authenticate, login
 
@@ -324,15 +326,40 @@ def myorders_view(request):
 @producer_required
 def delete_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    
+
     if product.producer != request.user.producer_profile:
         messages.error(request, "Permission denied.")
         return redirect('mainApp:producers:myproduct')
-    
+
     if request.method == 'POST':
         product_name = product.name
         product.delete()
         messages.success(request, f'"{product_name}" deleted.')
         return redirect('mainApp:producers:myproduct')
-    
+
     return redirect('mainApp:producers:myproduct')
+
+
+@login_required
+@producer_required
+def quality_scan_view(request):
+    """
+    AI quality scan page. GET renders the upload/camera UI.
+    POST accepts an image, runs the Keras model, and returns a JSON score breakdown.
+    """
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        if not image:
+            return JsonResponse({'success': False, 'error': 'No image provided.'}, status=400)
+
+        try:
+            from ml.predictor import predict
+            prediction = predict(image)
+            return JsonResponse({'success': True, **prediction})
+
+        except FileNotFoundError as e:
+            return JsonResponse({'success': False, 'error': f'Model file missing: {e}'}, status=500)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Prediction failed: {e}'}, status=500)
+
+    return render(request, 'producers/quality_scan.html')

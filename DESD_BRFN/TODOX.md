@@ -12,3 +12,5 @@ Your instructions are to look at every line that doesn't end with a check mark a
 - Seems like product quantity is not updated once an order is placed ✅
 - The orders page should look a bit better. give some space on the sides. ✅
 - The order page seems to not reflect a successful payment, before you change anything, tell me why that ✅
+- I want the search bar to actually search as you type, do the same delay solution as for the quantity increase / decrease ✅
+- Add a dark mode setting ✅

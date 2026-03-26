@@ -4,6 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}My Site{% endblock %}</title>
+    <script>
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
 
     <link rel="stylesheet" href="{% static 'base.css' %}">
 
@@ -191,6 +196,13 @@
                 </a>
             </div>
 
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleDarkMode()" id="dark-mode-btn"
+                title="Toggle dark mode"
+                class="text-gray-300 hover:text-white transition p-2 rounded-lg hover:bg-gray-700">
+                <i id="dark-mode-icon" class="bi bi-moon-fill text-lg"></i>
+            </button>
+
             <!-- User Section -->
             <div class="relative">
                 {% if user.is_authenticated %}
@@ -237,6 +249,10 @@
                                 <a href="{% url 'mainApp:producers:myorders' %}"
                                 class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
                                     <i class="bi bi-receipt me-2"></i> My Orders
+                                </a>
+                                <a href="{% url 'mainApp:producers:quality_scan' %}"
+                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
+                                    <i class="bi bi-stars me-2"></i> Quality Scan
                                 </a>
                                 {% endif %}
                             </div>
@@ -437,6 +453,23 @@
                 // Store timeout on element to allow cancellation
                 message._dismissTimeout = timeoutId;
             });
+        });
+    </script>
+
+    <script>
+        function toggleDarkMode() {
+            var isDark = document.documentElement.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            updateDarkModeIcon(isDark);
+        }
+
+        function updateDarkModeIcon(isDark) {
+            var icon = document.getElementById('dark-mode-icon');
+            if (icon) icon.className = isDark ? 'bi bi-sun-fill text-lg' : 'bi bi-moon-fill text-lg';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateDarkModeIcon(document.documentElement.classList.contains('dark-mode'));
         });
     </script>
 

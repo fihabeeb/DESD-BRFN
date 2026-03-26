@@ -65,7 +65,7 @@
             {% endfor %}
         </select>
 
-        <input type="text" name="search" placeholder="Search products…" value="{{ search|default:'' }}">
+        <input type="text" name="search" id="producer-search-input" placeholder="Search products…" value="{{ search|default:'' }}" autocomplete="off">
 
         <label class="filter-checkbox">
             <input type="checkbox" name="organic" value="true" {% if current_filters.organic %}checked{% endif %}>
@@ -174,4 +174,18 @@
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var input = document.getElementById('producer-search-input');
+    if (!input) return;
+    var timer;
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () { input.form.submit(); }, 500);
+    });
+})();
+</script>
 {% endblock %}
