@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Personal Information{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <h2 class="mb-3">Personal Information</h2>
+    <p class="text-muted">View and update your account, business, and farm details.</p>
+
+    {% if form.errors %}
+    <div class="alert alert-danger mb-3">
+        <strong>Please correct the errors below.</strong>
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- PERSONAL INFO -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Personal Information</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                <div class="text-danger small">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                <div class="text-danger small">{{ form.first_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                <div class="text-danger small">{{ form.last_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                <div class="text-danger small">{{ form.phone_number.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- BUSINESS INFO -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Business Information</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.business_name.id_for_label }}">Business Name</label>
+                {{ form.business_name }}
+                {% if form.business_name.errors %}
+                <div class="text-danger small">{{ form.business_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- FARM ADDRESS -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Farm Address</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.farm_address_line1.id_for_label }}">Address Line 1</label>
+                {{ form.farm_address_line1 }}
+                {% if form.farm_address_line1.errors %}
+                <div class="text-danger small">{{ form.farm_address_line1.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.farm_address_line2.id_for_label }}">Address Line 2</label>
+                {{ form.farm_address_line2 }}
+                {% if form.farm_address_line2.errors %}
+                <div class="text-danger small">{{ form.farm_address_line2.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.farm_city.id_for_label }}">City</label>
+                {{ form.farm_city }}
+                {% if form.farm_city.errors %}
+                <div class="text-danger small">{{ form.farm_city.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.farm_county.id_for_label }}">County</label>
+                {{ form.farm_county }}
+                {% if form.farm_county.errors %}
+                <div class="text-danger small">{{ form.farm_county.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.farm_post_code.id_for_label }}">Post Code</label>
+                {{ form.farm_post_code }}
+                {% if form.farm_post_code.errors %}
+                <div class="text-danger small">{{ form.farm_post_code.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- SECURITY -->
+        <div class="section-block mb-4">
+            <h4 class="mb-3">Security</h4>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.password.id_for_label }}">New Password</label>
+                {{ form.password }}
+                <small class="text-muted d-block">Leave blank to keep your current password.</small>
+                {% if form.password.errors %}
+                <div class="text-danger small">{{ form.password.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success mt-3 w-100">
+            Save Changes
+        </button>
+        
+        <button type="submit" name="delete_account" value="1" class="btn btn-danger mt-3 w-100">
+            Delete Account
+        </button>
+
+    </form>
+</div>
+{% endblock %}
