@@ -72,13 +72,27 @@
                     <tr>
                         <td>
                             {% if item.product %}
-                                <a href="{% url 'mainApp:products:product_detail' item.product.id %}">{{ item.product_name }}</a>
+                                <a href="{% url 'mainApp:products:product_detail' item.product.id %}" style="font-weight:600; color:#2d6a2d; text-decoration:none;">
+                                    {{ item.product_name }}
+                                </a>
+                                <div style="font-size:0.8rem; color:#6c757d;">{{ item.unit_price }} / {{ item.product.unit }}</div>
                             {% else %}
-                                {{ item.product_name }}
+                                <span style="font-weight:600;">{{ item.product_name }}</span>
                             {% endif %}
                         </td>
                         <td>£{{ item.unit_price }}</td>
-                        <td>{{ item.quantity }}</td>
+                        <td>
+                            <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="qty-form">
+                                {% csrf_token %}
+                                <input type="number"
+                                    name="quantity"
+                                    value="{{ item.quantity }}"
+                                    min="1"
+                                    {% if item.product %}max="{{ item.product.stock_quantity }}"{% endif %}
+                                    class="form-control form-control-sm qty-input"
+                                    style="width:65px;">
+                            </form>
+                        </td>
                         <td>£{{ item.line_total }}</td>
                         <td>
                             <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post">
@@ -179,4 +193,18 @@
     {% endif %}
 
 </div>  <!-- Close cart-wrapper -->
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.qty-input').forEach(function(input) {
+    var timer;
+    input.addEventListener('input', function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+            input.closest('.qty-form').submit();
+        }, 900);
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

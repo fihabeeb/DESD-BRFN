@@ -6,43 +6,45 @@
     <link rel="stylesheet" href="{% static 'products/products.css' %}">
 
 <style>
-    /* search section */
-.search-section {
-    margin: 20px 0;
-    padding: 15px;
-    background: #f5f5f5;
-    border-radius: 5px;
+.search-bar-area {
+    padding: 0.85rem 1.5rem 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 0;
 }
 
 .search-box {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
 }
 
 .search-box input {
-    flex: 1;
-    max-width: 400px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    width: 280px;
 }
 
 .search-box button {
-    background: #007bff;
+    padding: 8px 16px;
+    background: #2d6a4f;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .search-box button:hover {
-    background: #0056b3;
+    background: #1b4332;
 }
 
-/* Highlight search matches (optional) */
-.highlight {
-    background-color: yellow;
-    font-weight: bold;
+.search-results-info {
+    margin: 0.4rem 0 0;
+    color: #6c757d;
+    font-size: 0.85rem;
 }
 </style>
 
@@ -55,28 +57,22 @@
     <p>Fresh, local produce from Bristol-area producers</p>
 </div>
 
-<!-- search bar -->
-<div class="search-section">
-    <form method="get" action="{% url 'mainApp:products:product_list' %}">
-        <div class="search-box">
-            <input type="text" 
-                   name="q" 
-                   placeholder="Search products..." 
-                   value="{{ search_query }}"
-                   style="padding: 8px; width: 300px;">
-            <button type="submit" style="padding: 8px 16px;">Search</button>
-            
-            <!-- Preserve category filter when searching -->
-            {% if current_category %}
-                <input type="hidden" name="category" value="{{ current_category }}">
-            {% endif %}
-        </div>
+<!-- Search bar -->
+<div class="search-bar-area">
+    <form method="get" action="{% url 'mainApp:products:product_list' %}" class="search-box">
+        <input type="text"
+               name="q"
+               placeholder="Search products..."
+               value="{{ search_query }}">
+        {% if current_category %}
+            <input type="hidden" name="category" value="{{ current_category }}">
+        {% endif %}
+        <button type="submit"><i class="bi bi-search"></i> Search</button>
     </form>
-    
-    <!-- Show search results info -->
     {% if search_query %}
-        <p>Search results for: <strong>"{{ search_query }}"</strong> 
-        ({{ products.count }} products found)</p>
+    <p class="search-results-info">
+        Results for <strong>"{{ search_query }}"</strong> &mdash; {{ products.count }} found
+    </p>
     {% endif %}
 </div>
 

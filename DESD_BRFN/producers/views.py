@@ -12,8 +12,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timezone
 from producers.forms import ProducerRegistrationForm
-from django.db.models import Q
+from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
+from orders.models import Order, OrderItem
 
 # Create your views here.
 
@@ -274,6 +275,50 @@ def product_edit_view(request, product_id):
     }
 
     return render(request, 'producers/addproduct.html', context)  # Reuse the same template
+
+@login_required
+@producer_required
+def myorders_view(request):
+    """
+    Display all orders that contain items assigned to this producer.
+    Only shows this producer's items within each order.
+    """
+    producer_profile = request.user.producer_profile
+
+    # Orders that have at least one item belonging to this producer
+    orders = Order.objects.filter(
+        items__producer=producer_profile
+    ).distinct().order_by('-created_at')
+
+    # Status filter
+    status_filter = request.GET.get('status')
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+
+    # For each order, annotate with this producer's items and subtotal
+    orders_data = []
+    for order in orders:
+        producer_items = order.items.filter(producer=producer_profile)
+        producer_subtotal = sum(item.line_total for item in producer_items)
+        orders_data.append({
+            'order': order,
+            'items': producer_items,
+            'producer_subtotal': producer_subtotal,
+        })
+
+    # Pagination
+    paginator = Paginator(orders_data, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'producer': producer_profile,
+        'status_choices': Order.STATUS_CHOICES,
+        'current_status': status_filter,
+    }
+    return render(request, 'producers/myorders.html', context)
+
 
 @login_required
 @producer_required
