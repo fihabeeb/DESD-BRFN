@@ -30,7 +30,15 @@ def checkout(request):
         return redirect('products:product_list')
     
     addresses = request.user.addresses.all()
-    default_address = addresses.filter(is_default=True).first()
+    default_address = addresses.filter(
+        address_type='shipping', is_default=True
+        ).first() or addresses.filter(is_default=True).first()
+    
+    if not default_address and addresses.exists():
+        # Edge case: addresses exist but none is default — promote the first one
+        default_address = addresses.order_by('-created_at').first()
+        default_address.is_default = True
+        default_address.save()
     
     # Calculate totals
     subtotal = cart.subtotal()

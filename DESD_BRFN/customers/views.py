@@ -1,7 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login
+from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from customers.forms import CustomerRegistrationForm
@@ -13,7 +13,11 @@ from products.models import Product
 from django.contrib.auth import logout
 from .forms import CustomerPersonalInfoForm
 from django.contrib import messages
+from mainApp.decorators import customer_required
+import re
+import logging
 
+logger = logging.getLogger(__name__)
 
 
 def register_customer(request):
@@ -208,47 +212,85 @@ def customer_profile_view(request):
 
 
 @login_required
+@customer_required
 def customer_personal_info_view(request):
+    """Customer personal information management"""
     user = request.user
 
-    # Ensure customer profile exists
-    CustomerProfile.objects.get_or_create(user=user)
-
-    # Ensure home address exists
-    if not user.addresses.filter(address_type="home", is_default=True).exists():
-        Address.objects.create(
-            user=user,
-            address_line1="",
-            city="",
-            post_code="",
-            country="UK",
-            address_type="home",
-            is_default=True,
-        )
-
-    # DELETE ACCOUNT
+    # DELETE ACCOUNT HANDLER
     if request.method == "POST" and "delete_account" in request.POST:
         user.delete()
         logout(request)
+        messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
         return redirect("mainApp:home")
-
-    # UPDATE ACCOUNT
+    
+    # GET OR CREATE CUSTOMER PROFILE
+    try:
+        profile = CustomerProfile.objects.get(user=user)
+    except CustomerProfile.DoesNotExist:
+        logger.info(f"Creating missing profile for user {user.username}")
+        profile = CustomerProfile.objects.create(user=user)
+        messages.info(request, "Customer profile was created.")
+    
+    # GET HOME ADDRESS
+    home_address = user.addresses.filter(address_type="home", is_default=True).first()
+    if not home_address:
+        messages.warning(request, "Please add your home address for delivery purposes.")
+    
+    # PROCESS FORM
     if request.method == "POST":
         form = CustomerPersonalInfoForm(request.POST, user=user)
+        
         if form.is_valid():
-            form.save()
-            logout(request)
-            return redirect("mainApp:customers:login")
+            try:
+                user = form.save()
+                
+                # Handle session after password change
+                if form.cleaned_data.get('password1'):
+                    update_session_auth_hash(request, user)
+                    messages.success(request, "Password updated successfully!")
+                
+                messages.success(request, "Your information has been updated successfully!")
+                return redirect("mainApp:customer:profile")
+                
+            except Exception as e:
+                logger.error(f"Error updating customer info: {e}", exc_info=True)
+                messages.error(request, "An error occurred while updating your information. Please try again.")
+        else:
+            # Display form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        field_label = field.replace('_', ' ').title()
+                        messages.error(request, f"{field_label}: {error}")
+    
     else:
-        form = CustomerPersonalInfoForm(
-            user=user,
-            initial={
-                "username": user.username,
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "phone_number": user.phone_number,
-            },
-        )
-
-    return render(request, "customers/personal_info.html", {"form": form})
+        # GET request - populate initial data for form
+        initial_data = {
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+        }
+        
+        # Add home address data if exists
+        if home_address:
+            initial_data.update({
+                "home_address_line1": home_address.address_line1,
+                "home_address_line2": home_address.address_line2,
+                "home_city": home_address.city,
+                "home_county": home_address.county,
+                "home_post_code": home_address.post_code,
+            })
+        
+        form = CustomerPersonalInfoForm(user=user, initial=initial_data)
+    
+    context = {
+        'form': form,
+        'user': user,
+        'profile': profile,
+        'home_address': home_address,
+    }
+    
+    return render(request, "customers/personal_info.html", context)

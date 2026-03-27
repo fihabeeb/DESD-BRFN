@@ -5,6 +5,10 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from mainApp.models import CustomerProfile, Address
 from mainApp.utils import geocode_postcode
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -309,9 +313,190 @@ class CustomerPersonalInfoForm(forms.ModelForm):
         return user
 
 
-# class CustomerRegistrationForm(forms.ModelForm):
-#     password = forms.CharField(widget=forms.PasswordInput)
+class CustomerPersonalInfoForm(forms.Form):
+    """
+    Form for editing customer personal info and home address.
+    Username and email are displayed separately in the template.
+    All fields optional so user can change only what they want.
+    """
 
-#     class Meta:
-#         model = RegularUser
-#         fields = ["username", "email", "password", "phone_number", "address", "post_code"]
+    # Personal fields (username and email removed)
+    first_name = forms.CharField(required=False)
+    last_name = forms.CharField(required=False)
+    phone_number = forms.CharField(required=False)
+
+    # Home address fields
+    home_address_line1 = forms.CharField(required=False, label="Address Line 1")
+    home_address_line2 = forms.CharField(required=False, label="Address Line 2 (optional)")
+    home_city = forms.CharField(required=False, label="City")
+    home_county = forms.CharField(required=False, label="County (optional)")
+    home_post_code = forms.CharField(required=False, label="Post Code")
+
+    # Password
+    password1 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(),
+        label="New Password",
+        help_text="Leave blank to keep your current password."
+    )
+    password2 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(),
+        label="Confirm Password",
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user")
+        super().__init__(*args, **kwargs)
+
+        # Make all fields optional
+        for field in self.fields.values():
+            field.required = False
+
+        # Add placeholders
+        self.fields['first_name'].widget.attrs['placeholder'] = "First name"
+        self.fields['last_name'].widget.attrs['placeholder'] = "Last name"
+        self.fields['phone_number'].widget.attrs['placeholder'] = "Phone number"
+
+        # Load home address (default)
+        home = self.user.addresses.filter(address_type="home", is_default=True).first()
+
+        if home:
+            self.fields["home_address_line1"].initial = home.address_line1
+            self.fields["home_address_line2"].initial = home.address_line2
+            self.fields["home_city"].initial = home.city
+            self.fields["home_county"].initial = home.county
+            self.fields["home_post_code"].initial = home.post_code
+
+    def clean_phone_number(self):
+        """Validate phone number format"""
+        phone = self.cleaned_data.get('phone_number')
+        if phone:
+            # Basic UK phone validation
+            phone_pattern = r'^[0-9\s\+\-\(\)]{10,}$'
+            if not re.match(phone_pattern, phone):
+                raise forms.ValidationError("Please enter a valid phone number.")
+        return phone
+
+    def clean_home_post_code(self):
+        """Validate UK postcode format"""
+        post_code = self.cleaned_data.get('home_post_code')
+        if post_code:
+            # UK postcode validation
+            uk_postcode_pattern = r'^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$'
+            if not re.match(uk_postcode_pattern, post_code.upper()):
+                raise forms.ValidationError("Please enter a valid UK postcode.")
+            return post_code.upper()
+        return post_code
+
+    def clean(self):
+        """Validate password fields"""
+        cleaned_data = super().clean()
+        
+        # Password validation
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+        
+        # Only validate if password is being changed
+        if password1 or password2:
+            if not password1:
+                self.add_error('password1', "Please enter a new password.")
+            elif not password2:
+                self.add_error('password2', "Please confirm your password.")
+            elif password1 != password2:
+                self.add_error('password2', "Passwords do not match.")
+            elif len(password1) < 8:
+                self.add_error('password1', "Password must be at least 8 characters long.")
+            elif password1.isdigit():
+                self.add_error('password1', "Password cannot be entirely numeric.")
+            elif password1.lower() in ['password', 'password123', '12345678']:
+                self.add_error('password1', "Password is too common. Please choose a stronger password.")
+        
+        return cleaned_data
+
+    def _update_home_address(self):
+        """Handle home address creation/update"""
+        home = self.user.addresses.filter(address_type="home", is_default=True).first()
+        
+        # Get home address data from cleaned data
+        address_data = {
+            'address_line1': self.cleaned_data.get('home_address_line1', ''),
+            'address_line2': self.cleaned_data.get('home_address_line2', ''),
+            'city': self.cleaned_data.get('home_city', ''),
+            'county': self.cleaned_data.get('home_county', ''),
+            'post_code': self.cleaned_data.get('home_post_code', ''),
+            'country': 'UK',
+        }
+        
+        # Check if there's any actual data to save
+        has_data = any(address_data.values())
+        
+        if not has_data:
+            return None
+        
+        if home:
+            # Update existing address
+            updated = False
+            for key, value in address_data.items():
+                if value != getattr(home, key):
+                    setattr(home, key, value)
+                    updated = True
+            if updated:
+                home.save()
+            return home
+        else:
+            # Create new address
+            home = Address.objects.create(
+                user=self.user,
+                address_type='home',
+                is_default=True,
+                **address_data
+            )
+            return home
+
+    def _geocode_home_address(self, home_address):
+        """Geocode address and update coordinates"""
+        if not home_address or not home_address.post_code:
+            return False
+        
+        try:
+            lat, lon = geocode_postcode(home_address.post_code)
+            if lat and lon:
+                home_address.latitude = lat
+                home_address.longitude = lon
+                home_address.save()
+                return True
+        except Exception as e:
+            logger.error(f"Geocoding failed for {home_address.post_code}: {e}")
+        
+        return False
+
+    def save(self, commit=True):
+        """Save all form data"""
+        user = self.user
+
+        # Update user fields (exclude username and email)
+        user_fields = ["first_name", "last_name", "phone_number"]
+        for field in user_fields:
+            new_value = self.cleaned_data.get(field)
+            if new_value and new_value != getattr(user, field):
+                setattr(user, field, new_value)
+
+        # Update password if provided
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 == password2:
+            user.set_password(password1)
+
+        if commit:
+            user.save()
+
+            # Ensure customer profile exists
+            CustomerProfile.objects.get_or_create(user=user)
+
+            # Handle home address
+            home_address = self._update_home_address()
+            if home_address and home_address.post_code:
+                self._geocode_home_address(home_address)
+
+        return user

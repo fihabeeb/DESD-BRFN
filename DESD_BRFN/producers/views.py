@@ -18,14 +18,17 @@ from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
 from orders.models import Order, OrderItem
 
-from django.contrib.auth import logout
+from django.contrib.auth import logout, update_session_auth_hash
 from producers.forms_personal_info import ProducerPersonalInfoForm
 from mainApp.models import Address
+
+from mainApp.utils import geocode_postcode, haversine_miles
+import logging
 
 
 
 # Create your views here.
-
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 # TODO: function below to remove after testing
@@ -370,58 +373,138 @@ def quality_scan_view(request):
 
     return render(request, 'producers/quality_scan.html')
 
+# @login_required
+# @producer_required
+# def personal_info_view(request):
+#     user = request.user
+
+#     # Ensure producer profile exists
+#     # should not be get or create
+#     ProducerProfile.objects.get(user=user)
+
+#     # Ensure farm address exists
+#     if not user.addresses.filter(address_type="farm", is_default=True).exists():
+#         Address.objects.create(
+#             user=user,
+#             address_line1="",
+#             city="",
+#             post_code="",
+#             country="UK",
+#             address_type="farm",
+#             is_default=True
+#         )
+
+#     # DELETE ACCOUNT HANDLER
+#     if request.method == "POST" and "delete_account" in request.POST:
+#         # Delete the user and all related objects
+#         user.delete()
+
+#         # Log out the session
+#         logout(request)
+
+#         # Redirect to home or login
+#         return redirect("mainApp:home")
+
+#     # UPDATE ACCOUNT HANDLER
+#     if request.method == "POST":
+#         form = ProducerPersonalInfoForm(request.POST, user=user)
+#         if form.is_valid():
+#             form.save()
+
+#             # FORCE LOGOUT after updating credentials
+#             logout(request)
+
+#             # Redirect to producer login
+#             return redirect("mainApp:producers:login")
+#     else:
+#         form = ProducerPersonalInfoForm(
+#             user=user,
+#             initial={
+#                 "username": user.username,
+#                 "email": user.email,
+#                 "first_name": user.first_name,
+#                 "last_name": user.last_name,
+#                 "phone_number": user.phone_number,
+#             }
+#         )
+
+#     return render(request, "producers/personal_info.html", {"form": form})
+
 @login_required
 @producer_required
 def personal_info_view(request):
+    """Producer personal information management"""
     user = request.user
-
-    # Ensure producer profile exists
-    ProducerProfile.objects.get_or_create(user=user)
-
-    # Ensure farm address exists
-    if not user.addresses.filter(address_type="farm", is_default=True).exists():
-        Address.objects.create(
-            user=user,
-            address_line1="",
-            city="",
-            post_code="",
-            country="UK",
-            address_type="farm",
-            is_default=True
-        )
 
     # DELETE ACCOUNT HANDLER
     if request.method == "POST" and "delete_account" in request.POST:
-        # Delete the user and all related objects
-        user.delete()
-
-        # Log out the session
         logout(request)
-
-        # Redirect to home or login
+        user.delete()
+        messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
         return redirect("mainApp:home")
-
-    # UPDATE ACCOUNT HANDLER
+    
+    profile = user.producer_profile
+    
+    # GET FARM ADDRESS
+    farm_address = user.addresses.filter(address_type="farm", is_default=True).first()
+    if request.method == "GET" and not farm_address:
+        messages.warning(request, "Please add your farm address for food miles calculation.")
+    
+    # PROCESS FORM
     if request.method == "POST":
         form = ProducerPersonalInfoForm(request.POST, user=user)
+        
         if form.is_valid():
-            form.save()
+            try:
+                user = form.save()
+                
+                if form.cleaned_data.get('password1'):
+                    update_session_auth_hash(request, user)
+                    messages.success(request, "Your information and password have been updated successfully!")
+                else:
+                    messages.success(request, "Your information has been updated successfully!")
 
-            # FORCE LOGOUT after updating credentials
-            logout(request)
-
-            # Redirect to producer login
-            return redirect("mainApp:producers:login")
+                return redirect("mainApp:producers:myproduct")
+                
+            except Exception as e:
+                logger.error(f"Error updating producer info: {e}", exc_info=True)
+                messages.error(request, "An error occurred while updating your information. Please try again.")
+        else:
+            # Display form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        field_label = field.replace('_', ' ').title()
+                        messages.error(request, f"{field_label}: {error}")
+    
     else:
-        form = ProducerPersonalInfoForm(
-            user=user,
-            initial={
-                "username": user.username,
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "phone_number": user.phone_number,
-            }
-        )
-
-    return render(request, "producers/personal_info.html", {"form": form})
+        # GET request - populate initial data for form
+        initial_data = {
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "business_name": profile.business_name if profile else '',
+        }
+        
+        # Add farm address data if exists
+        if farm_address:
+            initial_data.update({
+                "farm_address_line1": farm_address.address_line1,
+                "farm_address_line2": farm_address.address_line2,
+                "farm_city": farm_address.city,
+                "farm_county": farm_address.county,
+                "farm_post_code": farm_address.post_code,
+            })
+        
+        form = ProducerPersonalInfoForm(user=user, initial=initial_data)
+    
+    context = {
+        'form': form,
+        'user': user,  # Pass user to template for displaying username/email
+        'profile': profile,
+        'farm_address': farm_address,
+    }
+    
+    return render(request, "producers/personal_info.html", context)
