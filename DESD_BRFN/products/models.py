@@ -15,9 +15,9 @@ class Product(models.Model):
     ]
 
     AVAILABILITY_CHOICES = [
-    ('in_season', 'In Season'),
+    # ('in_season', 'In Season'),
     ('available', 'Available'),
-    ('out_of_season', 'Out of Season'),
+    # ('out_of_season', 'Out of Season'),
     ('unavailable', 'Unavailable'),
     ]
 
@@ -41,7 +41,8 @@ class Product(models.Model):
     availability = models.CharField(
         max_length=20,
         choices=AVAILABILITY_CHOICES,
-        default='available'
+        default='available',
+        help_text='is this product available for purchase?'
     )
 
 
@@ -116,18 +117,18 @@ class Product(models.Model):
 
     ### Functions
     ## TODO : in_season: check product in season or not.
-    def in_season(self):
-        if not(self.season_start and self.season_end):
-            return True # assume always in season
+    # def in_season(self):
+    #     if not(self.season_start and self.season_end):
+    #         return True # assume always in season
 
-        current_month = timezone.now().month
+    #     current_month = timezone.now().month
 
-        if self.season_start <= self.season_end:
-            # for normal season that doesn't overlap between Dec and Jan
-            return self.season_start <= current_month <= self.season_end
-        else:
-            # specifically for winter
-            return current_month >= self.season_start or current_month<= self.season_end
+    #     if self.season_start <= self.season_end:
+    #         # for normal season that doesn't overlap between Dec and Jan
+    #         return self.season_start <= current_month <= self.season_end
+    #     else:
+    #         # specifically for winter
+    #         return current_month >= self.season_start or current_month<= self.season_end
 
     def deduct_stock(self, quantity):
         if self.stock_quantity >= quantity:
@@ -181,6 +182,33 @@ class Product(models.Model):
         if self.image:
             self.image.delete(save=False)
         super().delete(*args,**kwargs)
+
+    @property
+    def is_in_season(self):
+        """
+        Check if product is currently in season based on season_start and season_end.
+        Returns True if:
+        - No season dates set (always in season)
+        - Current month falls within season range
+        """
+        if not (self.season_start and self.season_end):
+            return True  # No season restriction = always in season
+        
+        current_month = timezone.now().month
+        
+        if self.season_start <= self.season_end:
+            return self.season_start <= current_month <= self.season_end
+        else:
+            return current_month >= self.season_start or current_month <= self.season_end
+
+    @property
+    def is_available(self):
+        """
+        Combined availability: product must be both available AND in season
+        This is what should be shown to customers
+        """
+        return self.availability == 'available'
+
 
     @property
     def is_low_stock(self):

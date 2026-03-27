@@ -1,21 +1,56 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block title %}My Orders{% endblock %}
 
-{% block content %}
-<div class="myproduct-wrapper" style="padding-left: 2.5rem; padding-right: 2.5rem;">
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'producers/myorders.css' %}">
+<style>
+    
+</style>
+{% endblock %}
 
+{% block content %}
+<div class="orders-container">
     <!-- Header -->
-    <div class="myproduct-header">
-        <h1><span>{{ producer.business_name }}</span> &mdash; My Orders</h1>
-        <a href="{% url 'mainApp:producers:myproduct' %}" class="btn-add-product">
-            <i class="bi bi-box-seam"></i> My Products
+    <div class="orders-header">
+        <h1>
+            <i class="bi bi-bag-check"></i> 
+            <span>{{ producer.business_name }}</span> Orders
+        </h1>
+        <a href="{% url 'mainApp:producers:myproduct' %}" class="btn-link">
+            <i class="bi bi-box-seam"></i> View My Products →
         </a>
     </div>
 
-    <!-- Status filter -->
-    <form method="get" class="filter-bar" style="margin-bottom: 1.5rem;">
-        <select name="status" onchange="this.form.submit()">
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.total }}</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.processing }}</div>
+            <div class="stat-label">Processing</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.completed }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">£{{ stats.total_revenue|floatformat:2 }}</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="get" class="filter-bar">
+        <i class="bi bi-funnel" style="color: #6c757d;"></i>
+        <select name="status">
             <option value="">All Statuses</option>
             {% for value, label in status_choices %}
                 <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
@@ -24,90 +59,110 @@
             {% endfor %}
         </select>
         <button type="submit" class="btn-filter">
-            <i class="bi bi-funnel"></i> Filter
+            <i class="bi bi-search"></i> Apply Filter
         </button>
+        {% if current_status %}
+            <a href="?status=" class="btn-link" style="font-size: 0.85rem;">
+                <i class="bi bi-x-circle"></i> Clear Filter
+            </a>
+        {% endif %}
     </form>
 
-    <!-- Orders list -->
+    <!-- Orders List -->
     {% if page_obj %}
         {% for entry in page_obj %}
         {% with order=entry.order items=entry.items producer_subtotal=entry.producer_subtotal %}
-        <div class="table-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
-
-            <!-- Order header -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
-                <div>
-                    <strong>Order #{{ order.id }}</strong>
-                    <span style="color:#6c757d; margin-left:0.75rem;">
-                        {{ order.created_at|date:"d M Y, H:i" }}
+        <div class="order-card">
+            <!-- Order Header -->
+            <div class="order-header">
+                <div class="order-info">
+                    <span class="order-number">
+                        <i class="bi bi-receipt"></i> #{{ order.id }}
                     </span>
-                </div>
-                <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+                    <span class="order-date">
+                        <i class="bi bi-calendar3"></i> {{ order.created_at|date:"d M Y, H:i" }}
+                    </span>
                     {% if order.delivery_date %}
-                    <span style="font-size:0.85rem; color:#6c757d;">
-                        <i class="bi bi-calendar-event"></i> Delivery: {{ order.delivery_date|date:"d M Y" }}
+                    <span class="delivery-date">
+                        <i class="bi bi-truck"></i> Delivery: {{ order.delivery_date|date:"d M Y" }}
                     </span>
                     {% endif %}
-                    <span class="avail-pill
-                        {% if order.status == 'confirmed' or order.status == 'processing' %}in-season
-                        {% elif order.status == 'delivered' %}available
-                        {% elif order.status == 'cancelled' or order.status == 'failed' %}unavailable
-                        {% else %}out-season{% endif %}">
-                        {{ order.get_status_display }}
-                    </span>
+                </div>
+                <span class="status-badge status-{{ order.status }}">
+                    <i class="bi bi-{% if order.status == 'confirmed' %}check-circle{% elif order.status == 'delivered' %}check2-circle{% elif order.status == 'cancelled' %}x-circle{% elif order.status == 'processing' %}arrow-repeat{% else %}clock{% endif %}"></i>
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            
+            <!-- Customer Info -->
+            <div class="customer-info">
+                <div class="customer-detail">
+                    <i class="bi bi-person-circle"></i>
+                    <span>{{ order.user.get_full_name|default:order.user.username }}</span>
+                </div>
+                <div class="customer-detail">
+                    <i class="bi bi-envelope"></i>
+                    <span>{{ order.user.email }}</span>
+                </div>
+                <div class="customer-detail">
+                    <i class="bi bi-geo-alt"></i>
+                    <span>{{ order.shipping_address|default:"No address provided"|truncatechars:50 }}</span>
                 </div>
             </div>
-
-            <!-- Customer info -->
-            <p style="font-size:0.85rem; color:#6c757d; margin-bottom:0.75rem;">
-                <i class="bi bi-person"></i>
-                {{ order.user.get_full_name|default:order.user.username }}
-                &nbsp;|&nbsp;
-                <i class="bi bi-geo-alt"></i>
-                {{ order.shipping_address|default:"No address provided" }}
-            </p>
-
-            <!-- Producer's items within this order -->
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-                <thead>
-                    <tr style="border-bottom:1px solid #dee2e6;">
-                        <th style="text-align:left; padding:0.4rem 0.5rem;">Product</th>
-                        <th style="text-align:right; padding:0.4rem 0.5rem;">Unit Price</th>
-                        <th style="text-align:right; padding:0.4rem 0.5rem;">Qty</th>
-                        <th style="text-align:right; padding:0.4rem 0.5rem;">Line Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr style="border-bottom:1px solid #f1f3f5;">
-                        <td style="padding:0.4rem 0.5rem;">{{ item.product_name }}</td>
-                        <td style="text-align:right; padding:0.4rem 0.5rem;">£{{ item.product_price }}/{{ item.unit }}</td>
-                        <td style="text-align:right; padding:0.4rem 0.5rem;">{{ item.quantity }}</td>
-                        <td style="text-align:right; padding:0.4rem 0.5rem;"><strong>£{{ item.line_total }}</strong></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" style="text-align:right; padding:0.5rem 0.5rem; font-weight:600;">Your subtotal:</td>
-                        <td style="text-align:right; padding:0.5rem 0.5rem; font-weight:700;">£{{ producer_subtotal }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-
+            
+            <!-- Items Table -->
+            <div class="items-table-wrapper">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Unit Price</th>
+                            <th>Qty</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="product-name">{{ item.product_name }}</td>
+                            <td class="item-price">£{{ item.product_price }}/{{ item.unit }}</td>
+                            <td class="item-quantity">× {{ item.quantity }}</td>
+                            <td class="item-total">£{{ item.line_total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Order Footer -->
+            <div class="order-footer">
+                <div class="producer-subtotal">
+                    Your Subtotal: <span>£{{ producer_subtotal }}</span>
+                </div>
+            </div>
+            
             {% if order.delivery_notes %}
-            <p style="font-size:0.85rem; color:#6c757d; margin-top:0.75rem; margin-bottom:0;">
-                <i class="bi bi-chat-left-text"></i> <em>{{ order.delivery_notes }}</em>
-            </p>
+            <div class="delivery-note">
+                <i class="bi bi-chat-left-quote"></i>
+                <em>{{ order.delivery_notes }}</em>
+            </div>
             {% endif %}
-
         </div>
         {% endwith %}
         {% endfor %}
     {% else %}
-        <div class="table-card" style="text-align:center; padding:2.5rem;">
-            <i class="bi bi-inbox" style="font-size:2rem; color:#adb5bd;"></i>
-            <p style="margin-top:0.75rem; color:#6c757d;">No orders found{% if current_status %} with status "{{ current_status }}"{% endif %}.</p>
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>No orders found{% if current_status %} with status "{{ current_status }}"{% endif %}.</p>
+            {% if not current_status %}
+                <a href="{% url 'mainApp:producers:myproduct' %}" class="btn-filter">
+                    <i class="bi bi-box-seam"></i> Manage Your Products
+                </a>
+            {% else %}
+                <a href="?status=" class="btn-filter">
+                    <i class="bi bi-funnel"></i> Clear Filter
+                </a>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -115,16 +170,23 @@
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="pagination-bar">
         {% if page_obj.has_previous %}
-            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}">&laquo;</a>
-            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a>
+            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">
+                <i class="bi bi-chevron-left"></i> Previous
+            </a>
         {% endif %}
         <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}">&raquo;</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">
+                Next <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
         {% endif %}
     </div>
     {% endif %}
-
 </div>
 {% endblock %}

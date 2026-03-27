@@ -317,6 +317,17 @@ def myorders_view(request):
             'producer_subtotal': producer_subtotal,
         })
 
+
+    stats = {
+        'total': orders.count(),
+        'pending': orders.filter(status='pending').count(),
+        'processing': orders.filter(status='processing').count(),
+        'completed': orders.filter(status='delivered').count(),
+        # 'total_revenue': orders.filter(status='delivered').aggregate(
+        #     total=models.Sum('producer_subtotal')
+        # )['total'] or 0,
+    }
+
     # Pagination
     paginator = Paginator(orders_data, 10)
     page_number = request.GET.get('page')
@@ -326,6 +337,7 @@ def myorders_view(request):
         'page_obj': page_obj,
         'producer': producer_profile,
         'status_choices': Order.STATUS_CHOICES,
+        'stats': stats,
         'current_status': status_filter,
     }
     return render(request, 'producers/myorders.html', context)

@@ -131,14 +131,17 @@
                 <div class="product-badges">
                     {% if product.is_organic %}
                         <span class="badge-organic">
-                            <i class="bi bi-leaf"></i> Organic
+                            <i class="bi leaf"></i> Organic
+                        </span>
+                    {% endif %}
+                    {% if product.is_in_season %}
+                        <span class="badge-in-season">
+                            <i class="bi bi-flower2"></i> In Season
                         </span>
                     {% endif %}
                     <span class="badge-status
-                        {% if product.availability == 'in_season' %}in-season
-                        {% elif product.availability == 'available' %}available
-                        {% elif product.availability == 'unavailable' %}unavailable
-                        {% else %}out-season{% endif %}">
+                        {% if product.availability == 'available' %}available
+                        {% else %}unavailable{% endif %}">
                         {{ product.get_availability_display }}
                     </span>
                 </div>

@@ -21,7 +21,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Need at least 4 producers, found {len(producers)}. Create more producers first.'))
             return
 
-        # Create categories with subcategories
+        # Create categories
         categories = {
             # Main categories
             'fruits': ProductCategory.objects.create(
@@ -96,45 +96,59 @@ class Command(BaseCommand):
             ),
         }
 
+        # Current month for determining season status
+        current_month = timezone.now().month
+
+        # Helper function to determine if a product is in season based on current month
+        def is_in_season(season_start, season_end):
+            if not (season_start and season_end):
+                return True
+            if season_start <= season_end:
+                return season_start <= current_month <= season_end
+            else:
+                return current_month >= season_start or current_month <= season_end
+
         # Product data with realistic details
+        # Note: 'availability' now only uses 'available' or 'unavailable'
+        # Seasonality is handled by season_start/season_end and the is_in_season property
         products = [
             # ========== FRUITS ==========
-            # Producer 1 - Berry Farm
-            {'name': 'Strawberries', 'description': 'Sweet, hand-picked strawberries, perfect for desserts', 'price': 4.50, 'unit': 'kg', 'stock_quantity': 120, 'category': categories['fruits'], 'producer': producers[0], 'is_organic': True, 'season_start': 5, 'season_end': 8, 'availability': 'in_season', 'harvest_date': date(2026, 2, 15)},
+            # Producer 0 - Berry Farm
+            {'name': 'Strawberries', 'description': 'Sweet, hand-picked strawberries, perfect for desserts', 'price': 4.50, 'unit': 'kg', 'stock_quantity': 120, 'category': categories['fruits'], 'producer': producers[0], 'is_organic': True, 'season_start': 5, 'season_end': 8, 'availability': 'available', 'harvest_date': date(2026, 2, 15)},
             {'name': 'Raspberries', 'description': 'Fresh raspberries bursting with flavor', 'price': 5.00, 'unit': 'kg', 'stock_quantity': 80, 'category': categories['fruits'], 'producer': producers[0], 'is_organic': True, 'season_start': 6, 'season_end': 9, 'availability': 'available', 'harvest_date': date(2026, 1, 20)},
-            {'name': 'Blueberries', 'description': 'Organic wild blueberries, rich in antioxidants', 'price': 6.00, 'unit': 'kg', 'stock_quantity': 50, 'category': categories['fruits'], 'producer': producers[0], 'is_organic': True, 'season_start': 6, 'season_end': 8, 'availability': 'in_season', 'harvest_date': date(2026, 1, 10)},
+            {'name': 'Blueberries', 'description': 'Organic wild blueberries, rich in antioxidants', 'price': 6.00, 'unit': 'kg', 'stock_quantity': 50, 'category': categories['fruits'], 'producer': producers[0], 'is_organic': True, 'season_start': 6, 'season_end': 8, 'availability': 'available', 'harvest_date': date(2026, 1, 10)},
             {'name': 'Blackberries', 'description': 'Juicy blackberries from hedgerows', 'price': 4.80, 'unit': 'kg', 'stock_quantity': 60, 'category': categories['fruits'], 'producer': producers[0], 'is_organic': True, 'season_start': 7, 'season_end': 9, 'availability': 'available', 'harvest_date': date(2026, 1, 25)},
             
-            # Producer 2 - Orchard Farm
+            # Producer 1 - Orchard Farm
             {'name': 'Apples - Gala', 'description': 'Sweet and crisp Gala apples', 'price': 3.00, 'unit': 'kg', 'stock_quantity': 200, 'category': categories['fruits'], 'producer': producers[1], 'is_organic': False, 'season_start': 8, 'season_end': 11, 'availability': 'available', 'harvest_date': date(2025, 10, 20)},
             {'name': 'Apples - Bramley', 'description': 'Traditional cooking apples', 'price': 2.50, 'unit': 'kg', 'stock_quantity': 150, 'category': categories['fruits'], 'producer': producers[1], 'is_organic': False, 'season_start': 8, 'season_end': 10, 'availability': 'available', 'harvest_date': date(2025, 10, 15)},
             {'name': 'Pears - Conference', 'description': 'Sweet and juicy conference pears', 'price': 3.20, 'unit': 'kg', 'stock_quantity': 120, 'category': categories['fruits'], 'producer': producers[1], 'is_organic': True, 'season_start': 8, 'season_end': 10, 'availability': 'available', 'harvest_date': date(2025, 10, 5)},
             {'name': 'Plums', 'description': 'Sweet Victoria plums', 'price': 4.00, 'unit': 'kg', 'stock_quantity': 90, 'category': categories['fruits'], 'producer': producers[1], 'is_organic': False, 'season_start': 7, 'season_end': 9, 'availability': 'available', 'harvest_date': date(2025, 9, 1)},
-            {'name': 'Oranges', 'description': 'Juicy navel oranges', 'price': 3.50, 'unit': 'kg', 'stock_quantity': 0, 'category': categories['fruits'], 'producer': producers[2], 'is_organic': False, 'season_start': 12, 'season_end': 3, 'availability': 'out_of_season', 'harvest_date': date(2025, 12, 5)},
+            {'name': 'Oranges', 'description': 'Juicy navel oranges', 'price': 3.50, 'unit': 'kg', 'stock_quantity': 0, 'category': categories['fruits'], 'producer': producers[2], 'is_organic': False, 'season_start': 12, 'season_end': 3, 'availability': 'unavailable', 'harvest_date': date(2025, 12, 5)},
             
             # ========== VEGETABLES ==========
-            # Producer 2
-            {'name': 'Tomatoes - Vine', 'description': 'Vine-ripened tomatoes, full of flavor', 'price': 2.75, 'unit': 'kg', 'stock_quantity': 150, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': True, 'season_start': 6, 'season_end': 9, 'availability': 'in_season', 'harvest_date': date(2026, 2, 28)},
-            {'name': 'Cherry Tomatoes', 'description': 'Sweet cherry tomatoes, perfect for salads', 'price': 3.50, 'unit': 'kg', 'stock_quantity': 100, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': True, 'season_start': 6, 'season_end': 9, 'availability': 'in_season', 'harvest_date': date(2026, 2, 20)},
+            # Producer 1
+            {'name': 'Tomatoes - Vine', 'description': 'Vine-ripened tomatoes, full of flavor', 'price': 2.75, 'unit': 'kg', 'stock_quantity': 150, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': True, 'season_start': 6, 'season_end': 9, 'availability': 'available', 'harvest_date': date(2026, 2, 28)},
+            {'name': 'Cherry Tomatoes', 'description': 'Sweet cherry tomatoes, perfect for salads', 'price': 3.50, 'unit': 'kg', 'stock_quantity': 100, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': True, 'season_start': 6, 'season_end': 9, 'availability': 'available', 'harvest_date': date(2026, 2, 20)},
             {'name': 'Carrots', 'description': 'Fresh organic carrots, sweet and crunchy', 'price': 1.80, 'unit': 'kg', 'stock_quantity': 300, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': True, 'season_start': 3, 'season_end': 11, 'availability': 'available', 'harvest_date': date(2026, 2, 10)},
             {'name': 'Spinach', 'description': 'Baby spinach leaves, perfect for salads', 'price': 3.25, 'unit': 'kg', 'stock_quantity': 80, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': False, 'season_start': 3, 'season_end': 5, 'availability': 'available', 'harvest_date': date(2026, 1, 25)},
             {'name': 'Kale', 'description': 'Curly kale, nutrient-rich', 'price': 2.50, 'unit': 'kg', 'stock_quantity': 60, 'category': categories['vegetables'], 'producer': producers[1], 'is_organic': True, 'season_start': 9, 'season_end': 3, 'availability': 'available', 'harvest_date': date(2026, 1, 18)},
             
-            # Producer 3 - Root Farm
+            # Producer 2 - Root Farm
             {'name': 'Potatoes - Maris Piper', 'description': 'Excellent for roasting and mashing', 'price': 1.50, 'unit': 'kg', 'stock_quantity': 500, 'category': categories['vegetables'], 'producer': producers[2], 'is_organic': False, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 1, 15)},
             {'name': 'Sweet Potatoes', 'description': 'Orange-fleshed sweet potatoes', 'price': 2.80, 'unit': 'kg', 'stock_quantity': 150, 'category': categories['vegetables'], 'producer': producers[2], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 1, 20)},
             {'name': 'Onions', 'description': 'Brown onions, perfect for cooking', 'price': 1.20, 'unit': 'kg', 'stock_quantity': 400, 'category': categories['vegetables'], 'producer': producers[2], 'is_organic': False, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2025, 12, 10)},
             {'name': 'Garlic', 'description': 'Fresh garlic bulbs', 'price': 8.00, 'unit': 'kg', 'stock_quantity': 50, 'category': categories['vegetables'], 'producer': producers[2], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 1, 5)},
             
             # ========== DAIRY & EGGS ==========
-            # Producer 3
+            # Producer 2
             {'name': 'Fresh Milk', 'description': 'Whole milk from grass-fed cows', 'price': 2.50, 'unit': 'litre', 'stock_quantity': 60, 'category': categories['dairy'], 'producer': producers[2], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 3, 1)},
             {'name': 'Semi-Skimmed Milk', 'description': 'Creamy semi-skimmed milk', 'price': 2.20, 'unit': 'litre', 'stock_quantity': 80, 'category': categories['dairy'], 'producer': producers[2], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 3, 1)},
             {'name': 'Cheddar Cheese', 'description': 'Aged farmhouse cheddar', 'price': 8.00, 'unit': 'kg', 'stock_quantity': 5, 'category': categories['dairy'], 'producer': producers[2], 'is_organic': False, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2025, 11, 20)},
             {'name': 'Free Range Eggs', 'description': 'Farm fresh free range eggs', 'price': 4.00, 'unit': 'dozen', 'stock_quantity': 90, 'category': categories['dairy'], 'producer': producers[2], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 2, 27)},
             {'name': 'Butter', 'description': 'Salted butter from grass-fed cows', 'price': 5.50, 'unit': 'kg', 'stock_quantity': 30, 'category': categories['dairy'], 'producer': producers[2], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 2, 15)},
             
-            # Producer 4 - Dairy Farm
+            # Producer 3 - Dairy Farm
             {'name': 'Greek Yogurt', 'description': 'Thick and creamy Greek yogurt', 'price': 3.80, 'unit': 'kg', 'stock_quantity': 40, 'category': categories['dairy'], 'producer': producers[3], 'is_organic': True, 'season_start': None, 'season_end': None, 'availability': 'available', 'harvest_date': date(2026, 2, 28)},
             
             # ========== BAKERY ==========
@@ -193,3 +207,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'Failed to create {product_data["name"]}: {e}'))
 
         self.stdout.write(self.style.SUCCESS(f'Successfully created {len(categories)} categories and {created_count} products'))
+        
+        # Print season status for current month
+        self.stdout.write(f"\nCurrent month: {timezone.now().strftime('%B')}")
+        in_season_count = sum(1 for p in Product.objects.all() if p.is_in_season)
+        self.stdout.write(f"Products in season: {in_season_count}/{created_count}")
