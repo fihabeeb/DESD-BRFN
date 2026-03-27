@@ -70,7 +70,7 @@ class Command(BaseCommand):
             )
             
             # Create customer profile
-            profile = CustomerProfile.objects.create(
+            profile = CustomerProfile.objects.get_or_create(
                 user=user,
             )
             

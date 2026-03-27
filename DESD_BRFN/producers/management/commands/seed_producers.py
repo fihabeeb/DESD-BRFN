@@ -72,7 +72,7 @@ class Command(BaseCommand):
             )
             
             # Create producer profile with coordinates
-            profile = ProducerProfile.objects.create(
+            profile = ProducerProfile.objects.get_or_create(
                 user=user,
                 business_name=random.choice(farm_names),
                 latitude=Decimal(str(addr_data['lat'])),
