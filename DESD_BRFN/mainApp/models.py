@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 '''
 TC-022
@@ -25,6 +27,7 @@ class Address(models.Model):
         on_delete=models.CASCADE,
         related_name='addresses'
     )
+    label = models.CharField(max_length=50, blank=True, help_text="e.g 'Mum's house', 'Business'")
 
     address_line1 = models.CharField(max_length=255)
     address_line2 = models.CharField(max_length=255, blank=True)
@@ -68,14 +71,42 @@ class Address(models.Model):
         return ", ".join(filter(None, lines))  
 
     def save(self, *args, **kwargs):
-        # If this is set as default, unset other defaults for this user and type
+        # If this is the user's first address of this type, make it default automatically
+        if not self.pk:  # only on creation
+            existing = Address.objects.filter(
+                user=self.user,
+                address_type=self.address_type
+            ).exists()
+            if not existing:
+                self.is_default = True
+
+        # existing logic — unset other defaults if this one is default
         if self.is_default:
             Address.objects.filter(
                 user=self.user,
                 address_type=self.address_type,
                 is_default=True
             ).exclude(pk=self.pk).update(is_default=False)
-        super().save(*args, **kwargs) 
+
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        was_default = self.is_default
+        address_type = self.address_type
+        user = self.user
+
+        super().delete(*args, **kwargs)
+
+        # If we just deleted the default, promote the most recent remaining address
+        if was_default:
+            next_address = Address.objects.filter(
+                user=user,
+                address_type=address_type
+            ).order_by('-created_at').first()
+
+            if next_address:
+                next_address.is_default = True
+                next_address.save()
 
 
 class RegularUser(AbstractUser):
@@ -88,7 +119,6 @@ class RegularUser(AbstractUser):
 
     role = models.CharField(max_length=20, choices=Role.choices)
     phone_number = models.CharField(max_length=100)
-    address = models.CharField(max_length=20)
     post_code = models.CharField(max_length=20)
     # created_at = models.DateTimeField(auto_now_add=True) # DONT UNCOMMENT: Already has date_joined 
     updated_at = models.DateTimeField(auto_now=True)
@@ -99,7 +129,7 @@ class RegularUser(AbstractUser):
 
     @property
     def default_address(self):
-        return self.address.filter(is_default=True).first()
+        return self.addresses.filter(is_default=True).first()
     
     @property
     def default_shipping_address(self):
@@ -135,7 +165,7 @@ class ProducerProfile(models.Model):
 
     @property
     def farm_address(self):
-        return self.user.address.filter(address_type='farm', is_default=True).first()
+        return self.user.addresses.filter(address_type='farm', is_default=True).first()
 
 class CommunityMemberProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='community_member_profile')
@@ -148,3 +178,13 @@ class SystemAdminProfile(models.Model):
     # admin-specific fields
     admin_level = models.IntegerField(default=1)
     # ...
+
+
+    
+@receiver(post_save, sender=RegularUser)
+def create_profiles(sender, instance, created, **kwargs):
+    if created:
+        if instance.role == RegularUser.Role.PRODUCER:
+            ProducerProfile.objects.get_or_create(user=instance)
+        elif instance.role == RegularUser.Role.CUSTOMER:
+            CustomerProfile.objects.get_or_create(user=instance)
