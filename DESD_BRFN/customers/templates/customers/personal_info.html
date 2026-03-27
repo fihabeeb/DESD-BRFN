@@ -4,6 +4,106 @@
 
 {% block title %}Personal Information{% endblock %}
 
+{% block extra_css %}
+<style>
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .section-block h4 {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    /* Address Card Styles */
+    .address-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .address-card.default {
+        border-left: 4px solid #ffc107;
+        background-color: #fffef7;
+    }
+    
+    .address-header {
+        margin-bottom: 0.5rem;
+    }
+    
+    .address-type {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .address-label {
+        background-color: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: #495057;
+        margin-left: 8px;
+    }
+    
+    .address-content {
+        margin: 0.5rem 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .address-actions {
+        margin-top: 0.5rem;
+    }
+    
+    .other-address-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .other-address-item:last-child {
+        border-bottom: none;
+    }
+    
+    .address-type-small {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .address-label-small {
+        background-color: #e9ecef;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        color: #495057;
+        margin-left: 6px;
+    }
+    
+    .address-summary {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+    
+    details summary {
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+    
+    details summary:hover {
+        color: #28a745;
+    }
+    
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4" style="max-width: 700px;">
 
@@ -62,61 +162,78 @@
 
         <hr>
 
-        <!-- HOME ADDRESS -->
+        <!-- ADDRESS MANAGEMENT SECTION -->
         <div class="section-block mb-4">
-            <h4 class="mb-3">Home Address</h4>
-            <p class="text-muted small">Used for delivery and calculating food miles (TC-013)</p>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.home_address_line1.id_for_label }}">Address Line 1</label>
-                {{ form.home_address_line1 }}
-                {% if form.home_address_line1.errors %}
-                <div class="text-danger small">{{ form.home_address_line1.errors.0 }}</div>
-                {% endif %}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Addresses</h4>
+                <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-geo-alt"></i> Manage All Addresses
+                </a>
             </div>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.home_address_line2.id_for_label }}">Address Line 2 <span class="text-muted">(Optional)</span></label>
-                {{ form.home_address_line2 }}
-                {% if form.home_address_line2.errors %}
-                <div class="text-danger small">{{ form.home_address_line2.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mb-3">
-                        <label for="{{ form.home_city.id_for_label }}">City/Town</label>
-                        {{ form.home_city }}
-                        {% if form.home_city.errors %}
-                        <div class="text-danger small">{{ form.home_city.errors.0 }}</div>
+            <p class="text-muted small">Manage your delivery addresses for orders</p>
+            
+            <!-- Default Address Card -->
+            {% if default_address %}
+            <div class="address-card default">
+                <div class="address-header">
+                    <div>
+                        <span class="address-type">
+                            <i class="bi bi-star-fill text-warning"></i> Default Address
+                        </span>
+                        {% if default_address.label %}
+                        <span class="address-label">{{ default_address.label }}</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mb-3">
-                        <label for="{{ form.home_county.id_for_label }}">County <span class="text-muted">(Optional)</span></label>
-                        {{ form.home_county }}
-                        {% if form.home_county.errors %}
-                        <div class="text-danger small">{{ form.home_county.errors.0 }}</div>
-                        {% endif %}
-                    </div>
+                <div class="address-content">
+                    {{ default_address.full_address|linebreaksbr }}
+                </div>
+                <div class="address-actions mt-2">
+                    <a href="{% url 'mainApp:edit_address' default_address.id %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
                 </div>
             </div>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.home_post_code.id_for_label }}">Post Code</label>
-                {{ form.home_post_code }}
-                {% if form.home_post_code.errors %}
-                <div class="text-danger small">{{ form.home_post_code.errors.0 }}</div>
-                {% endif %}
-                <small class="text-muted d-block">Used to calculate food miles from local producers</small>
-            </div>
-
-            {% if not home_address %}
-            <div class="alert alert-warning small mt-2">
+            {% else %}
+            <div class="alert alert-warning mb-0">
                 <i class="bi bi-exclamation-triangle"></i>
-                Adding your home address helps calculate accurate food miles for your orders!
+                You haven't set a default address yet.
+                <a href="{% url 'mainApp:manage_addresses' %}" class="alert-link">Add your first address</a>
+            </div>
+            {% endif %}
+            
+            <!-- Additional Addresses Summary (Optional) -->
+            {% if other_addresses %}
+            <div class="mt-3">
+                <details class="small">
+                    <summary class="text-muted" style="cursor: pointer;">
+                        <i class="bi bi-list-ul"></i> 
+                        {{ other_addresses|length }} other address{{ other_addresses|pluralize }} available
+                    </summary>
+                    <div class="mt-2">
+                        {% for address in other_addresses %}
+                        <div class="other-address-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="address-type-small">
+                                        <i class="bi bi-{% if address.address_type == 'home' %}house-door{% elif address.address_type == 'shipping' %}truck{% elif address.address_type == 'billing' %}credit-card{% else %}building{% endif %}"></i>
+                                        {{ address.get_address_type_display }}
+                                    </span>
+                                    {% if address.label %}
+                                    <span class="address-label-small">{{ address.label }}</span>
+                                    {% endif %}
+                                    <div class="address-summary">
+                                        {{ address.address_line1 }}, {{ address.city }}
+                                    </div>
+                                </div>
+                                <a href="{% url 'mainApp:edit_address' address.id %}" class="btn btn-sm btn-link">
+                                    Edit
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
             </div>
             {% endif %}
         </div>
@@ -163,20 +280,4 @@
     </form>
 </div>
 
-<style>
-    .form-group {
-        margin-bottom: 1rem;
-    }
-    
-    .section-block h4 {
-        color: #2c3e50;
-        font-weight: 600;
-    }
-    
-    .alert-warning {
-        background-color: #fff3cd;
-        border-color: #ffc107;
-        color: #856404;
-    }
-</style>
 {% endblock %}

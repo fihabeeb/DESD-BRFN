@@ -73,8 +73,6 @@ class Command(BaseCommand):
             
             profile = user.producer_profile  # This will exist due to the signal
             profile.business_name = random.choice(farm_names)
-            profile.latitude = Decimal(str(addr_data['lat']))
-            profile.longitude = Decimal(str(addr_data['lon']))
             profile.save()
 
             

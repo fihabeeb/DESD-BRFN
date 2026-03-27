@@ -438,17 +438,30 @@ def personal_info_view(request):
 
     # DELETE ACCOUNT HANDLER
     if request.method == "POST" and "delete_account" in request.POST:
-        logout(request)
         user.delete()
+        logout(request)
         messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
         return redirect("mainApp:home")
     
-    profile = user.producer_profile
+    # GET OR CREATE PRODUCER PROFILE
+    try:
+        profile = ProducerProfile.objects.get(user=user)
+    except ProducerProfile.DoesNotExist:
+        logger.info(f"Creating missing profile for user {user.username}")
+        profile = ProducerProfile.objects.create(user=user)
+        messages.info(request, "Producer profile was created. Please complete your farm details.")
     
-    # GET FARM ADDRESS
-    farm_address = user.addresses.filter(address_type="farm", is_default=True).first()
-    if request.method == "GET" and not farm_address:
-        messages.warning(request, "Please add your farm address for food miles calculation.")
+    # GET ADDRESSES
+    all_addresses = user.addresses.all().order_by('-is_default', '-created_at')
+    
+    # Get farm address (primary for producers)
+    farm_address = all_addresses.filter(address_type='farm', is_default=True).first()
+    if not farm_address:
+        # Try to get any farm address
+        farm_address = all_addresses.filter(address_type='farm').first()
+    
+    # Get other addresses (home, shipping, billing, business)
+    other_addresses = all_addresses.exclude(address_type='farm')
     
     # PROCESS FORM
     if request.method == "POST":
@@ -458,13 +471,13 @@ def personal_info_view(request):
             try:
                 user = form.save()
                 
+                # Handle session after password change
                 if form.cleaned_data.get('password1'):
                     update_session_auth_hash(request, user)
-                    messages.success(request, "Your information and password have been updated successfully!")
-                else:
-                    messages.success(request, "Your information has been updated successfully!")
-
-                return redirect("mainApp:producers:myproduct")
+                    messages.success(request, "Password updated successfully!")
+                
+                messages.success(request, "Your information has been updated successfully!")
+                return redirect("mainApp:producers:personal_info")
                 
             except Exception as e:
                 logger.error(f"Error updating producer info: {e}", exc_info=True)
@@ -488,23 +501,15 @@ def personal_info_view(request):
             "business_name": profile.business_name if profile else '',
         }
         
-        # Add farm address data if exists
-        if farm_address:
-            initial_data.update({
-                "farm_address_line1": farm_address.address_line1,
-                "farm_address_line2": farm_address.address_line2,
-                "farm_city": farm_address.city,
-                "farm_county": farm_address.county,
-                "farm_post_code": farm_address.post_code,
-            })
-        
         form = ProducerPersonalInfoForm(user=user, initial=initial_data)
     
     context = {
         'form': form,
-        'user': user,  # Pass user to template for displaying username/email
+        'user': user,
         'profile': profile,
+        'all_addresses': all_addresses,
         'farm_address': farm_address,
+        'other_addresses': other_addresses,
     }
     
     return render(request, "producers/personal_info.html", context)

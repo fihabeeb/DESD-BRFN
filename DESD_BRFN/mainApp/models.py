@@ -3,7 +3,13 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from mainApp.utils import haversine_miles, geocode_postcode
+from django.core.exceptions import ValidationError
+from django.contrib import messages
 
+import logging
+
+logger = logging.getLogger(__name__)
 '''
 TC-022
 As a system administrator, I want to ensure secure authentication so
@@ -69,44 +75,210 @@ class Address(models.Model):
             lines.append(self.address_line2)
         lines.extend([self.city, self.county, self.post_code, self.country])
         return ", ".join(filter(None, lines))  
+    
+    @property
+    def is_producer(self):
+        """Check if the user associated with this address is a producer"""
+        return hasattr(self.user, 'role') and self.user.role == 'producer'
+    
 
-    def save(self, *args, **kwargs):
-        # If this is the user's first address of this type, make it default automatically
-        if not self.pk:  # only on creation
-            existing = Address.objects.filter(
+    def geocode(self):
+        """Geocode the address and update coordinates"""
+        if not self.post_code:
+            return False
+        
+        try:
+            lat, lon = geocode_postcode(self.post_code)
+            if lat and lon:
+                self.latitude = lat
+                self.longitude = lon
+                return True
+        except Exception as e:
+            print("ERROR: Address model, ", e)
+        
+        return False
+
+    # ==========================================
+    # PRODUCER FARM ADDRESS ENFORCEMENT
+    # ==========================================
+    # def _validate_producer_farm_limit(self):
+    #     """
+    #     Validate that producers cannot have more than one farm address.
+    #     Called before creating a new farm address.
+    #     """
+    #     if not self.is_producer:
+    #         return
+        
+    #     # Only check for farm addresses
+    #     if self.address_type != 'farm':
+    #         return
+        
+    #     # If this is an existing address being updated, skip limit check
+    #     if self.pk:
+    #         return
+        
+    #     # Check if producer already has a farm address
+    #     existing_farm = Address.objects.filter(
+    #         user=self.user,
+    #         address_type='farm'
+    #     ).exists()
+        
+    #     if existing_farm:
+    #         raise ValidationError(
+    #             "You already have a farm address. Producers can only have one farm address. "
+    #             "Please edit your existing farm address instead of creating a new one."
+    #         )
+        
+    def _enforce_producer_default_farm(self):
+        """
+        For producers, ensure the default address is always a farm type.
+        If trying to set a non-farm address as default, it will be rejected
+        and a farm address will be promoted instead.
+        """
+        if not self.is_producer:
+            return
+        
+        # If this is a non-farm address trying to be set as default
+        if self.is_default and self.address_type != 'farm':
+            # Check if there's a farm address that can be default instead
+            farm_address = Address.objects.filter(
                 user=self.user,
-                address_type=self.address_type
-            ).exists()
-            if not existing:
-                self.is_default = True
+                address_type='farm'
+            ).first()
+            
+            if farm_address:
+                # Promote the farm address to default
+                farm_address.is_default = True
+                farm_address.save(update_fields=['is_default'])
+                logger.info(
+                    f"Producer {self.user.username} attempted to set non-farm address as default. "
+                    f"Farm address {farm_address.id} set as default instead."
+                )
+                # Prevent this non-farm address from being default
+                self.is_default = False
+            else:
+                # No farm address exists, so we can't set any default
+                self.is_default = False
+                logger.warning(
+                    f"Producer {self.user.username} has no farm address. "
+                    f"Cannot set non-farm address as default."
+                )
+    
+    # def _ensure_producer_has_default_farm(self):
+    #     """
+    #     Ensure producers have at least one farm address as default.
+    #     If there's a farm address but none is default, make one default.
+    #     """
+    #     if not self.is_producer:
+    #         return
+        
+    #     # Check if there are any farm addresses
+    #     farm_addresses = Address.objects.filter(
+    #         user=self.user,
+    #         address_type='farm'
+    #     )
+        
+    #     if farm_addresses.exists():
+    #         # Check if any farm address is default
+    #         has_farm_default = farm_addresses.filter(is_default=True).exists()
+            
+    #         if not has_farm_default:
+    #             # Make the most recent farm address default
+    #             latest_farm = farm_addresses.order_by('-created_at').first()
+    #             latest_farm.is_default = True
+    #             latest_farm.save(update_fields=['is_default'])
+    #             logger.info(
+    #                 f"Producer {self.user.username} had no default farm address. "
+    #                 f"Set farm address {latest_farm.id} as default."
+    #             )
+    
+    def _prevent_farm_address_type_change(self):
+        """
+        Aliff: THIS IS ALREADY HANDLED A FRONT-END (MAYBE REMOVE IDK)
+        Prevent producers from changing a farm address to a different type.
+        Producers can only edit their farm address, not change its type.
+        """
+        if not self.is_producer or not self.pk:
+            return
+        
+        try:
+            old_address = Address.objects.get(pk=self.pk)
+            # If it was a farm address and is being changed to something else
+            if old_address.address_type == 'farm' and self.address_type != 'farm':
+                raise ValidationError(
+                    "You cannot change your farm address to a different type. "
+                    "If you need a different address type, please add it separately."
+                )
+        except Address.DoesNotExist:
+            pass
+    
+# In your Address model
+def save(self, *args, **kwargs):
+    # Skip the default handling if we're only updating is_default
+    # You can pass a flag to skip the logic
+    skip_default_handling = kwargs.pop('skip_default_handling', False)
+    
+    is_new = not self.pk
+    address_type = self.address_type
 
-        # existing logic — unset other defaults if this one is default
-        if self.is_default:
-            Address.objects.filter(
-                user=self.user,
-                address_type=self.address_type,
-                is_default=True
-            ).exclude(pk=self.pk).update(is_default=False)
+    # ==========================================
+    # 2. POSTCODE AND GEOCODING
+    # ==========================================
+    postcode_changed = is_new
+    if not is_new:
+        try:
+            old = Address.objects.get(pk=self.pk)
+            postcode_changed = old.post_code != self.post_code
+        except Address.DoesNotExist:
+            postcode_changed = True
 
-        super().save(*args, **kwargs)
+    if self.post_code and (postcode_changed or not self.latitude or not self.longitude):
+        self.geocode()
 
-    def delete(self, *args, **kwargs):
-        was_default = self.is_default
-        address_type = self.address_type
-        user = self.user
+    # ==========================================
+    # 3. HANDLE DEFAULT ADDRESS UNIQUENESS
+    # ==========================================
+    # Only handle default uniqueness if not skipped
+    if not skip_default_handling and self.is_default:
+        # Unset all other defaults of the same type
+        Address.objects.filter(
+            user=self.user,
+            address_type=address_type,
+            is_default=True
+        ).exclude(pk=self.pk if not is_new else None).update(is_default=False)
 
-        super().delete(*args, **kwargs)
+    # ==========================================
+    # 4. SAVE THE ADDRESS
+    # ==========================================
+    super().save(*args, **kwargs)
 
-        # If we just deleted the default, promote the most recent remaining address
-        if was_default:
-            next_address = Address.objects.filter(
-                user=user,
-                address_type=address_type
-            ).order_by('-created_at').first()
 
-            if next_address:
-                next_address.is_default = True
-                next_address.save()
+def delete(self, *args, **kwargs):
+    # Prevent deleting last farm address for producers
+    if self.is_producer and self.address_type == 'farm':
+        remaining = Address.objects.filter(
+            user=self.user,
+            address_type='farm'
+        ).exclude(pk=self.pk).count()
+        if remaining == 0:
+            raise ValidationError(
+                "You must keep at least one farm address."
+            )
+
+    was_default = self.is_default
+    address_type = self.address_type
+    user = self.user
+
+    super().delete(*args, **kwargs)
+
+    # Promote next address if default was deleted
+    if was_default:
+        next_address = Address.objects.filter(
+            user=user,
+            address_type=address_type
+        ).order_by('-created_at').first()
+        if next_address:
+            Address.objects.filter(pk=next_address.pk).update(is_default=True)
 
 
 class RegularUser(AbstractUser):
@@ -160,12 +332,25 @@ class ProducerProfile(models.Model):
     business_name = models.CharField(max_length=200)
 
     # TC-013 food miles — set automatically from user.post_code via postcodes.io on registration
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    # ALIFF: use the address table 
+    # latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    # longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     @property
     def farm_address(self):
         return self.user.addresses.filter(address_type='farm', is_default=True).first()
+    
+    @property
+    def latitude(self):
+        """Get latitude from farm address"""
+        farm = self.farm_address
+        return farm.latitude if farm else None
+    
+    @property
+    def longitude(self):
+        """Get longitude from farm address"""
+        farm = self.farm_address
+        return farm.longitude if farm else None
 
 class CommunityMemberProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='community_member_profile')

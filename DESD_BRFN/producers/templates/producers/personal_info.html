@@ -19,6 +19,98 @@
         border-color: #ffc107;
         color: #856404;
     }
+    
+    /* Address Card Styles */
+    .address-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .address-card.default {
+        border-left: 4px solid #ffc107;
+        background-color: #fffef7;
+    }
+    
+    .address-header {
+        margin-bottom: 0.5rem;
+    }
+    
+    .address-type {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .address-label {
+        background-color: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: #495057;
+        margin-left: 8px;
+    }
+    
+    .address-content {
+        margin: 0.5rem 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .address-actions {
+        margin-top: 0.5rem;
+    }
+    
+    .other-address-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .other-address-item:last-child {
+        border-bottom: none;
+    }
+    
+    .address-type-small {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .address-label-small {
+        background-color: #e9ecef;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        color: #495057;
+        margin-left: 6px;
+    }
+    
+    .address-summary {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+    
+    details summary {
+        color: #6c757d;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+    
+    details summary:hover {
+        color: #28a745;
+    }
+    
+    .btn-link {
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+    
+    .btn-link:hover {
+        text-decoration: underline;
+    }
 </style>
 {% endblock %}
 
@@ -35,14 +127,14 @@
         <div class="section-block mb-4">
             <h4 class="mb-3">Personal Information</h4>
 
-            <!-- Username - Display only (not in form) -->
+            <!-- Username - Display only -->
             <div class="form-group mb-3">
                 <label>Username</label>
                 <input type="text" class="form-control" value="{{ user.username }}" readonly disabled style="background-color: #f8f9fa;">
                 <small class="text-muted d-block">Username cannot be changed</small>
             </div>
 
-            <!-- Email - Display only (not in form) -->
+            <!-- Email - Display only -->
             <div class="form-group mb-3">
                 <label>Email</label>
                 <input type="email" class="form-control" value="{{ user.email }}" readonly disabled style="background-color: #f8f9fa;">
@@ -96,56 +188,84 @@
 
         <hr>
 
-        <!-- FARM ADDRESS -->
+        <!-- ADDRESS MANAGEMENT SECTION -->
         <div class="section-block mb-4">
-            <h4 class="mb-3">Farm Address</h4>
-            <p class="text-muted small">Used to calculate food miles to customers (TC-013)</p>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.farm_address_line1.id_for_label }}">Address Line 1</label>
-                {{ form.farm_address_line1 }}
-                {% if form.farm_address_line1.errors %}
-                <div class="text-danger small">{{ form.farm_address_line1.errors.0 }}</div>
-                {% endif %}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Addresses</h4>
+                <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-geo-alt"></i> Manage All Addresses
+                </a>
             </div>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.farm_address_line2.id_for_label }}">Address Line 2 <span class="text-muted">(Optional)</span></label>
-                {{ form.farm_address_line2 }}
-                {% if form.farm_address_line2.errors %}
-                <div class="text-danger small">{{ form.farm_address_line2.errors.0 }}</div>
-                {% endif %}
+            <p class="text-muted small">Manage your farm and other addresses</p>
+            
+            <!-- Farm Address Card (Primary for Producers) -->
+            {% if farm_address %}
+            <div class="address-card default">
+                <div class="address-header">
+                    <div>
+                        <span class="address-type">
+                            <i class="bi bi-star-fill text-warning"></i> Farm Address
+                        </span>
+                        {% if farm_address.label %}
+                        <span class="address-label">{{ farm_address.label }}</span>
+                        {% endif %}
+                        {% if farm_address.is_default %}
+                        <span class="address-label">Default</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="address-content">
+                    {{ farm_address.full_address|linebreaksbr }}
+                </div>
+                <div class="address-actions mt-2">
+                    <a href="{% url 'mainApp:edit_address' farm_address.id %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Edit Farm Address
+                    </a>
+                </div>
             </div>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.farm_city.id_for_label }}">City/Town</label>
-                {{ form.farm_city }}
-                {% if form.farm_city.errors %}
-                <div class="text-danger small">{{ form.farm_city.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.farm_county.id_for_label }}">County <span class="text-muted">(Optional)</span></label>
-                {{ form.farm_county }}
-                {% if form.farm_county.errors %}
-                <div class="text-danger small">{{ form.farm_county.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-group mb-3">
-                <label for="{{ form.farm_post_code.id_for_label }}">Post Code</label>
-                {{ form.farm_post_code }}
-                {% if form.farm_post_code.errors %}
-                <div class="text-danger small">{{ form.farm_post_code.errors.0 }}</div>
-                {% endif %}
-                <small class="text-muted d-block">Used to calculate your food miles</small>
-            </div>
-
-            {% if not farm_address %}
-            <div class="alert alert-warning small mt-2">
+            {% else %}
+            <div class="alert alert-warning mb-3">
                 <i class="bi bi-exclamation-triangle"></i>
-                Adding your farm address helps customers see how local your products are!
+                You haven't set up your farm address yet. This is used to calculate food miles to customers.
+                <a href="{% url 'mainApp:add_address' %}" class="alert-link">Add your farm address</a>
+            </div>
+            {% endif %}
+            
+            <!-- Other Addresses (Home, Shipping, Billing, Business) -->
+            {% if other_addresses %}
+            <div class="mt-3">
+                <details>
+                    <summary class="text-muted">
+                        <i class="bi bi-list-ul"></i> 
+                        {{ other_addresses|length }} other address{{ other_addresses|pluralize }} (Home, Shipping, Billing, etc.)
+                    </summary>
+                    <div class="mt-2">
+                        {% for address in other_addresses %}
+                        <div class="other-address-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="address-type-small">
+                                        <i class="bi bi-{% if address.address_type == 'home' %}house-door{% elif address.address_type == 'shipping' %}truck{% elif address.address_type == 'billing' %}credit-card{% elif address.address_type == 'business' %}building{% else %}shop{% endif %}"></i>
+                                        {{ address.get_address_type_display }}
+                                    </span>
+                                    {% if address.label %}
+                                    <span class="address-label-small">{{ address.label }}</span>
+                                    {% endif %}
+                                    {% if address.is_default %}
+                                    <span class="address-label-small">Default</span>
+                                    {% endif %}
+                                    <div class="address-summary">
+                                        {{ address.address_line1 }}, {{ address.city }}
+                                    </div>
+                                </div>
+                                <a href="{% url 'mainApp:edit_address' address.id %}" class="btn btn-sm btn-link">
+                                    Edit
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
             </div>
             {% endif %}
         </div>

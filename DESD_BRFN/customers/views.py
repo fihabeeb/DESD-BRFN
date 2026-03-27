@@ -101,7 +101,10 @@ def add_to_cart(request, product_id):
 
     messages.success(request, f"{product.name} added to your cart")
 
-    return redirect("mainApp:customers:view_cart")
+    next_url = request.META.get('HTTP_REFERER', '/')
+    return redirect(next_url)
+
+    # return redirect("mainApp:customers:view_cart")
 
 
 @login_required
@@ -232,10 +235,10 @@ def customer_personal_info_view(request):
         profile = CustomerProfile.objects.create(user=user)
         messages.info(request, "Customer profile was created.")
     
-    # GET HOME ADDRESS
-    home_address = user.addresses.filter(address_type="home", is_default=True).first()
-    if not home_address:
-        messages.warning(request, "Please add your home address for delivery purposes.")
+    # GET ADDRESSES
+    all_addresses = user.addresses.all()
+    default_address = all_addresses.filter(is_default=True).first()
+    other_addresses = all_addresses.exclude(id=default_address.id) if default_address else all_addresses
     
     # PROCESS FORM
     if request.method == "POST":
@@ -251,7 +254,7 @@ def customer_personal_info_view(request):
                     messages.success(request, "Password updated successfully!")
                 
                 messages.success(request, "Your information has been updated successfully!")
-                return redirect("mainApp:customer:profile")
+                return redirect("mainApp:customers:personal_info")
                 
             except Exception as e:
                 logger.error(f"Error updating customer info: {e}", exc_info=True)
@@ -274,23 +277,15 @@ def customer_personal_info_view(request):
             "phone_number": user.phone_number,
         }
         
-        # Add home address data if exists
-        if home_address:
-            initial_data.update({
-                "home_address_line1": home_address.address_line1,
-                "home_address_line2": home_address.address_line2,
-                "home_city": home_address.city,
-                "home_county": home_address.county,
-                "home_post_code": home_address.post_code,
-            })
-        
         form = CustomerPersonalInfoForm(user=user, initial=initial_data)
     
     context = {
         'form': form,
         'user': user,
         'profile': profile,
-        'home_address': home_address,
+        'all_addresses': all_addresses,
+        'default_address': default_address,
+        'other_addresses': other_addresses,
     }
     
     return render(request, "customers/personal_info.html", context)
