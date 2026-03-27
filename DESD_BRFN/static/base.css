@@ -178,3 +178,150 @@ nav .absolute a,
 nav [x-show] a {
     margin-right: 0 !important;
 }
+
+
+/* ===== DARK MODE ===== */
+
+html.dark-mode body {
+    background-color: #111827;
+    color: #e5e7eb;
+}
+
+/* ── General surfaces ── */
+html.dark-mode .bg-white  { background-color: #1f2937 !important; }
+html.dark-mode .bg-gray-50  { background-color: #1a2332 !important; }
+html.dark-mode .bg-gray-100 { background-color: #1f2937 !important; }
+html.dark-mode .shadow-md,
+html.dark-mode .shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; }
+html.dark-mode .border,
+html.dark-mode .border-gray-100,
+html.dark-mode .border-gray-200,
+html.dark-mode .border-gray-300 { border-color: #374151 !important; }
+html.dark-mode .border-t { border-top-color: #374151 !important; }
+
+/* ── Text ── */
+html.dark-mode .text-gray-800 { color: #e5e7eb !important; }
+html.dark-mode .text-gray-700 { color: #d1d5db !important; }
+html.dark-mode .text-gray-600 { color: #9ca3af !important; }
+html.dark-mode .text-gray-500 { color: #6b7280 !important; }
+html.dark-mode .text-gray-400 { color: #4b5563 !important; }
+html.dark-mode .text-1a1a1a,
+html.dark-mode .product-card-body h3 a { color: #e5e7eb !important; }
+
+/* ── Inputs & selects ── */
+html.dark-mode input[type="text"],
+html.dark-mode input[type="number"],
+html.dark-mode input[type="email"],
+html.dark-mode input[type="password"],
+html.dark-mode input[type="date"],
+html.dark-mode select,
+html.dark-mode textarea {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+}
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder { color: #6b7280 !important; }
+
+/* ── Products page ── */
+html.dark-mode .product-card {
+    background: #1f2937;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+html.dark-mode .product-card-image { background-color: #374151; }
+html.dark-mode .product-card-footer { border-top-color: #374151; }
+html.dark-mode .search-bar-area {
+    background-color: #1f2937;
+    border-bottom-color: #374151;
+}
+html.dark-mode .search-box input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e5e7eb;
+}
+html.dark-mode .search-results-info { color: #9ca3af; }
+html.dark-mode .category-filter a {
+    background-color: #374151;
+    color: #d1d5db;
+    border-color: transparent;
+}
+html.dark-mode .category-filter a:hover { background-color: #1a5c1a; color: #fff; }
+html.dark-mode .category-filter a.active { background-color: #2d6a2d; }
+html.dark-mode .products-empty { color: #6b7280; }
+
+/* ── Producer dashboard ── */
+html.dark-mode .myproduct-header h1 { color: #e5e7eb; }
+html.dark-mode .stat-card {
+    background: #1f2937;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+html.dark-mode .stat-card .stat-label { color: #6b7280; }
+html.dark-mode .stat-card .stat-value { color: #e5e7eb; }
+html.dark-mode .filter-bar {
+    background: #1f2937;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+html.dark-mode .filter-bar select,
+html.dark-mode .filter-bar input[type="text"] {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e5e7eb;
+}
+html.dark-mode .filter-checkbox { color: #d1d5db; }
+html.dark-mode .table-card {
+    background: #1f2937;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+html.dark-mode .table-card thead { background: #111827; border-bottom-color: #374151; }
+html.dark-mode .table-card th { color: #6b7280; }
+html.dark-mode .table-card th a { color: #6b7280; }
+html.dark-mode .table-card td { border-bottom-color: #374151; color: #d1d5db; }
+html.dark-mode .table-card tbody tr:hover { background: #253347; }
+html.dark-mode .table-card tbody tr.row-low-stock { background: #2d1f1f; }
+html.dark-mode .table-card tbody tr.row-low-stock:hover { background: #3a2020; }
+html.dark-mode .pagination-bar a,
+html.dark-mode .pagination-bar span { background: #1f2937; border-color: #374151; }
+
+/* ── Add/Edit product form ── */
+html.dark-mode .rounded { background-color: #1f2937; }
+html.dark-mode label { color: #d1d5db; }
+
+/* ── Quality scan page ── */
+html.dark-mode .drop-zone { border-color: #4b5563 !important; }
+html.dark-mode .drop-zone:not(.drag-over) { background: #1f2937; }
+
+/* ── Bootstrap overrides ── */
+html.dark-mode .form-control,
+html.dark-mode .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+}
+html.dark-mode .card { background-color: #1f2937 !important; border-color: #374151 !important; }
+
+/* ── Dropdown menu (keep light for readability) ── */
+html.dark-mode nav .absolute,
+html.dark-mode nav [x-show] {
+    background-color: #1f2937 !important;
+}
+html.dark-mode nav .absolute a,
+html.dark-mode nav [x-show] a {
+    background-color: #1f2937 !important;
+    color: #d1d5db !important;
+}
+html.dark-mode nav .absolute a:hover,
+html.dark-mode nav [x-show] a:hover {
+    background-color: #22c55e !important;
+    color: white !important;
+}
+html.dark-mode nav .absolute .bg-gray-100,
+html.dark-mode nav .absolute .bg-gray-50,
+html.dark-mode nav [x-show] .bg-gray-100,
+html.dark-mode nav [x-show] .bg-gray-50 {
+    background-color: #111827 !important;
+    color: #9ca3af !important;
+}
+html.dark-mode nav .absolute a i,
+html.dark-mode nav [x-show] a i { color: #6b7280 !important; }
+html.dark-mode nav .absolute .border-t,
+html.dark-mode nav [x-show] .border-t { border-color: #374151 !important; }

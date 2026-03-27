@@ -5,7 +5,7 @@
     background: linear-gradient(135deg, #1a3c1a 0%, #2d6a2d 60%, #4a9e4a 100%);
     color: white;
     padding: 3rem 2rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
     text-align: center;
 }
 
@@ -128,6 +128,21 @@
     border-radius: 999px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+
+.badge-in-season {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background-color: #e981d6;  /* Rich green color for seasonal freshness */
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .badge-status {

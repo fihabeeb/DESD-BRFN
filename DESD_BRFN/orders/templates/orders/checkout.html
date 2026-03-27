@@ -4,6 +4,89 @@
 
 {% block title %}Checkout{% endblock %}
 
+{% block extra_css %}
+<style>
+    .address-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .address-option {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .address-option:hover {
+        background-color: #f8f9fa;
+        border-color: #28a745;
+    }
+    
+    .address-option:has(input:checked) {
+        background-color: #e8f5e9;
+        border-color: #28a745;
+    }
+    
+    .address-display {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .address-type-badge {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .address-type-badge i {
+        margin-right: 4px;
+    }
+    
+    .address-details {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .address-label {
+        background-color: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: #495057;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    
+    .form-check {
+        margin-bottom: 0;
+    }
+    
+    .form-check-input:checked + .form-check-label .address-option {
+        background-color: #e8f5e9;
+    }
+    
+    /* Scrollbar styling */
+    .address-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .address-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .address-list::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+    
+    .address-list::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+</style>
+{% endblock %}
 {% block content %}
 <div class="container py-4">
     <h1>Checkout</h1>
@@ -62,8 +145,13 @@
         <!-- Payment Form -->
         <div class="col-md-5">
             <div class="card mb-4">
-                <div class="card-header">
-                    <h3>Delivery Address</h3>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">Delivery Address</h3>
+                    {% if addresses %}
+                        <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-geo-alt"></i> Manage Addresses
+                        </a>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     {% if addresses %}
@@ -71,42 +159,70 @@
                             {% csrf_token %}
                             
                             <div class="mb-3">
-                                <label class="form-label">Select Address</label>
-                                {% for address in addresses %}
-                                    <div class="form-check">
-                                        <input class="form-check-input" 
-                                               type="radio" 
-                                               name="address_id" 
-                                               value="{{ address.id }}"
-                                               {% if address.is_default %}checked{% endif %}
-                                               required>
-                                        <label class="form-check-label">
-                                            {{ address.full_address }}
-                                        </label>
-                                    </div>
-                                {% endfor %}
+                                <label class="form-label">Select Delivery Address</label>
+                                <div class="address-list">
+                                    {% for address in addresses %}
+                                        <div class="address-option mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" 
+                                                    type="radio" 
+                                                    name="address_id" 
+                                                    value="{{ address.id }}"
+                                                    id="address_{{ address.id }}"
+                                                    {% if address.is_default %}checked{% endif %}
+                                                    required>
+                                                <label class="form-check-label" for="address_{{ address.id }}">
+                                                    <div class="address-display">
+                                                        <div class="address-type-badge">
+                                                            <i class="bi bi-{% if address.address_type == 'home' %}house-door{% elif address.address_type == 'shipping' %}truck{% elif address.address_type == 'billing' %}credit-card{% elif address.address_type == 'business' %}building{% else %}geo-alt{% endif %}"></i>
+                                                            {{ address.get_address_type_display }}
+                                                            {% if address.is_default %}
+                                                                <span class="badge bg-success ms-1">Default</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="address-details">
+                                                            {% if address.label %}
+                                                                <span class="address-label">{{ address.label }}</span> -
+                                                            {% endif %}
+                                                            {{ address.address_line1 }}, {{ address.city }}, {{ address.post_code }}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            {% if address.is_default %}
+                                                <div class="ms-4 mt-1">
+                                                    <small class="text-success">
+                                                        <i class="bi bi-star-fill"></i> This is your default address
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Delivery Date (minimum 48 hours)</label>
                                 <input type="date" 
-                                       name="delivery_date" 
-                                       class="form-control"
-                                       min="{{ min_delivery_date }}"
-                                       required>
+                                    name="delivery_date" 
+                                    class="form-control"
+                                    min="{{ min_delivery_date }}"
+                                    required>
                                 <small class="text-muted">Producers need at least 48 hours to prepare your order.</small>
                             </div>
                             
                             <button type="submit" class="btn btn-primary btn-lg w-100" id="checkout-button">
-                                Pay £{{ total }}
+                                <i class="bi bi-lock"></i> Pay £{{ total }}
                             </button>
                         </form>
                     {% else %}
-                        <p>You need to add a shipping address first.</p>
-                        <!-- TODO -->
-                        <a href="{% url 'mainApp:profile' %}" class="btn btn-outline-primary"> 
-                            Add Address
-                        </a>
+                        <div class="text-center py-4">
+                            <i class="bi bi-geo-alt-fill" style="font-size: 3rem; color: #6c757d;"></i>
+                            <p class="mt-3 mb-2">You need to add a shipping address first.</p>
+                            <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Add Address
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>

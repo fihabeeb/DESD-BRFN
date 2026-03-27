@@ -21,12 +21,14 @@ class Order(models.Model):
     # Relationships
     customer = models.ForeignKey(
         CustomerProfile, 
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='orders'
     )
     user = models.ForeignKey(
         RegularUser,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='orders'
     )
     

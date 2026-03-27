@@ -12,57 +12,18 @@
     <!-- Header -->
     <div class="myproduct-header">
         <h1><span>{{ producer.business_name }}</span> &mdash; My Products</h1>
+        <a href="{% url 'mainApp:producers:myorders' %}" class="btn-add-product" style="margin-right:0.5rem; background:#6c757d;">
+            <i class="bi bi-receipt"></i> My Orders
+        </a>
         <a href="{% url 'mainApp:producers:add_product' %}" class="btn-add-product">
             <i class="bi bi-plus-lg"></i> Add Product
         </a>
+        
+        <a href="{% url 'mainApp:producers:personal_info' %}" class="btn-add-product" style="margin-left: 20px;">
+            <i class="bi bi-person-lines-fill"></i> View Personal Info
+        </a>
+
     </div>
-<a href="{% url 'mainApp:producers:add_product' %}"a>Add product</a>
-<!-- Products table -->
-<table>
-    <thead>
-        <tr>
-            <th><a href="?sort={% if sort == 'name' %}-name{% else %}name{% endif %}">Name</a></th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Availability</th>
-            <th>Organic</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for product in products %}
-        <tr {% if product.is_low_stock %}class="low-stock"{% endif %}>
-            <td>{{ product.name }}</td>
-            <td>£{{ product.price }}/{{ product.unit }}</td>
-            <td>
-                {{ product.stock_quantity }}
-                {% if product.is_low_stock %}
-                    <span class="warning">(Low Stock!)</span>
-                {% endif %}
-            </td>
-            <td>{{ product.get_availability_display }}</td>
-            <td>{% if product.is_organic %}Yes{% endif %}</td>
-            <td>
-                <a href="{% url 'mainApp:producers:edit_product' product.id %}">Edit</a>
-                <form method="post" action="{% url 'mainApp:producers:delete_product' product.id %}" 
-                    style="display: inline; margin-left: 10px;">
-                    {% csrf_token %}
-                    <button type="submit" 
-                            onclick="return confirm('Delete {{ product.name }}?');"
-                            style="color: red; background: none; border: none; cursor: pointer;">
-                        Delete
-                    </button>
-                </form>
-                <!-- <a href="% url 'producer_product_duplicate' product.id %">Duplicate</a> -->
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="6">No products found. <a href="{% url 'mainApp:producers:add_product' %}">Add your first product</a></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
 
     <!-- Stats -->
     {% if stats %}
@@ -109,7 +70,7 @@
             {% endfor %}
         </select>
 
-        <input type="text" name="search" placeholder="Search products…" value="{{ search|default:'' }}">
+        <input type="text" name="search" id="producer-search-input" placeholder="Search products…" value="{{ search|default:'' }}" autocomplete="off">
 
         <label class="filter-checkbox">
             <input type="checkbox" name="organic" value="true" {% if current_filters.organic %}checked{% endif %}>
@@ -218,4 +179,18 @@
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var input = document.getElementById('producer-search-input');
+    if (!input) return;
+    var timer;
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () { input.form.submit(); }, 500);
+    });
+})();
+</script>
 {% endblock %}
