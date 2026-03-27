@@ -201,116 +201,118 @@ class CustomerRegistrationForm(UserCreationForm):
         return user
     
 
-class CustomerPersonalInfoForm(forms.ModelForm):
-    """
-    Form for editing customer personal info, delivery address, and password.
-    All fields optional so user can change only what they want.
-    """
 
-    # Delivery address fields (home)
-    home_address_line1 = forms.CharField(required=False, label="Address Line 1")
-    home_address_line2 = forms.CharField(required=False, label="Address Line 2 (optional)")
-    home_city = forms.CharField(required=False, label="City")
-    home_county = forms.CharField(required=False, label="County (optional)")
-    home_post_code = forms.CharField(required=False, label="Post Code")
+# TODO: to remove class below after testing.
+# class CustomerPersonalInfoForm(forms.ModelForm):
+#     """
+#     Form for editing customer personal info, delivery address, and password.
+#     All fields optional so user can change only what they want.
+#     """
 
-    # Password
-    password = forms.CharField(
-        required=False,
-        widget=forms.PasswordInput(),
-        label="New Password",
-        help_text="Leave blank to keep your current password."
-    )
+#     # Delivery address fields (home)
+#     home_address_line1 = forms.CharField(required=False, label="Address Line 1")
+#     home_address_line2 = forms.CharField(required=False, label="Address Line 2 (optional)")
+#     home_city = forms.CharField(required=False, label="City")
+#     home_county = forms.CharField(required=False, label="County (optional)")
+#     home_post_code = forms.CharField(required=False, label="Post Code")
 
-    class Meta:
-        model = User
-        fields = [
-            "username",
-            "email",
-            "first_name",
-            "last_name",
-            "phone_number",
-        ]
+#     # Password
+#     password = forms.CharField(
+#         required=False,
+#         widget=forms.PasswordInput(),
+#         label="New Password",
+#         help_text="Leave blank to keep your current password."
+#     )
 
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user")
-        super().__init__(*args, **kwargs)
+#     class Meta:
+#         model = User
+#         fields = [
+#             "username",
+#             "email",
+#             "first_name",
+#             "last_name",
+#             "phone_number",
+#         ]
 
-        # Make all fields optional
-        for field in self.fields.values():
-            field.required = False
+#     def __init__(self, *args, **kwargs):
+#         self.user = kwargs.pop("user")
+#         super().__init__(*args, **kwargs)
 
-        # Load home address (default)
-        home = self.user.addresses.filter(address_type="home", is_default=True).first()
+#         # Make all fields optional
+#         for field in self.fields.values():
+#             field.required = False
 
-        if home:
-            self.fields["home_address_line1"].initial = home.address_line1
-            self.fields["home_address_line2"].initial = home.address_line2
-            self.fields["home_city"].initial = home.city
-            self.fields["home_county"].initial = home.county
-            self.fields["home_post_code"].initial = home.post_code
+#         # Load home address (default)
+#         home = self.user.addresses.filter(address_type="home", is_default=True).first()
 
-    def save(self, commit=True):
-        user = self.user  # always update existing user
+#         if home:
+#             self.fields["home_address_line1"].initial = home.address_line1
+#             self.fields["home_address_line2"].initial = home.address_line2
+#             self.fields["home_city"].initial = home.city
+#             self.fields["home_county"].initial = home.county
+#             self.fields["home_post_code"].initial = home.post_code
 
-        # Update user fields
-        for field in ["username", "email", "first_name", "last_name", "phone_number"]:
-            if field in self.cleaned_data:
-                new_value = self.cleaned_data[field]
-                if new_value != "" and new_value != getattr(user, field):
-                    setattr(user, field, new_value)
+#     def save(self, commit=True):
+#         user = self.user  # always update existing user
 
-        # Update password if provided
-        password = self.cleaned_data.get("password")
-        if password:
-            user.set_password(password)
+#         # Update user fields
+#         for field in ["username", "email", "first_name", "last_name", "phone_number"]:
+#             if field in self.cleaned_data:
+#                 new_value = self.cleaned_data[field]
+#                 if new_value != "" and new_value != getattr(user, field):
+#                     setattr(user, field, new_value)
 
-        if commit:
-            user.save()
+#         # Update password if provided
+#         password = self.cleaned_data.get("password")
+#         if password:
+#             user.set_password(password)
 
-            # Ensure customer profile exists
-            CustomerProfile.objects.get_or_create(user=user)
+#         if commit:
+#             user.save()
 
-            # Ensure home address exists
-            home = user.addresses.filter(address_type="home", is_default=True).first()
-            if not home:
-                home = Address.objects.create(
-                    user=user,
-                    address_line1="",
-                    city="",
-                    post_code="",
-                    country="UK",
-                    address_type="home",
-                    is_default=True,
-                )
+#             # Ensure customer profile exists
+#             CustomerProfile.objects.get_or_create(user=user)
 
-            mapping = {
-                "home_address_line1": "address_line1",
-                "home_address_line2": "address_line2",
-                "home_city": "city",
-                "home_county": "county",
-                "home_post_code": "post_code",
-            }
+#             # Ensure home address exists
+#             home = user.addresses.filter(address_type="home", is_default=True).first()
+#             if not home:
+#                 home = Address.objects.create(
+#                     user=user,
+#                     address_line1="",
+#                     city="",
+#                     post_code="",
+#                     country="UK",
+#                     address_type="home",
+#                     is_default=True,
+#                 )
 
-            postcode_changed = False
+#             mapping = {
+#                 "home_address_line1": "address_line1",
+#                 "home_address_line2": "address_line2",
+#                 "home_city": "city",
+#                 "home_county": "county",
+#                 "home_post_code": "post_code",
+#             }
 
-            for form_field, model_field in mapping.items():
-                if form_field in self.cleaned_data:
-                    new_value = self.cleaned_data[form_field]
-                    if new_value != "" and new_value != getattr(home, model_field):
-                        setattr(home, model_field, new_value)
-                        if form_field == "home_post_code":
-                            postcode_changed = True
+#             postcode_changed = False
 
-            # Re-geocode if postcode changed
-            if postcode_changed and home.post_code:
-                lat, lon = geocode_postcode(home.post_code)
-                home.latitude = lat
-                home.longitude = lon
+#             for form_field, model_field in mapping.items():
+#                 if form_field in self.cleaned_data:
+#                     new_value = self.cleaned_data[form_field]
+#                     if new_value != "" and new_value != getattr(home, model_field):
+#                         setattr(home, model_field, new_value)
+#                         if form_field == "home_post_code":
+#                             postcode_changed = True
 
-            home.save()
+#             # Re-geocode if postcode changed
+#             if postcode_changed and home.post_code:
+#                 lat, lon = geocode_postcode(home.post_code)
+#                 home.latitude = lat
+#                 home.longitude = lon
 
-        return user
+#             home.save()
+
+#         return user
 
 
 class CustomerPersonalInfoForm(forms.Form):

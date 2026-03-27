@@ -71,16 +71,15 @@ class Command(BaseCommand):
                 phone_number=f"{random.choice(phone_prefixes)} {random.randint(100, 999)} {random.randint(100, 999)}",
             )
             
-            # Create producer profile with coordinates
-            profile = ProducerProfile.objects.get_or_create(
-                user=user,
-                business_name=random.choice(farm_names),
-                latitude=Decimal(str(addr_data['lat'])),
-                longitude=Decimal(str(addr_data['lon'])),
-            )
+            profile = user.producer_profile  # This will exist due to the signal
+            profile.business_name = random.choice(farm_names)
+            profile.latitude = Decimal(str(addr_data['lat']))
+            profile.longitude = Decimal(str(addr_data['lon']))
+            profile.save()
+
             
             # Create farm address
-            address = Address.objects.create(
+            address = Address.objects.get_or_create(
                 user=user,
                 address_line1=addr_data['line1'],
                 address_line2=f"Farm {random.randint(1, 10)}" if random.choice([True, False]) else '',
