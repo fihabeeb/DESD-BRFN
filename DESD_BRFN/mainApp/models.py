@@ -304,6 +304,11 @@ class RegularUser(AbstractUser):
         return self.addresses.filter(is_default=True).first()
     
     @property
+    def default_address_postcode(self):
+        address = self.addresses.filter(is_default=True).first()
+        return address.post_code
+    
+    @property
     def default_shipping_address(self):
         """Get user's default shipping address"""
         return self.addresses.filter(address_type='shipping', is_default=True).first()
@@ -312,6 +317,9 @@ class RegularUser(AbstractUser):
     def default_billing_address(self):
         """Get user's default billing address"""
         return self.addresses.filter(address_type='billing', is_default=True).first()
+    
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
@@ -330,6 +338,10 @@ class ProducerProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='producer_profile')
     # producer-specific fields
     business_name = models.CharField(max_length=200)
+    lead_time_hours = models.PositiveIntegerField(
+        default=48,
+        help_text="Minimum hours notice required before delivery"
+    )
 
     # TC-013 food miles — set automatically from user.post_code via postcodes.io on registration
     # ALIFF: use the address table 
