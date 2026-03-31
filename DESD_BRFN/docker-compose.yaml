@@ -5,6 +5,8 @@ services:
     container_name: brfn-app
     command: >
       sh -c "
+            echo 'Waiting for DB...' &&
+            sleep 5 &&
             python manage.py makemigrations &&
             python manage.py migrate &&
             python manage.py seed_producers &&
@@ -12,11 +14,12 @@ services:
             python manage.py seed_allergens &&
             python manage.py seed_products &&
             python manage.py seed_admins &&
-            python manage.py runserver 0.0.0.0:8000"
+            python manage.py runserver 0.0.0.0:8000
+      "
     volumes:
       - .:/app
     ports:
-    - "8000:8000"
+      - "8000:8000"
     environment:
       - DEBUG=1
       - DB_NAME=brfn_db
@@ -55,18 +58,32 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      - db
 
   celery:
     build: .
-    command: celery -A BRFN worker -l info
+    command: >
+      sh -c "
+            echo 'Waiting for migrations...' &&
+            sleep 10 &&
+            celery -A BRFN worker -l info
+      "
     depends_on:
+      - webapp
       - redis
       - db
 
   celery-beat:
     build: .
-    command: celery -A BRFN beat -l info
+    command: >
+      sh -c "
+            echo 'Waiting for migrations...' &&
+            sleep 12 &&
+            celery -A BRFN beat -l info
+      "
     depends_on:
+      - webapp
       - redis
       - db
 
