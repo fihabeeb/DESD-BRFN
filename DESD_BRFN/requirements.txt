@@ -36,3 +36,5 @@ geopy==2.4.0
 tensorflow
 numpy
 scikit-learn
+redis==7.4.0
+django-celery-beat==2.9.0

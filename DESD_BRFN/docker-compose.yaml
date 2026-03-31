@@ -11,7 +11,6 @@ services:
             python manage.py seed_customers &&
             python manage.py seed_allergens &&
             python manage.py seed_products &&
-            python manage.py seed_orders &&
             python manage.py seed_admins &&
             python manage.py runserver 0.0.0.0:8000"
     volumes:
@@ -30,6 +29,7 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=secret
     depends_on:
       - db
+      - redis
 
   db:
     image: postgres:15
@@ -43,6 +43,32 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:8.4.1-alpine
+    container_name: desd-brfn_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery:
+    build: .
+    command: celery -A BRFN worker -l info
+    depends_on:
+      - redis
+      - db
+
+  celery-beat:
+    build: .
+    command: celery -A BRFN beat -l info
+    depends_on:
+      - redis
+      - db
 
 volumes:
   db:
