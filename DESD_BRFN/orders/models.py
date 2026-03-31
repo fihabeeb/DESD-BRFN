@@ -114,7 +114,7 @@ class OrderProducer(models.Model):
     '''
 
     ORDER_STATUS_CHOICES = [
-        ('pending',    'Pending'),
+        ('pending', 'Pending Payment'),
         ('confirmed', 'Confirmed'),
         ('preparing', 'Preparing'),
         ('ready', 'Ready for Pickup/Delivery'),
