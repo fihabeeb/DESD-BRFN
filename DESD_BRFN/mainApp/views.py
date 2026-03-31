@@ -147,7 +147,6 @@ def set_default_address(request, address_id):
         try:
             Address.objects.filter(
                     user=request.user,
-                    address_type=address.address_type,
                     is_default=True
                 ).update(is_default=False)
             address.is_default = True
