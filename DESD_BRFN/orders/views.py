@@ -24,10 +24,10 @@ def checkout(request):
     try:
         cart = request.user.customer_profile.cart
     except (AttributeError, Cart.DoesNotExist):
-        return redirect('products:product_list')
+        return redirect('mainApp:products:product_list')
 
     if cart.items.count() == 0:
-        return redirect('products:product_list')
+        return redirect('mainApp:products:product_list')
     
     addresses = request.user.addresses.all()
     default_address = addresses.filter(
@@ -41,17 +41,13 @@ def checkout(request):
         default_address.save()
     
     # Calculate totals
-    subtotal = cart.subtotal()
-    commission = cart.commission()
-    total = subtotal + commission
+    total = cart.total_amount()
     
     min_delivery_date = (date.today()+ timedelta(days=2)).strftime('%Y-%m-%d')
 
     context = {
         'cart': cart,
         'cart_items': cart.items.select_related('product').all(),
-        'subtotal': subtotal,
-        'commission': commission,
         'total': total,
         'addresses': addresses,
         'default_address': default_address,
@@ -110,21 +106,6 @@ def create_checkout_session(request):
             'quantity': cart_item.quantity,
         })
     
-    # Add commission as a line item
-    commission_in_cents = int(cart.commission() * 100)
-    if commission_in_cents > 0:
-        line_items.append({
-            'price_data': {
-                'currency': 'gbp',
-                'product_data': {
-                    'name': 'Network Commission (5%)',
-                    'description': 'Supports the Bristol Regional Food Network',
-                },
-                'unit_amount': commission_in_cents,
-            },
-            'quantity': 1,
-        })
-    
     try:
         # Create Stripe Checkout Session
         checkout_session = stripe.checkout.Session.create(
@@ -147,11 +128,8 @@ def create_checkout_session(request):
             customer=request.user.customer_profile,
             user=request.user,
             stripe_session_id=checkout_session.id,
-            subtotal=cart.subtotal(),
-            commission=cart.commission(),
             total_amount=cart.total_amount(),
-            shipping_address=address.full_address,
-            shipping_address_id=address.id,
+            shipping_address_id=address,
             delivery_date=delivery_date,
             status='pending'
         )
@@ -254,11 +232,8 @@ def stripe_webhook(request):
                     user=user,
                     stripe_session_id=session['id'],
                     stripe_payment_intent_id=session.get('payment_intent'),
-                    subtotal=cart.subtotal(),
-                    commission=cart.commission(),
                     total_amount=cart.total_amount(),
-                    shipping_address=address.full_address,
-                    shipping_address_id=address.id,
+                    shipping_address_id=address,
                     delivery_date=delivery_date_str or None,
                     status='confirmed',
                 )

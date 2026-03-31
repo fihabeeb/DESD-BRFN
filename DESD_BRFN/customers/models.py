@@ -43,19 +43,22 @@ class Cart(models.Model):
     customer = models.OneToOneField(CustomerProfile, on_delete=models.CASCADE, related_name="cart")
     updated_at = models.DateTimeField(auto_now=True)
 
+    # @property
     def total_amount(self):
-        subtotal = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
-        commission = subtotal * Decimal('0.05')
-        total = round(subtotal + commission,2)
+        '''
+        Returns total amount fo the cart.
+        '''
+        # customers only pay the total amount of items (NO COMISSION)
+        total = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
         return total
     
     def subtotal(self):
         subtotal = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
         return round(subtotal,2)
 
-    def commission(self):
-        commission = self.subtotal() * Decimal('0.05')
-        return round(commission,2)
+    # def commission(self):
+    #     commission = self.subtotal() * Decimal('0.05')
+    #     return round(commission,2)
     
     def item_count(self):
         return sum(item.quantity for item in self.items.all())

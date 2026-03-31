@@ -98,8 +98,7 @@ class Command(BaseCommand):
                     'quantity': quantity,
                 })
             
-            commission = subtotal * Decimal('0.05')
-            total_amount = subtotal + commission
+            total_amount = subtotal
             
             # Create order
             order = Order.objects.create(
@@ -108,11 +107,8 @@ class Command(BaseCommand):
                 stripe_session_id=f"seed_session_{i}_{random.randint(1000, 9999)}",
                 stripe_payment_intent_id=f"seed_payment_{i}_{random.randint(1000, 9999)}",
                 status=status,
-                subtotal=subtotal,
-                commission=commission,
                 total_amount=total_amount,
-                shipping_address=address.full_address if address else "",
-                shipping_address_id=address.id if address else None,
+                shipping_address_id=address if address else None,
                 delivery_date=order_date.date() + timedelta(days=random.randint(2, 5)),
                 created_at=order_date,
             )

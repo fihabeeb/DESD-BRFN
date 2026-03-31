@@ -42,14 +42,18 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Financials
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    commission = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 5%
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     # Shipping info (snapshot from address at time of order)
-    shipping_address = models.TextField(blank=True)
-    shipping_address_id = models.IntegerField(null=True, blank=True)  # Reference to Address
-    
+    # shipping_address = models.TextField(blank=True)
+    # shipping_address_id = models.IntegerField(null=True, blank=True)  # Reference to Address
+    shipping_address_id = models.ForeignKey(
+        Address,
+        on_delete=models.PROTECT,
+        null=True,
+        related_name='addresses'
+    )
+
     # Delivery info
     delivery_date = models.DateField(null=True, blank=True)
     delivery_notes = models.TextField(blank=True)
@@ -58,10 +62,6 @@ class Order(models.Model):
         return f"Order #{self.id} - {self.user.email}"
     
     def save(self, *args, **kwargs):
-        if not self.commission:
-            self.commission = self.subtotal * Decimal('0.05')
-        if not self.total_amount:
-            self.total_amount = self.subtotal + self.commission
         super().save(*args, **kwargs)
     
     def get_items_by_producer(self):
