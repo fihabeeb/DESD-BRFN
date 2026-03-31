@@ -76,21 +76,33 @@
             <p class="detail-description">{{ product.description }}</p>
 
             <!-- Food miles -->
-            {% if product.food_miles is not None %}
-                {% if product.food_miles <= 30 %}
+            {% if food_miles is not None %}
+                {% if food_miles <= 30 %}
                     <div class="detail-food-miles local">
                         <i class="bi bi-geo-alt-fill"></i>
-                        {{ product.food_miles }} miles from Bristol &mdash; Local
+                        {% if user_is_authenticated and user_has_coordinates %}
+                            {{ food_miles }} miles from your location &mdash; Local
+                        {% else %}
+                            {{ food_miles }} miles from Bristol &mdash; Local
+                        {% endif %}
                     </div>
-                {% elif product.food_miles <= 100 %}
+                {% elif food_miles <= 100 %}
                     <div class="detail-food-miles medium">
                         <i class="bi bi-geo-alt-fill"></i>
-                        {{ product.food_miles }} miles from Bristol &mdash; Regional
+                        {% if user_is_authenticated and user_has_coordinates %}
+                            {{ food_miles }} miles from your location &mdash; Regional
+                        {% else %}
+                            {{ food_miles }} miles from Bristol &mdash; Regional
+                        {% endif %}
                     </div>
                 {% else %}
                     <div class="detail-food-miles far">
                         <i class="bi bi-geo-alt-fill"></i>
-                        {{ product.food_miles }} miles from Bristol &mdash; Long distance
+                        {% if user_is_authenticated and user_has_coordinates %}
+                            {{ food_miles }} miles from your location &mdash; Long distance
+                        {% else %}
+                            {{ food_miles }} miles from Bristol &mdash; Long distance
+                        {% endif %}
                     </div>
                 {% endif %}
             {% endif %}

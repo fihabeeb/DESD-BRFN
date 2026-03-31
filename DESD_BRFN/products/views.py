@@ -3,6 +3,8 @@ from django.shortcuts import render, redirect
 from .models import Product, ProductCategory
 from django.db.models import Q
 from django.contrib.postgres.search import TrigramSimilarity
+from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
+
 
 @login_required
 def add_product(request):
@@ -103,6 +105,21 @@ def product_detail(request, product_id):
     Show detailed product
     '''
     product = Product.objects.get(id=product_id)
-    return render(request, 'products/product_detail.html', {
-        'product': product
-    })
+
+    if request.user.is_authenticated:
+        user_lat, user_long = request.user.get_default_address_coordinates()
+    else:
+        user_lat, user_long = BRISTOL_LAT,BRISTOL_LON
+
+
+    food_miles = product.get_food_miles(user_lat, user_long)
+
+    context = {
+        'product': product,
+        'food_miles': food_miles,
+        'user_is_authenticated': request.user.is_authenticated,
+        'user_has_coordinates': bool(user_lat and user_long),
+    }
+    
+
+    return render(request, 'products/product_detail.html', context)

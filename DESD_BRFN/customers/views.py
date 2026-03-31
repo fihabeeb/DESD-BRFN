@@ -117,6 +117,7 @@ def view_cart(request):
     items = cart.items.select_related("product__producer").all()
 
     # TC-013: Group cart items by producer, compute food miles once per producer
+    user_lat,user_long = request.user.get_default_address_coordinates()
     grouped = defaultdict(list)
     for item in items:
         producer = item.product.producer if item.product else None
@@ -126,9 +127,15 @@ def view_cart(request):
     for producer, producer_items in grouped.items():
         food_miles = None
         if producer and producer.latitude and producer.longitude:
-            food_miles = round(
-                haversine_miles(producer.latitude, producer.longitude, BRISTOL_LAT, BRISTOL_LON), 1
-            )
+            # calculate foodmile base on user default address.
+            if user_lat and user_long:
+                food_miles = round(
+                    haversine_miles(producer.latitude, producer.longitude, user_lat, user_long)
+                )
+            else:
+                food_miles = round(
+                    haversine_miles(producer.latitude, producer.longitude, BRISTOL_LAT, BRISTOL_LON), 1
+                )
         producer_sections.append({
             "producer": producer,
             "items": producer_items,

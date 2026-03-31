@@ -68,15 +68,9 @@ class OrderPayment(models.Model):
         return f"Order #{self.id} - {self.user.email} - £{self.total_amount} - Status: {self.payment_status}"
     
     def save(self, *args, **kwargs):
-
-        # is_new = not self.pk
-
         if self.shipping_address_id and not self.shipping_address:
             self.shipping_address = self.shipping_address_id.full_address()
 
-        # if is_new and self.payment_status == 'pending' and not self.expires_at:
-        #     self.expires_at = timezone.now() + timedelta(minutes=1)
-        #     # super().save(update_fields=['expires_at'])
         super().save(*args, **kwargs)
 
     @property
