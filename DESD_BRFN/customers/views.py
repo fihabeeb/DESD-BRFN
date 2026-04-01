@@ -16,6 +16,7 @@ from django.contrib import messages
 from mainApp.decorators import customer_required
 import re
 import logging
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +73,16 @@ def add_to_cart(request, product_id):
     Add a product to the logged-in customer's cart.
     Expects POST and optional 'quantity' in POST data.
     """
+    next_url = request.META.get('HTTP_REFERER', '/')
+
     product = get_object_or_404(Product, id=product_id)
     quantity = int(request.POST.get("quantity", 1))
     if quantity < 1:
         quantity = 1
+
+    if product.producer.id == request.user.id:
+        messages.error(request, f"Can't add {product.name} listed by you.")
+        return redirect(next_url)
 
     # Ensure customer profile exists
     customer = getattr(request.user, "customer_profile", None)
@@ -101,7 +108,6 @@ def add_to_cart(request, product_id):
 
     messages.success(request, f"{product.name} added to your cart")
 
-    next_url = request.META.get('HTTP_REFERER', '/')
     return redirect(next_url)
 
     # return redirect("mainApp:customers:view_cart")
