@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from mainApp.tasks import geocode_address_async
 from mainApp.utils import haversine_miles, geocode_postcode
 from django.core.exceptions import ValidationError
 from django.contrib import messages
@@ -165,25 +166,25 @@ class Address(models.Model):
     #                 f"Set farm address {latest_farm.id} as default."
     #             )
     
-    def _prevent_farm_address_type_change(self):
-        """
-        Aliff: THIS IS ALREADY HANDLED A FRONT-END (MAYBE REMOVE IDK)
-        Prevent producers from changing a farm address to a different type.
-        Producers can only edit their farm address, not change its type.
-        """
-        if not self.is_producer or not self.pk:
-            return
+    # def _prevent_farm_address_type_change(self):
+    #     """
+    #     Aliff: THIS IS ALREADY HANDLED A FRONT-END (MAYBE REMOVE IDK)
+    #     Prevent producers from changing a farm address to a different type.
+    #     Producers can only edit their farm address, not change its type.
+    #     """
+    #     if not self.is_producer or not self.pk:
+    #         return
         
-        try:
-            old_address = Address.objects.get(pk=self.pk)
-            # If it was a farm address and is being changed to something else
-            if old_address.address_type == 'farm' and self.address_type != 'farm':
-                raise ValidationError(
-                    "You cannot change your farm address to a different type. "
-                    "If you need a different address type, please add it separately."
-                )
-        except Address.DoesNotExist:
-            pass
+    #     try:
+    #         old_address = Address.objects.get(pk=self.pk)
+    #         # If it was a farm address and is being changed to something else
+    #         if old_address.address_type == 'farm' and self.address_type != 'farm':
+    #             raise ValidationError(
+    #                 "You cannot change your farm address to a different type. "
+    #                 "If you need a different address type, please add it separately."
+    #             )
+    #     except Address.DoesNotExist:
+    #         pass
     
     # In your Address model
     def save(self, *args, **kwargs):
@@ -191,6 +192,7 @@ class Address(models.Model):
         # You can pass a flag to skip the logic
 
         skip_default_handling = kwargs.pop('skip_default_handling', False)
+        skip_geocoding = kwargs.pop('skip_geocoding', False)
         
         is_new = not self.pk
         address_type = self.address_type
@@ -198,16 +200,16 @@ class Address(models.Model):
         # ==========================================
         # 2. POSTCODE AND GEOCODING
         # ==========================================
-        postcode_changed = is_new
-        if not is_new:
-            try:
-                old = Address.objects.get(pk=self.pk)
-                postcode_changed = old.post_code != self.post_code
-            except Address.DoesNotExist:
-                postcode_changed = True
+        # postcode_changed = is_new
+        # if not is_new:
+        #     try:
+        #         old = Address.objects.get(pk=self.pk)
+        #         postcode_changed = old.post_code != self.post_code
+        #     except Address.DoesNotExist:
+        #         postcode_changed = True
         
-        if self.post_code and (postcode_changed or not self.latitude or not self.longitude):
-            result=self.geocode()
+        # if self.post_code and (postcode_changed or not self.latitude or not self.longitude):
+        #     result=self.geocode()
 
         # ==========================================
         # 3. HANDLE DEFAULT ADDRESS UNIQUENESS
@@ -225,6 +227,15 @@ class Address(models.Model):
         # 4. SAVE THE ADDRESS
         # ==========================================
         super().save(*args, **kwargs)
+
+        if not skip_geocoding and self.post_code:
+            needs_geocoding = is_new
+            if not is_new:
+                old = Address.objects.only('post_code').get(pk=self.pk)
+                needs_geocoding = old.post_code != self.post_code
+            
+            if needs_geocoding:
+                geocode_address_async.delay(self.pk)
 
 
     def delete(self, *args, **kwargs):
