@@ -57,7 +57,7 @@ class OrderPayment(models.Model):
     global_delivery_notes = models.TextField(blank=True)
 
     # timestamp
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     expires_at = models.DateTimeField(null=True,blank=True,help_text="when this pending order expires")
 
@@ -68,10 +68,33 @@ class OrderPayment(models.Model):
         return f"Order #{self.id} - {self.user.email} - £{self.total_amount} - Status: {self.payment_status}"
     
     def save(self, *args, **kwargs):
+        # is_new = self.pk is None
+
+        # if not is_new:
+        #     old = OrderPayment.objects.get(pk=self.pk)
+        #     old_status = old.payment_status
+        # else:
+        #     old_status = None
+
         if self.shipping_address_id and not self.shipping_address:
             self.shipping_address = self.shipping_address_id.full_address()
 
         super().save(*args, **kwargs)
+
+    #     if (old_status != 'paid' and self.payment_status == 'paid') or is_new:
+    #         print('im working')
+    #         self._confirm_producer_orders()
+
+    # def _confirm_producer_orders(self):
+    #     """
+    #     When payment is successful, confirm all producer orders
+    #     """
+    #     if self.payment_status == 'paid':
+    #         order_producer = OrderProducer.objects.filter(payment=self.id)
+    #         if order_producer:
+    #             for order in order_producer:
+    #                 order.order_status='confirmed'
+    #                 order.save()
 
     @property
     def is_expired(self):
@@ -142,7 +165,7 @@ class OrderProducer(models.Model):
 
 
     # timestamp
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):

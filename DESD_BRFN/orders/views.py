@@ -300,12 +300,12 @@ def stripe_webhook(request):
                     status='paid',
                 )
 
-            order_producers=OrderProducer.objects.filter(payment=payment.id)
+            # order_producers=OrderProducer.objects.filter(payment=payment.id)
             
-            if order_producers:
-                for order_producer in order_producers:
-                    order_producer.order_status="confirmed"
-                    order_producer.save()
+            # if order_producers:
+            #     for order_producer in order_producers:
+            #         order_producer.order_status="confirmed"
+            #         order_producer.save()
 
             # Deduct stock and clear cart
             for item in payment.user.customer_profile.cart.items.all():
