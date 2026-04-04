@@ -12,8 +12,10 @@ services:
             python manage.py seed_producers &&
             python manage.py seed_customers &&
             python manage.py seed_allergens &&
-            python manage.py seed_products &&
+            python manage.py seed_products2 &&
             python manage.py seed_admins &&
+            python manage.py syn_cat &&
+            python manage.py syn_orders2 &&
             python manage.py runserver 0.0.0.0:8000
       "
     volumes:

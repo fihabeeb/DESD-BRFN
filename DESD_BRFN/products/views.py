@@ -90,14 +90,60 @@ def product_list(request):
         products = products.filter(category_id=category_id)
     categories = ProductCategory.objects.filter(is_active=True)
 
+    recommended_products = []
+    user_purchase_history = []
+    if request.user.is_authenticated:
+        try:
+            from ml.recommendation.service import RecommendationService
+            
+            # Get user's purchase history
+            from orders.models import OrderItem, OrderPayment
+            
+            # Fetch user's purchase history ordered by time
+            user_orders = OrderPayment.objects.filter(
+                user=request.user,
+                payment_status='paid'
+            ).order_by('created_at')
+            
+            # Extract product IDs from order items
+            order_items = OrderItem.objects.filter(
+                producer_order__payment__in=user_orders
+            ).select_related('product').order_by('producer_order__payment__created_at')
+            
+            # Build purchase history list
+            for item in order_items:
+                # Repeat product ID based on quantity
+                for _ in range(item.quantity):
+                    user_purchase_history.append(item.product.id)
+            
+            # Get recommendations if user has purchase history
+            if user_purchase_history:
+                recommendation_service = RecommendationService()
+                recommended_products = recommendation_service.get_recommendations(
+                    user_id=request.user.id,
+                    purchase_history=user_purchase_history,
+                    top_k=6  # Get top 6 recommendations
+                )
+                
+                # Log for debugging (optional)
+                print(f"Generated {len(recommended_products)} recommendations for user {request.user.id}")
+
+        except Exception as e:
+            print(f"Recommendation error for user {request.user.id}: {e}")
+            recommended_products = []
+
+
+
     # products = products.order_by(category_id=category_id)
     context = {
         'products': products,
         'categories': categories,
         'current_categories': category_id,
         'search_query': search_query,
+        'recommended_products': recommended_products,
+        'user_purchase_history': user_purchase_history[:10],  # Last 10 purchases for display
+        'has_recommendations': bool(recommended_products),
     }
-
     return render(request, 'products/product_list.html', context)
 
 def product_detail(request, product_id):
