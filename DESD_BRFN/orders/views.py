@@ -15,6 +15,7 @@ from decimal import ROUND_HALF_UP
 from django.contrib.auth import get_user_model 
 from django.utils import timezone
 import json
+from django.db import transaction
 
 
 User = get_user_model()
@@ -169,42 +170,42 @@ def create_checkout_session(request):
                 # }),
             }
         )
-        
-        # Create OrderPayment (customer payment)
-        payment = OrderPayment.objects.create(
-            customer=request.user.customer_profile,
-            user=request.user,
-            stripe_session_id=checkout_session.id,
-            total_amount=cart.total_amount(),  # Just product total
-            shipping_address=address,
-            global_delivery_notes=global_delivery_notes,
-            payment_status='pending'
-        )
-        
-        # Create OrderProducer for each producer (commission calculated here)
-        producer_groups = cart.get_items_by_producer()
-        for producer_id, group in producer_groups.items():
-            delivery_date = delivery_dates.get(producer_id)
-            customer_note = request.POST.get(f'customer_note_{producer_id}', '')
-            
-            producer_order = OrderProducer.objects.create(
-                payment=payment,
-                producer=group['producer'],
-                producer_subtotal=group['subtotal'],  # What customer paid for these items
-                order_status='pending',
-                customer_note=customer_note,
-                delivered_by=delivery_date,
+        with transaction.atomic():
+            # Create OrderPayment (customer payment)
+            payment = OrderPayment.objects.create(
+                customer=request.user.customer_profile,
+                user=request.user,
+                stripe_session_id=checkout_session.id,
+                total_amount=cart.total_amount(),  # Just product total
+                shipping_address=address,
+                global_delivery_notes=global_delivery_notes,
+                payment_status='pending'
             )
             
-            for cart_item in group['items']:
-                OrderItem.objects.create(
-                    producer_order=producer_order,
-                    product=cart_item.product,
-                    product_name=cart_item.product.name,
-                    product_price=cart_item.product.price,
-                    quantity=cart_item.quantity,
-                    unit=cart_item.product.unit,
+            # Create OrderProducer for each producer (commission calculated here)
+            producer_groups = cart.get_items_by_producer()
+            for producer_id, group in producer_groups.items():
+                delivery_date = delivery_dates.get(producer_id)
+                customer_note = request.POST.get(f'customer_note_{producer_id}', '')
+                
+                producer_order = OrderProducer.objects.create(
+                    payment=payment,
+                    producer=group['producer'],
+                    producer_subtotal=group['subtotal'],  # What customer paid for these items
+                    order_status='pending',
+                    customer_note=customer_note,
+                    delivered_by=delivery_date,
                 )
+                
+                for cart_item in group['items']:
+                    OrderItem.objects.create(
+                        producer_order=producer_order,
+                        product=cart_item.product,
+                        product_name=cart_item.product.name,
+                        product_price=cart_item.product.price,
+                        quantity=cart_item.quantity,
+                        unit=cart_item.product.unit,
+                    )
         
         return JsonResponse({'sessionId': checkout_session.id})
         
@@ -300,12 +301,12 @@ def stripe_webhook(request):
                     status='paid',
                 )
 
-            # order_producers=OrderProducer.objects.filter(payment=payment.id)
+            order_producers=OrderProducer.objects.filter(payment=payment.id)
             
-            # if order_producers:
-            #     for order_producer in order_producers:
-            #         order_producer.order_status="confirmed"
-            #         order_producer.save()
+            if order_producers:
+                for order_producer in order_producers:
+                    order_producer.order_status="confirmed"
+                    order_producer.save()
 
             # Deduct stock and clear cart
             for item in payment.user.customer_profile.cart.items.all():
