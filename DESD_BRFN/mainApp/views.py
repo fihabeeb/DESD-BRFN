@@ -69,7 +69,6 @@ def add_address(request):
         form = AddressForm(request.POST, user = request.user)
         if form.is_valid():
             address = form.save(commit=False)
-            address.user = request.user
             address.save()
             
             messages.success(request, f'Address "{address.label or address.address_type}" added successfully!')
