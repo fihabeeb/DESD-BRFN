@@ -1,3 +1,4 @@
+<!-- customers/templates/customers/personal_info.html -->
 {% extends "base.html" %}
 {% load static %}
 
@@ -14,12 +15,6 @@
         font-weight: 600;
     }
     
-    .alert-warning {
-        background-color: #fff3cd;
-        border-color: #ffc107;
-        color: #856404;
-    }
-    
     /* Address Card Styles */
     .address-card {
         background: #fff;
@@ -27,7 +22,6 @@
         border-radius: 8px;
         padding: 1rem;
         transition: all 0.3s ease;
-        margin-bottom: 1rem;
     }
     
     .address-card.default {
@@ -96,20 +90,16 @@
     details summary {
         color: #6c757d;
         font-size: 0.85rem;
-        cursor: pointer;
     }
     
     details summary:hover {
         color: #28a745;
     }
     
-    .btn-link {
-        text-decoration: none;
-        font-size: 0.8rem;
-    }
-    
-    .btn-link:hover {
-        text-decoration: underline;
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+        color: #856404;
     }
 </style>
 {% endblock %}
@@ -118,7 +108,7 @@
 <div class="container mt-4" style="max-width: 700px;">
 
     <h2 class="mb-3">Personal Information</h2>
-    <p class="text-muted">View and update your account, business, and farm details.</p>
+    <p class="text-muted">View and update your account and delivery details.</p>
 
     <form method="post">
         {% csrf_token %}
@@ -172,6 +162,7 @@
 
         <hr>
 
+        {% if user.role == 'producer' %}
         <!-- BUSINESS INFO -->
         <div class="section-block mb-4">
             <h4 class="mb-3">Business Information</h4>
@@ -184,9 +175,25 @@
                 {% endif %}
                 <small class="text-muted d-block">This is how customers will see your farm/business</small>
             </div>
+
+            <div class="form-group mb-3">
+                <label for="{{ form.lead_time_hours.id_for_label }}">Lead Time for Orders</label>
+                {{ form.lead_time_hours }}
+                {% if form.lead_time_hours.errors %}
+                    <div class="text-danger small">{{ form.lead_time_hours.errors.0 }}</div>
+                {% endif %}
+                <small class="text-muted d-block">{{ form.lead_time_hours.help_text }}</small>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Current: {% if form.lead_time_hours.value %}{{ form.lead_time_hours.value }}{% else %}48{% endif %} hours 
+                        ({% widthratio form.lead_time_hours.value|default:48 24 1 %} days)
+                    </small>
+                </div>
+            </div>
         </div>
 
         <hr>
+        {% endif %}
 
         <!-- ADDRESS MANAGEMENT SECTION -->
         <div class="section-block mb-4">
@@ -196,48 +203,45 @@
                     <i class="bi bi-geo-alt"></i> Manage All Addresses
                 </a>
             </div>
-            <p class="text-muted small">Manage your farm and other addresses</p>
+            <p class="text-muted small">Manage your delivery addresses for orders</p>
             
-            <!-- Farm Address Card (Primary for Producers) -->
-            {% if farm_address %}
+            <!-- Default Address Card -->
+            {% if default_address %}
             <div class="address-card default">
                 <div class="address-header">
                     <div>
                         <span class="address-type">
-                            <i class="bi bi-star-fill text-warning"></i> Farm Address
+                            <i class="bi bi-star-fill text-warning"></i> Default Address
                         </span>
-                        {% if farm_address.label %}
-                        <span class="address-label">{{ farm_address.label }}</span>
-                        {% endif %}
-                        {% if farm_address.is_default %}
-                        <span class="address-label">Default</span>
+                        {% if default_address.label %}
+                        <span class="address-label">{{ default_address.label }}</span>
                         {% endif %}
                     </div>
                 </div>
                 <div class="address-content">
-                    {{ farm_address.full_address|linebreaksbr }}
+                    {{ default_address.full_address|linebreaksbr }}
                 </div>
                 <div class="address-actions mt-2">
-                    <a href="{% url 'mainApp:edit_address' farm_address.id %}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-pencil"></i> Edit Farm Address
+                    <a href="{% url 'mainApp:edit_address' default_address.id %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Edit
                     </a>
                 </div>
             </div>
             {% else %}
-            <div class="alert alert-warning mb-3">
+            <div class="alert alert-warning mb-0">
                 <i class="bi bi-exclamation-triangle"></i>
-                You haven't set up your farm address yet. This is used to calculate food miles to customers.
-                <a href="{% url 'mainApp:add_address' %}" class="alert-link">Add your farm address</a>
+                You haven't set a default address yet.
+                <a href="{% url 'mainApp:manage_addresses' %}" class="alert-link">Add your first address</a>
             </div>
             {% endif %}
             
-            <!-- Other Addresses (Home, Shipping, Billing, Business) -->
+            <!-- Additional Addresses Summary (Optional) -->
             {% if other_addresses %}
             <div class="mt-3">
-                <details>
-                    <summary class="text-muted">
+                <details class="small">
+                    <summary class="text-muted" style="cursor: pointer;">
                         <i class="bi bi-list-ul"></i> 
-                        {{ other_addresses|length }} other address{{ other_addresses|pluralize }} (Home, Shipping, Billing, etc.)
+                        {{ other_addresses|length }} other address{{ other_addresses|pluralize }} available
                     </summary>
                     <div class="mt-2">
                         {% for address in other_addresses %}
@@ -245,14 +249,11 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <span class="address-type-small">
-                                        <i class="bi bi-{% if address.address_type == 'home' %}house-door{% elif address.address_type == 'shipping' %}truck{% elif address.address_type == 'billing' %}credit-card{% elif address.address_type == 'business' %}building{% else %}shop{% endif %}"></i>
+                                        <i class="bi bi-{% if address.address_type == 'home' %}house-door{% elif address.address_type == 'shipping' %}truck{% elif address.address_type == 'billing' %}credit-card{% else %}building{% endif %}"></i>
                                         {{ address.get_address_type_display }}
                                     </span>
                                     {% if address.label %}
                                     <span class="address-label-small">{{ address.label }}</span>
-                                    {% endif %}
-                                    {% if address.is_default %}
-                                    <span class="address-label-small">Default</span>
                                     {% endif %}
                                     <div class="address-summary">
                                         {{ address.address_line1 }}, {{ address.city }}
@@ -303,7 +304,7 @@
             </div>
             <div class="col-md-6">
                 <button type="submit" name="delete_account" value="1" class="btn btn-danger w-100" 
-                        onclick="return confirm('Are you sure you want to delete your account? This action cannot be undone. All your products and order history will be permanently deleted.')">
+                        onclick="return confirm('Are you sure you want to delete your account? This action cannot be undone. All your order history will be permanently deleted.')">
                     <i class="bi bi-trash"></i> Delete Account
                 </button>
             </div>
@@ -311,4 +312,5 @@
 
     </form>
 </div>
+
 {% endblock %}

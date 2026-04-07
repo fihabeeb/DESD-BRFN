@@ -45,7 +45,10 @@ def product_list(request):
     '''
     Display products for customers to browse
     '''
-    products = Product.objects.filter(availability='available')
+    products = Product.objects.filter(
+        availability='available',
+        is_active=True,
+        )
 
     search_query = request.GET.get('q', '')
     if search_query:
@@ -119,6 +122,7 @@ def product_detail(request, product_id):
         'food_miles': food_miles,
         'user_is_authenticated': request.user.is_authenticated,
         'user_has_coordinates': bool(user_lat and user_long),
+        'is_deleted': not product.is_active,
     }
     
 

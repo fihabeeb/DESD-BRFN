@@ -13,13 +13,12 @@ from mainApp.models import RegularUser
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from datetime import timezone
-from producers.forms import ProducerRegistrationForm
+from producers.forms import ProducerRegistrationForm, ProducerPersonalInfoForm
 from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
 from orders.models import OrderPayment, OrderItem, OrderProducer
 
 from django.contrib.auth import logout, update_session_auth_hash
-from producers.forms_personal_info import ProducerPersonalInfoForm
 from mainApp.models import Address
 
 from mainApp.utils import geocode_postcode, haversine_miles
@@ -71,19 +70,23 @@ def register_view(request):
         return redirect('mainApp:home')
 
     if request.method == 'POST':
-        form = ProducerRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
+        try:
+            form = ProducerRegistrationForm(request.POST)
+            if form.is_valid():
+                user = form.save()
 
-            # Optional: Auto-login after registration
-            # login(request, user)
+                # login(request,user)
 
-            messages.success(request, f"Welcome {user.username}! Your producer account has been created successfully.")
-            messages.info(request, 'Please log in to access your producer dashboard.')
-            return redirect('mainApp:producers:login')
-        else:
-            # Form errors will be displayed in the template
-            messages.error(request, 'Please correct the errors below.')
+                messages.success(request, f"Welcome {user.username}! Your producer account has been created successfully.")
+                messages.info(request, 'Please log in to access your producer dashboard.')
+                return redirect('mainApp:producers:login')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+
+        except Exception as e:
+            print (e)
+            messages.error(request, 'db error')
+
     else:
         form = ProducerRegistrationForm()
 
@@ -104,7 +107,10 @@ def myproduct_view(request):
     producer_profile = request.user.producer_profile
 
     # Base queryset - filter products by this producer
-    products = Product.objects.filter(producer=producer_profile)
+    products = Product.objects.filter(
+        producer=producer_profile,
+        is_active=True,
+        )
 
     # Apply filters from request.GET
     # Filter by availability (TC-003, TC-016)
@@ -168,7 +174,7 @@ def myproduct_view(request):
         'search': search,
     }
 
-    return render(request, 'producers/myproduct.html', context)
+    return render(request, 'producers/management/myproduct.html', context)
 
 @login_required
 @producer_required
@@ -232,7 +238,7 @@ def addproduct_view(request):
         'availability_choices': Product.AVAILABILITY_CHOICES,
     }
 
-    return render(request, 'producers/addproduct.html', context)
+    return render(request, 'producers/management/addproduct.html', context)
 
 @login_required
 @producer_required
@@ -285,7 +291,7 @@ def product_edit_view(request, product_id):
         'availability_choices': Product.AVAILABILITY_CHOICES,
     }
 
-    return render(request, 'producers/addproduct.html', context)  # Reuse the same template
+    return render(request, 'producers/management/addproduct.html', context)  # Reuse the same template
 
 @login_required
 @producer_required
@@ -368,7 +374,7 @@ def myorders_view(request):
         'stats': stats,
     }
     
-    return render(request, 'producers/myorders.html', context)
+    return render(request, 'producers/orders/myorders.html', context)
 
 @login_required
 @producer_required
@@ -437,19 +443,21 @@ def order_detail(request, order_id):
 @login_required
 @producer_required
 def delete_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-
-    if product.producer != request.user.producer_profile:
-        messages.error(request, "Permission denied.")
-        return redirect('mainApp:producers:myproduct')
-
     if request.method == 'POST':
+
+        product = get_object_or_404(Product, id=product_id)
+
+        if product.producer != request.user.producer_profile:
+            messages.error(request, "Permission denied.")
+            return redirect('mainApp:producers:myproduct')
+
         product_name = product.name
         product.delete()
         messages.success(request, f'"{product_name}" deleted.')
         return redirect('mainApp:producers:myproduct')
 
-    return redirect('mainApp:producers:myproduct')
+    # return redirect('mainApp:producers:myproduct')
+    return redirect('mainApp:producers:edit_product', product_id=product_id)
 
 
 @login_required
@@ -559,4 +567,139 @@ def personal_info_view(request):
         'other_addresses': other_addresses,
     }
     
-    return render(request, "producers/personal_info.html", context)
+    return render(request, "producers/account/personal_info.html", context)
+
+
+
+@login_required
+def producer_profile_view(request):
+    """
+    Customer dashboard: future order history + button to view personal info.
+    """
+    latest_order = OrderPayment.objects.filter(
+        user=request.user,
+        payment_status='paid'
+    ).order_by('-created_at').first()
+    
+    order_data = None
+
+    if latest_order:
+        print(latest_order)
+        # Build comprehensive order data
+        order_data = {
+            'order': latest_order,
+            'total_amount': latest_order.total_amount,
+            'created_at': latest_order.created_at,
+            'payment_status': latest_order.payment_status,
+            'shipping_address': latest_order.shipping_address,
+            'global_notes': latest_order.global_delivery_notes,
+            'producers': []
+        }
+        
+        # Get all producer orders for this payment
+        producer_orders = latest_order.producer_orders.select_related(
+            'producer'
+        ).prefetch_related(
+            'order_items__product'
+        ).all()
+
+        for producer_order in producer_orders:
+            producer_data = {
+                'producer': producer_order.producer,
+                'business_name': producer_order.producer.business_name if producer_order.producer else 'Unknown',
+                'status': producer_order.get_order_status_display(),  
+                'subtotal': producer_order.producer_subtotal,
+                'delivery_date': producer_order.delivered_by,
+                'customer_note': producer_order.customer_note,
+                'items': []
+            }
+            
+            # Get items for this producer order
+            for item in producer_order.order_items.all():
+                producer_data['items'].append({
+                    'id': item.id,
+                    'product_id': item.product.id if item.product else None,
+                    'name': item.product_name,
+                    'quantity': item.quantity,
+                    'price': item.product_price,
+                    'line_total': item.line_total,
+                    'unit': item.unit
+                })
+            
+            order_data['producers'].append(producer_data)
+    
+    context = {
+        'latest_order': latest_order,
+        'order_data': order_data,
+    }
+
+    return render(request, "profile/profile_page.html", context)
+
+@producer_required
+def producer_personal_info_view(request):
+    """Customer personal information management"""
+    user = request.user
+
+    # DELETE ACCOUNT HANDLER
+    if request.method == "POST" and "delete_account" in request.POST:
+        user.delete()
+        logout(request)
+        messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
+        return redirect("mainApp:home")
+    
+    # GET OR CREATE CUSTOMER PROFILE
+    try:
+        profile = ProducerProfile.objects.get(user=user)
+    except ProducerProfile.DoesNotExist:
+        print('profile does not exist')
+        # logger.info(f"Creating missing profile for user {user.username}")
+        # profile = ProducerProfile.objects.create(user=user)
+        # messages.info(request, "Customer profile was created.")
+    
+    # GET ADDRESSES
+    all_addresses = user.addresses.all()
+    default_address = all_addresses.filter(is_default=True).first()
+    other_addresses = all_addresses.exclude(id=default_address.id) if default_address else all_addresses
+    
+    # PROCESS FORM
+    if request.method == "POST":
+        form = ProducerPersonalInfoForm(request.POST, user=user)
+        
+        if form.is_valid():
+            try:
+                user = form.save()
+                
+                # Handle session after password change
+                if form.cleaned_data.get('password1'):
+                    update_session_auth_hash(request, user)
+                    messages.success(request, "Password updated successfully!")
+                
+                messages.success(request, "Your information has been updated successfully!")
+                return redirect("mainApp:customers:personal_info")
+                
+            except Exception as e:
+                logger.error(f"Error updating customer info: {e}", exc_info=True)
+                messages.error(request, "An error occurred while updating your information. Please try again.")
+        else:
+            # Display form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        field_label = field.replace('_', ' ').title()
+                        messages.error(request, f"{field_label}: {error}")
+    
+    else:
+        form = ProducerPersonalInfoForm(user=user)
+    
+    context = {
+        'form': form,
+        'user': user,
+        'profile': profile,
+        'all_addresses': all_addresses,
+        'default_address': default_address,
+        'other_addresses': other_addresses,
+    }
+    
+    return render(request, "profile/manage/personal_info.html", context)

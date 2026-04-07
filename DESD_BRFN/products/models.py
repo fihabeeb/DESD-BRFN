@@ -32,7 +32,7 @@ class Product(models.Model):
 
     producer = models.ForeignKey(
         'mainApp.ProducerProfile',
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name='products',
         null=True,
         blank=True,
@@ -81,7 +81,22 @@ class Product(models.Model):
         max_length=255,
         blank=True,
         help_text="Brief allergen warning for quick display")
+    
 
+    # handle soft delete fields
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="False if product has been soft deleted (hidden from store but kept for historical orders)"
+    )
+
+    deleted_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        default=None,
+        editable=False,
+        help_text="Timestamp when product was soft deleted"
+    )
 
     def __str__(self):
         return self.name
@@ -110,25 +125,6 @@ class Product(models.Model):
                 name='stock_non_negative'
             ),
         ]
-
-    ## extra attributes that idk if needed
-
-
-
-    ### Functions
-    ## TODO : in_season: check product in season or not.
-    # def in_season(self):
-    #     if not(self.season_start and self.season_end):
-    #         return True # assume always in season
-
-    #     current_month = timezone.now().month
-
-    #     if self.season_start <= self.season_end:
-    #         # for normal season that doesn't overlap between Dec and Jan
-    #         return self.season_start <= current_month <= self.season_end
-    #     else:
-    #         # specifically for winter
-    #         return current_month >= self.season_start or current_month<= self.season_end
 
     def deduct_stock(self, quantity):
         if self.stock_quantity >= quantity:
@@ -173,15 +169,25 @@ class Product(models.Model):
 
         super().save(*args, **kwargs)
 
-        # TODO:
-        # async for image processing tumbnails
-        # if self.image:
-            # from 
-
     def delete(self, *args, **kwargs):
+        force = kwargs.pop('force', False)
+        if force:
+            self.hard_delete()
+        else:
+            self.soft_delete()
+
+    def soft_delete(self):
+        """Soft delete the product - hides from store but keeps for order history"""
+        self.is_active = False
+        self.deleted_at = timezone.now()
+        self.availability = 'unavailable'
+        self.save(update_fields=['is_active', 'deleted_at', 'availability'])
+
+    def hard_delete(self):
+        """Permanently delete the product (use with caution!)"""
         if self.image:
             self.image.delete(save=False)
-        super().delete(*args,**kwargs)
+        super().delete()
 
     @property
     def is_in_season(self):

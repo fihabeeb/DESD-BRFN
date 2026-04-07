@@ -21,12 +21,14 @@ class OrderPayment(models.Model):
     ]
     
     # Relationships
-    customer = models.ForeignKey(
-        CustomerProfile, 
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='orders'
-    )
+    # ref customer profile is redundant
+    # customer = models.ForeignKey(
+    #     CustomerProfile, 
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     related_name='orders'
+    # )
+
     user = models.ForeignKey(
         RegularUser,
         on_delete=models.SET_NULL,
@@ -49,7 +51,7 @@ class OrderPayment(models.Model):
     # Shipping info (snapshot from address at time of order)
     shipping_address_id = models.ForeignKey(
         Address,
-        on_delete=models.PROTECT, #idk for this
+        on_delete=models.SET_NULL, #idk for this
         null=True,
         related_name='addresses'
     )
@@ -122,6 +124,7 @@ class OrderProducer(models.Model):
         on_delete=models.CASCADE,
         related_name='producer_orders'
         )
+    
     producer = models.ForeignKey(
         'mainApp.ProducerProfile',
         on_delete=models.PROTECT,
@@ -158,8 +161,6 @@ class OrderProducer(models.Model):
     def __str__(self):
         name = self.producer.business_name if self.producer else 'unknown'
         return f"Payment #{self.payment_id} — {name}"
-
-
 
 
 class OrderItem(models.Model):

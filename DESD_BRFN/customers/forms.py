@@ -7,6 +7,7 @@ from mainApp.models import CustomerProfile, Address
 from mainApp.utils import geocode_postcode
 import re
 import logging
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -169,37 +170,42 @@ class CustomerRegistrationForm(UserCreationForm):
         return post_code.upper()
 
     def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data['email']
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.phone_number = self.cleaned_data['phone_number']
-        user.role = User.Role.CUSTOMER
-        
-        if commit:
-            user.save()
-            CustomerProfile.objects.create(
-                user=user,
-            )
+        try:
+            with transaction.atomic():
+                user = super().save(commit=False)
+                user.email = self.cleaned_data['email']
+                user.first_name = self.cleaned_data['first_name']
+                user.last_name = self.cleaned_data['last_name']
+                user.phone_number = self.cleaned_data['phone_number']
+                user.role = User.Role.CUSTOMER
+                
+                # if commit:
+                user.save()
+                    # CustomerProfile.objects.create(
+                    #     user=user,
+                    # )
 
-        lat, lon = geocode_postcode(self.cleaned_data['post_code'])
-        
-        Address.objects.create(
-                user=user,
-                address_line1=self.cleaned_data['address_line1'],
-                address_line2=self.cleaned_data.get('address_line2', ''),
-                city=self.cleaned_data['city'],
-                county=self.cleaned_data.get('county', ''),
-                post_code=self.cleaned_data['post_code'],
-                country='UK',
-                address_type='home',
-                is_default=True,
-                latitude=lat,
-                longitude=lon,
-            )
+                lat, lon = geocode_postcode(self.cleaned_data['post_code'])
+                
+                Address.objects.create(
+                        user=user,
+                        address_line1=self.cleaned_data['address_line1'],
+                        address_line2=self.cleaned_data.get('address_line2', ''),
+                        city=self.cleaned_data['city'],
+                        county=self.cleaned_data.get('county', ''),
+                        post_code=self.cleaned_data['post_code'],
+                        country='UK',
+                        address_type='home',
+                        is_default=True,
+                        latitude=lat,
+                        longitude=lon,
+                    )
 
-        return user
-    
+                return user
+        except Exception as e:
+            raise e
+            print (e)
+        
 
 
 # TODO: to remove class below after testing.

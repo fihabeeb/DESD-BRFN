@@ -16,6 +16,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 import json
 from django.db import transaction
+from django.db import models
 
 
 User = get_user_model()
@@ -173,7 +174,7 @@ def create_checkout_session(request):
         with transaction.atomic():
             # Create OrderPayment (customer payment)
             payment = OrderPayment.objects.create(
-                customer=request.user.customer_profile,
+                # customer=request.user.customer_profile,
                 user=request.user,
                 stripe_session_id=checkout_session.id,
                 total_amount=cart.total_amount(),  # Just product total
@@ -292,7 +293,7 @@ def stripe_webhook(request):
                 address = Address.objects.get(id=address_id)
                 cart = user.customer_profile.cart
                 payment = OrderPayment.objects.create(
-                    customer=user.customer_profile,
+                    # customer=user.customer_profile,
                     user=user,
                     stripe_session_id=session['id'],
                     stripe_payment_intent_id=session.get('payment_intent'),
@@ -321,4 +322,75 @@ def stripe_webhook(request):
     return HttpResponse(status=200)
 
 
+# =========
+# profile
+# =========
 
+def order_history(request):
+    '''
+    Universal order history page
+    '''
+    orders = OrderPayment.objects.filter(
+        user=request.user,
+    ).exclude(
+        payment_status__in=['pending', 'failed']
+    ).order_by('-id')
+    
+    orders_data = []
+    
+    for order in orders:
+        # Build comprehensive order data
+        order_info = {
+            'order': order,
+            'total_amount': order.total_amount,
+            'created_at': order.created_at,
+            'payment_status': order.payment_status,
+            'payment_status_display': order.get_payment_status_display(),
+            'shipping_address': order.shipping_address,
+            'global_notes': order.global_delivery_notes,
+            'producers': []
+        }
+        
+        # Get all producer orders for this payment
+        producer_orders = order.producer_orders.select_related(
+            'producer'
+        ).prefetch_related(
+            'order_items__product'
+        ).all()
+        
+        for producer_order in producer_orders:
+            producer_data = {
+                'producer': producer_order.producer,
+                'business_name': producer_order.producer.business_name if producer_order.producer else 'Unknown',
+                'status': producer_order.order_status,
+                'status_display': producer_order.get_order_status_display(),
+                'subtotal': producer_order.producer_subtotal,
+                'delivery_date': producer_order.delivered_by,
+                'customer_note': producer_order.customer_note,
+                'items': []
+            }
+            
+            # Get items for this producer order
+            for item in producer_order.order_items.all():
+                producer_data['items'].append({
+                    'id': item.id,
+                    'product_id': item.product.id if item.product else None,
+                    'name': item.product_name,
+                    'quantity': item.quantity,
+                    'price': item.product_price,
+                    'line_total': item.line_total,
+                    'unit': item.unit
+                })
+            
+            order_info['producers'].append(producer_data)
+        
+        orders_data.append(order_info)
+    
+    context = {
+        'orders': orders,
+        'orders_data': orders_data,
+        'total_orders': orders.count(),
+        'total_spent': orders.aggregate(total=models.Sum('total_amount'))['total'] or 0,
+    }
+    
+    return render(request, "orders/profile/order_history.html", context)
