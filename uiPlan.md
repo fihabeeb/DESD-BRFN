@@ -333,7 +333,7 @@ Tabs: Overview | Orders | Addresses | Recommendations | Settings
 - Quick edit (price/stock) inline without leaving page
 - Bulk actions: Select multiple → Mark unavailable / Delete
 
-**Orders page (myorders.html redesign):**
+**Orders page (incoming_orders.html redesign):**
 - Kanban board view (columns: Confirmed | Preparing | Ready | Delivered) as alternative to list view
 - List view retained as toggle option
 - Order cards: customer name, order date, item count, subtotal, status badge

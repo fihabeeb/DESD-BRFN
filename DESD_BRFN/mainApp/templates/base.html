@@ -537,7 +537,7 @@
                             <hr>
                             <div class="fd-dropdown-section">Producer</div>
                             <a href="{% url 'mainApp:producers:myproduct' %}"><i class="bi bi-box-seam"></i> My Products</a>
-                            <a href="{% url 'mainApp:producers:myorders' %}"><i class="bi bi-receipt"></i> My Orders</a>
+                            <a href="{% url 'mainApp:producers:incoming_orders' %}"><i class="bi bi-receipt"></i> Incoming Orders</a>
                             <a href="{% url 'mainApp:producers:quality_scan' %}"><i class="bi bi-stars"></i> Quality Scan</a>
                             {% endif %}
                         </div>
@@ -608,7 +608,7 @@
                     <a href="{% url 'mainApp:customers:view_cart' %}"><i class="bi bi-cart3"></i> Cart</a>
                     {% if user.role == 'producer' %}
                         <a href="{% url 'mainApp:producers:myproduct' %}"><i class="bi bi-box-seam"></i> My Products</a>
-                        <a href="{% url 'mainApp:producers:myorders' %}"><i class="bi bi-receipt"></i> My Orders</a>
+                        <a href="{% url 'mainApp:producers:incoming_orders' %}"><i class="bi bi-receipt"></i> Incoming Orders</a>
                         <a href="{% url 'mainApp:producers:quality_scan' %}"><i class="bi bi-stars"></i> Quality Scan</a>
                     {% endif %}
                     <hr>

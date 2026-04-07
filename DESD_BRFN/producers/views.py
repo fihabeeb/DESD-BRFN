@@ -295,7 +295,7 @@ def product_edit_view(request, product_id):
 
 @login_required
 @producer_required
-def myorders_view(request):
+def incoming_orders_view(request):
     """
     Display all orders that contain items assigned to this producer.
     Only shows this producer's items within each order.
@@ -380,7 +380,7 @@ def myorders_view(request):
         'stats': stats,
     }
     
-    return render(request, 'producers/orders/myorders.html', context)
+    return render(request, 'producers/orders/incoming_orders.html', context)
 
 @login_required
 @producer_required
@@ -410,7 +410,7 @@ def update_order_status(request, order_id):
             # You could add notification here
             # send_order_status_notification(producer_order)
     
-    return redirect('mainApp:producers:myorders')
+    return redirect('mainApp:producers:incoming_orders')
 
 
 @login_required

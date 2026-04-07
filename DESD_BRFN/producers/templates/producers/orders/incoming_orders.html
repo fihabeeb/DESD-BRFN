@@ -1,8 +1,8 @@
-<!-- producers/templates/producers/myorders.html -->
+<!-- producers/templates/producers/incoming_orders.html -->
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}My Orders{% endblock %}
+{% block title %}Incoming Orders{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -186,7 +186,7 @@
         <a href="{% url 'mainApp:producers:myproduct' %}" class="producer-sidebar-link">
             <i class="bi bi-box-seam"></i> Products
         </a>
-        <a href="{% url 'mainApp:producers:myorders' %}" class="producer-sidebar-link active">
+        <a href="{% url 'mainApp:producers:incoming_orders' %}" class="producer-sidebar-link active">
             <i class="bi bi-receipt"></i> Orders
         </a>
         <a href="{% url 'mainApp:producers:quality_scan' %}" class="producer-sidebar-link">
