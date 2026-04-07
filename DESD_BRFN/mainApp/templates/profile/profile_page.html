@@ -1,3 +1,5 @@
+<!-- producer ver -->
+
 {% extends "base.html" %}
 
 {% block title %}My Account{% endblock %}
@@ -100,6 +102,54 @@
     gap: 0.5rem;
 }
 .profile-card-title i { color: var(--color-primary); }
+
+/* Order styling */
+.order-header {
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+.order-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    margin-top: 0.5rem;
+}
+.producer-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--color-background);
+    border-radius: 8px;
+    border-left: 3px solid var(--color-primary);
+}
+.producer-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+.order-items-table {
+    width: 100%;
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+}
+.order-items-table th,
+.order-items-table td {
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+.order-items-table th {
+    font-weight: 600;
+    color: var(--color-muted);
+}
+.text-right { text-align: right; }
+.no-orders {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-muted);
+}
 </style>
 {% endblock %}
 
@@ -113,7 +163,6 @@
             <h1 class="profile-hero-name">{{ user.first_name|default:user.username }}</h1>
             {% if user.role == 'customer' %}
             <p class="profile-hero-sub">@{{ user.username }} &mdash; Customer Account</p>
-
             {% elif user.role == 'producer' %}
             <p class="profile-hero-sub">@{{ user.username }} &mdash; Producer Account</p>
             {% endif %}
@@ -125,9 +174,14 @@
         <button class="profile-tab-btn active" data-tab="overview">
             <i class="bi bi-grid-1x2"></i> Overview
         </button>
-        <button class="profile-tab-btn" data-tab="orders">
-            <i class="bi bi-receipt"></i> Orders
+        <button class="profile-tab-btn" data-tab="myOrders">
+            <i class="bi bi-receipt"></i> My Orders
         </button>
+        {% if user_role == 'producer' %}
+        <button class="profile-tab-btn" data-tab="incomingOrders">
+            <i class="bi bi-list-task"></i> Incoming Orders
+        </button>
+        {% endif %}
         <button class="profile-tab-btn" data-tab="addresses">
             <i class="bi bi-geo-alt"></i> Addresses
         </button>
@@ -136,27 +190,52 @@
         </button>
     </div>
 
-    <!-- Tab content -->
+    <!-- stats card -->
     <div id="tab-overview" class="tab-panel active">
+        <h3>All Time Stats</h3>
+
+        {% if user_role == "producer" %}
         <div class="profile-stats">
             <div class="profile-stat-card">
-                <div class="profile-stat-num">—</div>
-                <div class="profile-stat-label">Total Orders</div>
+                <div class="profile-stat-num">{{ stats.totalSales|default:"0" }}</div>
+                <div class="profile-stat-label">Total Sales Made</div>
             </div>
             <div class="profile-stat-card">
-                <div class="profile-stat-num">—</div>
-                <div class="profile-stat-label">Total Spent</div>
+                <div class="profile-stat-num">{{ stats.uniqueCustomers|default:"0" }}</div>
+                <div class="profile-stat-label">Unique Customers Helped</div>
             </div>
             <div class="profile-stat-card">
-                <div class="profile-stat-num">—</div>
-                <div class="profile-stat-label">Farms Supported</div>
+                <div class="profile-stat-num">Extra</div>
+                <div class="profile-stat-label">Card</div>
             </div>
             <div class="profile-stat-card">
-                <div class="profile-stat-num">Free</div>
-                <div class="profile-stat-label">Returns</div>
+                <div class="profile-stat-num">Extra</div>
+                <div class="profile-stat-label">Card</div>
             </div>
         </div>
+        {% elif user_role == "customer" %}
+            <div class="profile-stats">
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">{{ stats.totalOrders|default:"3" }}</div>
+                <div class="profile-stat-label">Total Orders Made</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">{{ stats.farmSupported|default:"0" }}</div>
+                <div class="profile-stat-label">Unique Farms Supported</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">Extra</div>
+                <div class="profile-stat-label">Card</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">Extra</div>
+                <div class="profile-stat-label">Card</div>
+            </div>
+        </div>
+        {% endif %}
 
+
+        <!-- Tab content -->
         <div class="profile-card">
             <div class="profile-card-title"><i class="bi bi-lightning-charge"></i> Quick Actions</div>
             <div class="d-flex gap-2 flex-wrap">
@@ -188,17 +267,113 @@
         </div>
     </div>
 
-    <div id="tab-orders" class="tab-panel">
+    <!-- my order tab -->
+    <div id="tab-myOrders" class="tab-panel">
         <div class="profile-card">
-            <div class="profile-card-title"><i class="bi bi-receipt"></i> Order History</div>
+            <div class="profile-card-title"><i class="bi bi-receipt"></i> 
+                Order History
+            </div>
 
-            
-            <p style="color:var(--color-muted); font-size:0.875rem;">Your order history will appear here once you've made purchases.</p>
-            <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary" style="margin-top:0.75rem; display:inline-flex;">
-                <i class="bi bi-basket2"></i> Start Shopping
-            </a>
+            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Latest order made from you</p>
+
+
+            {% if order_data %}
+            <div class="order-header">
+                <strong>Order #{{ order_data.order.id }}</strong>
+                <div class="order-meta">
+                    <span>Placed: {{ order_data.created_at|date:"F j, Y" }}</span>
+                    <span>Total: ${{ order_data.total_amount|floatformat:2 }}</span>
+                    <span>Status: {{ order_data.payment_status|title }}</span>
+                </div>
+                {% if order_data.shipping_address %}
+                <div class="order-meta">
+                    <span>Shipping: {{ order_data.shipping_address.address_line1 }}, {{ order_data.shipping_address.city }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% for producer in order_data.producers %}
+            <div class="producer-section">
+                <div class="producer-name">
+                    {% if user_role == 'producer' %}
+                        Customer: {{ producer.customer_name|default:producer.business_name }}
+                    {% else %}
+                        {{ producer.business_name }}
+                    {% endif %}
+                </div>
+                <div class="order-meta">
+                    <span>Status: {{ producer.status }}</span>
+                    <span>Subtotal: ${{ producer.subtotal|floatformat:2 }}</span>
+                    {% if producer.delivery_date %}
+                    <span>Delivery by: {{ producer.delivery_date|date:"F j, Y" }}</span>
+                    {% endif %}
+                </div>
+                {% if producer.customer_note %}
+                <div class="order-meta">
+                    <span>Note: {{ producer.customer_note }}</span>
+                </div>
+                {% endif %}
+
+                <table class="order-items-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th class="text-right">Price</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in producer.items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unit|default:"-" }}</td>
+                            <td class="text-right">${{ item.price|floatformat:2 }}</td>
+                            <td class="text-right">${{ item.line_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+
+            {% if order_data.global_notes %}
+            <div style="margin-top: 1rem; padding: 0.75rem; background: var(--color-background); border-radius: 6px;">
+                <strong>Global Delivery Notes:</strong>
+                <p style="margin-top: 0.25rem; font-size: 0.875rem;">{{ order_data.global_notes }}</p>
+            </div>
+            {% endif %}
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <a href="{% url 'mainApp:orders:order_history' %}" class="btn-primary">View All Order History</a>
+            </div>
+
+            {% else %}
+            <div class="no-orders">
+                <p>No orders found.</p>
+                <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary" style="margin-top:0.75rem; display:inline-flex;">
+                    <i class="bi bi-basket2"></i> Start Shopping
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
+
+    {% if user_role == "producer" %}
+    <!-- Incoming order  -->
+    <div id="tab-incomingOrders" class="tab-panel">
+        <div class="profile-card">
+            <div class="profile-card-title"><i class="bi bi-list-task"></i>Incoming Orders</div>
+            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">View, update and manage all incoming orders.</p>
+            <a href="{% url 'mainApp:producers:myorders' %}" class="btn-primary">
+                <i class="bi bi-list-task"></i>Manage Orders
+            </a>
+
+        </div>
+    </div>
+    {% endif %}
+
 
     <div id="tab-addresses" class="tab-panel">
         <div class="profile-card">

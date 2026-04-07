@@ -320,7 +320,7 @@ def myorders_view(request):
     for producer_order in producer_orders:
         if producer_order.order_status=="delivered":
             revenue += producer_order.producer_payout
-            
+
     #calculate statistics
     stats = {
         'total': producer_orders.count(),
@@ -582,19 +582,30 @@ def producer_profile_view(request):
     """
     Producer dashboard: order history + stats
     """
-    # Get all paid orders for this producer
+    # fetch latest order made by the user (NOT INCOMING ORDERS)
+    latest_order = OrderPayment.objects.filter(
+        user=request.user,
+        payment_status='paid'
+    ).order_by('-created_at').first()
+
+    # query all orders the producer has.
     producer_orders = OrderPayment.objects.filter(
         producer_orders__producer=request.user.producer_profile,
         payment_status='paid'
     ).distinct().order_by('-created_at')
     
-    latest_order = producer_orders.first()
-    
     order_data = None
     total_orders_count = producer_orders.count()
-    # total_spent = 0  # For producers, this could be total sales
-    unique_customer = 0
+    unique_customer = OrderPayment.objects.filter(
+        payment_status='paid',
+        producer_orders__producer= request.user.producer_profile,
+    ).values('user_id').distinct().count()
+    stats_card = {
+        'totalSales': total_orders_count,
+        'uniqueCustomers': unique_customer
+    }
 
+    # build data for latest order made by the user.
     if latest_order:
         # Build comprehensive order data
         order_data = {
@@ -607,12 +618,14 @@ def producer_profile_view(request):
             'producers': []
         }
         
-        # Get producer orders for this payment that belong to this producer
-        producer_orders_for_payment = latest_order.producer_orders.filter(
-            producer=request.user.producer_profile
-        ).select_related('producer').prefetch_related('order_items__product').all()
+        # Get all producer orders for this payment
+        producer_orders = latest_order.producer_orders.select_related(
+            'producer'
+        ).prefetch_related(
+            'order_items__product'
+        ).all()
 
-        for producer_order in producer_orders_for_payment:
+        for producer_order in producer_orders:
             producer_data = {
                 'producer': producer_order.producer,
                 'business_name': producer_order.producer.business_name if producer_order.producer else 'Unknown',
@@ -620,7 +633,6 @@ def producer_profile_view(request):
                 'subtotal': producer_order.producer_subtotal,
                 'delivery_date': producer_order.delivered_by,
                 'customer_note': producer_order.customer_note,
-                'customer_name': f"{producer_order.payment.user.first_name} {producer_order.payment.user.last_name}" if producer_order.payment.user else 'Unknown',
                 'items': []
             }
             
@@ -637,14 +649,11 @@ def producer_profile_view(request):
                 })
             
             order_data['producers'].append(producer_data)
-            # total_spent += producer_order.producer_subtotal
     
     context = {
+        'stats': stats_card,
         'latest_order': latest_order,
         'order_data': order_data,
-        'total_orders': total_orders_count,
-        # 'total_spent': total_spent,
-        'farms_supported': unique_customer,
         'user_role': 'producer'
     }
 

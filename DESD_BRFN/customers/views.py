@@ -18,6 +18,7 @@ import re
 import logging
 from django.http import JsonResponse
 from orders.models import OrderItem, OrderPayment
+from django.db import models
 
 logger = logging.getLogger(__name__)
 
@@ -227,17 +228,27 @@ def update_cart_item(request, item_id):
 @login_required
 def customer_profile_view(request):
     """
-    Customer dashboard: future order history + button to view personal info.
+    Customer dashboard: order history + stats
     """
     latest_order = OrderPayment.objects.filter(
         user=request.user,
         payment_status='paid'
     ).order_by('-created_at').first()
     
+    # stats card
+    total_orders_count = OrderPayment.objects.filter(user=request.user, payment_status='paid').count()
+    farms_supported = OrderPayment.objects.filter(
+        user=request.user, 
+        payment_status='paid'
+    ).values('producer_orders__producer').distinct().count()
+    stats_card = {
+        'totalOrders': total_orders_count,
+        'farmSupported': farms_supported,
+    }
+
     order_data = None
 
     if latest_order:
-        print(latest_order)
         # Build comprehensive order data
         order_data = {
             'order': latest_order,
@@ -282,11 +293,13 @@ def customer_profile_view(request):
             order_data['producers'].append(producer_data)
     
     context = {
+        'stats': stats_card,
         'latest_order': latest_order,
         'order_data': order_data,
+        'user_role': 'customer'
     }
 
-    return render(request, "profile/profile_page.html", context) # uses mainApp profile template (to remove the customer template ver)
+    return render(request, "profile/profile_page.html", context)
 
 @login_required
 @customer_required
