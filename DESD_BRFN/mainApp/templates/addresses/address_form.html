@@ -1,190 +1,350 @@
-<!-- mainApp/templates/mainApp/addresses/address_form.html -->
+<!-- mainApp/templates/addresses/address_form.html -->
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+.addrform-wrapper {
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 4rem;
+}
+
+.addrform-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    margin-bottom: 1.25rem;
+    transition: color 0.15s;
+}
+.addrform-back:hover { color: var(--color-primary); }
+
+.addrform-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.addrform-card-header {
+    background: linear-gradient(135deg, #1a3c1a 0%, #2d6a2d 100%);
+    color: white;
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.addrform-card-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.addrform-body {
+    padding: 1.75rem;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+@media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+
+.form-field {
+    margin-bottom: 1rem;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    background: var(--color-bg);
+    font-family: inherit;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.form-field .field-error {
+    color: var(--color-danger);
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+
+.form-field .field-help {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+
+.form-field input[type="text"][readonly] {
+    background: var(--color-border);
+    cursor: not-allowed;
+}
+
+/* Default address section */
+.default-info-box {
+    background: var(--color-primary-light);
+    border: 1.5px solid #c3e6c3;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+.default-info-box i { color: var(--color-primary); font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+.default-info-box strong { display: block; font-size: 0.875rem; color: var(--color-text); margin-bottom: 0.2rem; }
+.default-info-box p { font-size: 0.8rem; color: var(--color-muted); margin: 0; }
+
+.default-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+.default-checkbox-row input[type="checkbox"] {
+    width: auto;
+    margin-top: 0.15rem;
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+}
+.default-checkbox-row label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.alert-producer-note {
+    background: #fef9c3;
+    border: 1.5px solid #fde68a;
+    color: #92400e;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    margin-top: 0.6rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.addrform-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-top: 0.5rem;
+    border-top: 1.5px solid var(--color-border);
+    margin-top: 1.5rem;
+}
+
+/* Dark mode */
+[data-theme="dark"] .addrform-card { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .addrform-body { background: #1f2937; }
+[data-theme="dark"] .form-field input,
+[data-theme="dark"] .form-field select,
+[data-theme="dark"] .form-field textarea {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e5e7eb;
+}
+[data-theme="dark"] .form-field input[type="text"][readonly] { background: #4b5563; }
+[data-theme="dark"] .default-info-box { background: #1a3c1a; border-color: #2d6a2d; }
+[data-theme="dark"] .alert-producer-note { background: #2d2010; border-color: #4d3a10; color: #d97706; }
+[data-theme="dark"] .addrform-actions { border-color: #374151; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4" style="max-width: 700px;">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="mb-0">{{ title }}</h3>
+<div class="addrform-wrapper">
+
+    <a href="{% url 'mainApp:manage_addresses' %}" class="addrform-back">
+        <i class="bi bi-arrow-left"></i> Back to Addresses
+    </a>
+
+    <div class="addrform-card">
+        <div class="addrform-card-header">
+            <i class="bi bi-geo-alt-fill" style="font-size: 1.25rem;"></i>
+            <h2>{{ title }}</h2>
         </div>
-        <div class="card-body">
+        <div class="addrform-body">
             <form method="post">
                 {% csrf_token %}
-                
+
                 <!-- Address Type and Label -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.address_type.id_for_label }}">Address Type *</label>
-                            
-                            <!-- Check if this is a farm address being edited -->
-                            {% if address and address.address_type == 'farm' %}
-                                <!-- Display as static text for farm addresses -->
-                                <input type="text" 
-                                    class="form-control" 
-                                    value="{{ address.get_address_type_display }}" 
-                                    readonly 
-                                    disabled 
-                                    style="background-color: #f8f9fa;">
-                                <input type="hidden" name="address_type" value="farm">
-                                <small class="text-muted">Farm address type cannot be changed.</small>
-                            {% else %}
-                                <!-- Normal select for other addresses -->
-                                {{ form.address_type }}
-                            {% endif %}
-                            
-                            {% if form.address_type.errors %}
-                            <div class="text-danger small">{{ form.address_type.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.address_type.id_for_label }}">Address Type <span style="color:var(--color-danger);">*</span></label>
+
+                        {% if address and address.address_type == 'farm' %}
+                            <input type="text"
+                                value="{{ address.get_address_type_display }}"
+                                readonly
+                                disabled>
+                            <input type="hidden" name="address_type" value="farm">
+                            <span class="field-help">Farm address type cannot be changed.</span>
+                        {% else %}
+                            {{ form.address_type }}
+                        {% endif %}
+
+                        {% if form.address_type.errors %}
+                        <span class="field-error">{{ form.address_type.errors.0 }}</span>
+                        {% endif %}
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.label.id_for_label }}">Label (Optional)</label>
-                            {{ form.label }}
-                            {% if form.label.errors %}
-                            <div class="text-danger small">{{ form.label.errors.0 }}</div>
-                            {% endif %}
-                            <small class="text-muted">{{ form.label.help_text }}</small>
-                        </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.label.id_for_label }}">Label <span style="color:var(--color-muted); font-weight:400;">(Optional)</span></label>
+                        {{ form.label }}
+                        {% if form.label.errors %}
+                        <span class="field-error">{{ form.label.errors.0 }}</span>
+                        {% endif %}
+                        {% if form.label.help_text %}
+                        <span class="field-help">{{ form.label.help_text }}</span>
+                        {% endif %}
                     </div>
                 </div>
-                
-                <!-- Address Line 1 -->
-                <div class="form-group mb-3">
-                    <label for="{{ form.address_line1.id_for_label }}">Address Line 1 *</label>
+
+                <!-- Address Lines -->
+                <div class="form-field">
+                    <label for="{{ form.address_line1.id_for_label }}">Address Line 1 <span style="color:var(--color-danger);">*</span></label>
                     {{ form.address_line1 }}
                     {% if form.address_line1.errors %}
-                    <div class="text-danger small">{{ form.address_line1.errors.0 }}</div>
+                    <span class="field-error">{{ form.address_line1.errors.0 }}</span>
                     {% endif %}
                 </div>
-                
-                <!-- Address Line 2 -->
-                <div class="form-group mb-3">
-                    <label for="{{ form.address_line2.id_for_label }}">Address Line 2 (Optional)</label>
+
+                <div class="form-field">
+                    <label for="{{ form.address_line2.id_for_label }}">Address Line 2 <span style="color:var(--color-muted); font-weight:400;">(Optional)</span></label>
                     {{ form.address_line2 }}
                     {% if form.address_line2.errors %}
-                    <div class="text-danger small">{{ form.address_line2.errors.0 }}</div>
+                    <span class="field-error">{{ form.address_line2.errors.0 }}</span>
                     {% endif %}
                 </div>
-                
+
                 <!-- City and County -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.city.id_for_label }}">City/Town *</label>
-                            {{ form.city }}
-                            {% if form.city.errors %}
-                            <div class="text-danger small">{{ form.city.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.city.id_for_label }}">City / Town <span style="color:var(--color-danger);">*</span></label>
+                        {{ form.city }}
+                        {% if form.city.errors %}
+                        <span class="field-error">{{ form.city.errors.0 }}</span>
+                        {% endif %}
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.county.id_for_label }}">County (Optional)</label>
-                            {{ form.county }}
-                            {% if form.county.errors %}
-                            <div class="text-danger small">{{ form.county.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                    <div class="form-field">
+                        <label for="{{ form.county.id_for_label }}">County <span style="color:var(--color-muted); font-weight:400;">(Optional)</span></label>
+                        {{ form.county }}
+                        {% if form.county.errors %}
+                        <span class="field-error">{{ form.county.errors.0 }}</span>
+                        {% endif %}
                     </div>
                 </div>
-                
+
                 <!-- Post Code and Country -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.post_code.id_for_label }}">Post Code *</label>
-                            {{ form.post_code }}
-                            {% if form.post_code.errors %}
-                            <div class="text-danger small">{{ form.post_code.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="{{ form.post_code.id_for_label }}">Post Code <span style="color:var(--color-danger);">*</span></label>
+                        {{ form.post_code }}
+                        {% if form.post_code.errors %}
+                        <span class="field-error">{{ form.post_code.errors.0 }}</span>
+                        {% endif %}
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.country.id_for_label }}">Country</label>
-                            {{ form.country }}
-                            {% if form.country.errors %}
-                            <div class="text-danger small">{{ form.country.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                    <div class="form-field">
+                        <label for="{{ form.country.id_for_label }}">Country</label>
+                        {{ form.country }}
+                        {% if form.country.errors %}
+                        <span class="field-error">{{ form.country.errors.0 }}</span>
+                        {% endif %}
                     </div>
                 </div>
-                
-                <!-- Default Checkbox -->
-                <div class="form-group mb-3">
-                    <div class="form-check">
-                        {% if address and address.address_type == 'farm' %}
-                            {# For farm addresses, default is forced and cannot be changed #}
-                            <div class="bg-light p-3 rounded border">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-star-fill text-warning me-2"></i>
-                                    <div>
-                                        <strong class="text-success">This is your default farm address</strong>
-                                        <p class="text-muted small mb-0">
-                                            Farm addresses are automatically set as default for producers.
-                                            This cannot be changed as it's required for food miles calculation.
-                                        </p>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="is_default" value="on">
+
+                <!-- Default address -->
+                <div class="form-field">
+                    {% if address and address.address_type == 'farm' %}
+                        <div class="default-info-box">
+                            <i class="bi bi-star-fill" style="color: var(--color-accent);"></i>
+                            <div>
+                                <strong>This is your default farm address</strong>
+                                <p>Farm addresses are automatically set as default for producers. This cannot be changed as it's required for food miles calculation.</p>
                             </div>
-                        {% elif address and address.is_default %}
-                            {# For existing default addresses #}
-                            <div class="bg-light p-3 rounded border">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-star-fill text-warning me-2"></i>
-                                    <div>
-                                        <strong>This is your default {{ address.get_address_type_display }} address</strong>
-                                        <p class="text-muted small mb-0">
-                                            Uncheck to remove as default. Another address of this type will become default.
-                                        </p>
-                                    </div>
-                                </div>
-                                {{ form.is_default }}
-                                <label class="form-check-label ms-2" for="{{ form.is_default.id_for_label }}">
-                                    Keep as default
-                                </label>
+                        </div>
+                        <input type="hidden" name="is_default" value="on">
+
+                    {% elif address and address.is_default %}
+                        <div class="default-info-box">
+                            <i class="bi bi-star-fill" style="color: var(--color-accent);"></i>
+                            <div>
+                                <strong>This is your default {{ address.get_address_type_display }} address</strong>
+                                <p>Uncheck to remove as default. Another address of this type will become default.</p>
                             </div>
-                        {% else %}
-                            {# Normal checkbox for other addresses #}
-                            <div class="d-flex align-items-start">
-                                {{ form.is_default }}
-                                <label class="form-check-label ms-2" for="{{ form.is_default.id_for_label }}">
-                                    Set as default for this address type
-                                </label>
-                            </div>
-                            {% if is_producer and address.address_type != 'farm' %}
-                                <div class="alert alert-warning small mt-2 mb-0">
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                    <strong>Producer Note:</strong> Only farm addresses can be set as default. 
-                                    Your farm address will remain the default for food miles calculation.
-                                </div>
-                            {% endif %}
+                        </div>
+                        <div class="default-checkbox-row" style="margin-top: 0.75rem;">
+                            {{ form.is_default }}
+                            <label for="{{ form.is_default.id_for_label }}">Keep as default</label>
+                        </div>
+
+                    {% else %}
+                        <div class="default-checkbox-row">
+                            {{ form.is_default }}
+                            <label for="{{ form.is_default.id_for_label }}">Set as default for this address type</label>
+                        </div>
+                        {% if is_producer and address.address_type != 'farm' %}
+                        <div class="alert-producer-note">
+                            <i class="bi bi-exclamation-triangle" style="flex-shrink:0; margin-top:0.1rem;"></i>
+                            <span><strong>Producer Note:</strong> Only farm addresses can be set as default. Your farm address will remain the default for food miles calculation.</span>
+                        </div>
                         {% endif %}
-                        
-                        {% if form.is_default.errors %}
-                        <div class="text-danger small mt-1">{{ form.is_default.errors.0 }}</div>
-                        {% endif %}
-                        <small class="text-muted d-block mt-1">{{ form.is_default.help_text }}</small>
-                    </div>
+                    {% endif %}
+
+                    {% if form.is_default.errors %}
+                    <span class="field-error" style="margin-top:0.3rem; display:block;">{{ form.is_default.errors.0 }}</span>
+                    {% endif %}
+                    {% if form.is_default.help_text %}
+                    <span class="field-help" style="margin-top:0.3rem; display:block;">{{ form.is_default.help_text }}</span>
+                    {% endif %}
                 </div>
-                
-                <!-- Buttons -->
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-success">
+
+                <!-- Actions -->
+                <div class="addrform-actions">
+                    <button type="submit" class="btn-primary">
                         <i class="bi bi-save"></i> Save Address
                     </button>
-                    <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'mainApp:manage_addresses' %}" class="btn-outline">
                         <i class="bi bi-x-circle"></i> Cancel
                     </a>
                 </div>
             </form>
         </div>
     </div>
+
 </div>
 {% endblock %}

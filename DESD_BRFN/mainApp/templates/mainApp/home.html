@@ -1,7 +1,349 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Home{% endblock %}
+{% block title %}FarmDirect — Fresh from Local Farms{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Hero ── */
+.hero-section {
+    background: linear-gradient(135deg, #1a3c1a 0%, #2d6a2d 60%, #3d8a3d 100%);
+    color: white;
+    padding: 5rem 1.5rem 4rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.hero-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+.hero-inner { max-width: 720px; margin: 0 auto; position: relative; }
+.hero-title {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+}
+.hero-subtitle {
+    font-size: 1.15rem;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+.hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.5rem; }
+.hero-search {
+    display: flex;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 520px;
+    margin: 0 auto;
+    backdrop-filter: blur(6px);
+}
+.hero-search input {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 0.75rem 1rem;
+    color: white;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+}
+.hero-search input::placeholder { color: rgba(255,255,255,0.55); }
+.hero-search button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.15s;
+}
+.hero-search button:hover { background: rgba(255,255,255,0.3); }
+
+/* ── Stats bar ── */
+.stats-bar {
+    background-color: #e8f5e8;
+    padding: 1.5rem 1.5rem;
+}
+.stats-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    text-align: center;
+}
+.stat-item-icon { font-size: 1.6rem; color: var(--color-primary); margin-bottom: 0.3rem; }
+.stat-item-value { font-size: 1.5rem; font-weight: 800; color: var(--color-primary); line-height: 1; }
+.stat-item-label { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.2rem; font-weight: 500; }
+@media (max-width: 600px) {
+    .stats-inner { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Section wrapper ── */
+.home-section { max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem; }
+.home-section-header { text-align: center; margin-bottom: 2rem; }
+
+/* ── Category cards ── */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 1rem;
+}
+.category-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.25rem 0.75rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+}
+.category-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 14px rgba(45,106,45,0.15);
+    transform: translateY(-3px);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+.category-card i { font-size: 1.85rem; color: var(--color-primary); }
+.category-card span { font-size: 0.825rem; font-weight: 600; }
+
+/* ── Featured / placeholder cards ── */
+.featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+.featured-placeholder {
+    background: var(--color-surface);
+    border-radius: 12px;
+    border: 1.5px dashed var(--color-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    gap: 0.75rem;
+    color: var(--color-muted);
+}
+.featured-placeholder i { font-size: 2.5rem; color: var(--color-border); }
+
+/* ── How it works ── */
+.how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    text-align: center;
+}
+.how-step { padding: 1.5rem 1rem; }
+.how-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--color-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    border: 2px solid rgba(45,106,45,0.2);
+}
+.how-icon-wrap i { font-size: 1.75rem; color: var(--color-primary); }
+.how-step h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+.how-step p { font-size: 0.9rem; color: var(--color-muted); margin: 0; }
+@media (max-width: 640px) { .how-grid { grid-template-columns: 1fr; } }
+
+/* ── Producer CTA ── */
+.producer-cta {
+    background: linear-gradient(135deg, #1a3c1a 0%, #2d6a2d 100%);
+    color: white;
+    text-align: center;
+    padding: 4rem 1.5rem;
+    margin-top: 2rem;
+}
+.producer-cta h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 800; margin-bottom: 0.75rem; }
+.producer-cta p { font-size: 1rem; color: rgba(255,255,255,0.75); margin-bottom: 1.75rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-    <h1>Bristol Regional Food Network</h1>
+
+<!-- ── Hero ── -->
+<section class="hero-section">
+    <div class="hero-inner">
+        <h1 class="hero-title">Fresh from local farms,<br>delivered to you</h1>
+        <p class="hero-subtitle">Connect directly with Bristol-area producers for the freshest seasonal produce, dairy, meat and more — all with full food miles transparency.</p>
+
+        <div class="hero-actions">
+            <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary" style="padding:0.75rem 1.75rem; font-size:1rem;">
+                <i class="bi bi-basket2"></i> Shop Now
+            </a>
+            <a href="{% url 'mainApp:producers:register' %}" class="btn-outline-white" style="padding:0.75rem 1.75rem; font-size:1rem;">
+                <i class="bi bi-shop"></i> Become a Producer
+            </a>
+        </div>
+
+        <form class="hero-search" method="get" action="{% url 'mainApp:products:product_list' %}">
+            <input type="text" name="q" placeholder="Search for vegetables, fruit, dairy…" autocomplete="off">
+            <button type="submit" aria-label="Search">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+    </div>
+</section>
+
+<!-- ── Stats bar ── -->
+<div class="stats-bar">
+    <div class="stats-inner">
+        <div>
+            <div class="stat-item-icon"><i class="bi bi-bag-heart"></i></div>
+            <div class="stat-item-value">500+</div>
+            <div class="stat-item-label">Products</div>
+        </div>
+        <div>
+            <div class="stat-item-icon"><i class="bi bi-shop"></i></div>
+            <div class="stat-item-value">50+</div>
+            <div class="stat-item-label">Local Farms</div>
+        </div>
+        <div>
+            <div class="stat-item-icon"><i class="bi bi-patch-check"></i></div>
+            <div class="stat-item-value">100%</div>
+            <div class="stat-item-label">Fresh Produce</div>
+        </div>
+        <div>
+            <div class="stat-item-icon"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="stat-item-value">Free</div>
+            <div class="stat-item-label">Returns</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Category Showcase ── -->
+<section class="home-section">
+    <div class="home-section-header">
+        <h2 class="section-title">Shop by Category</h2>
+        <p class="section-subtitle">Discover the best local produce, straight from the farm</p>
+    </div>
+    <div class="category-grid">
+        <a href="{% url 'mainApp:products:product_list' %}?q=vegetable" class="category-card">
+            <i class="bi bi-flower3"></i>
+            <span>Vegetables</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=fruit" class="category-card">
+            <i class="bi bi-apple"></i>
+            <span>Fruits</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=dairy" class="category-card">
+            <i class="bi bi-droplet-half"></i>
+            <span>Dairy</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=meat" class="category-card">
+            <i class="bi bi-egg-fried"></i>
+            <span>Meat</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=herb" class="category-card">
+            <i class="bi bi-leaf"></i>
+            <span>Herbs</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=mushroom" class="category-card">
+            <i class="bi bi-tree"></i>
+            <span>Mushrooms</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=beverage" class="category-card">
+            <i class="bi bi-cup-hot"></i>
+            <span>Beverages</span>
+        </a>
+        <a href="{% url 'mainApp:products:product_list' %}?q=honey" class="category-card">
+            <i class="bi bi-star"></i>
+            <span>Honey</span>
+        </a>
+    </div>
+</section>
+
+<!-- ── Featured Products ── -->
+<section style="background: var(--color-primary-light); padding: 0.5rem 0;">
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2 class="section-title">What's Fresh</h2>
+            <p class="section-subtitle">Seasonal picks from farms near you</p>
+        </div>
+        <div class="featured-grid">
+            <div class="featured-placeholder">
+                <i class="bi bi-basket2"></i>
+                <strong style="color:var(--color-text);">Fresh Listings</strong>
+                <span style="font-size:0.85rem;">Browse the marketplace to see what's in season today</span>
+                <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary" style="margin-top:0.5rem;">
+                    <i class="bi bi-basket2"></i> View All Products
+                </a>
+            </div>
+            <div class="featured-placeholder">
+                <i class="bi bi-geo-alt-fill" style="color:var(--color-primary);"></i>
+                <strong style="color:var(--color-text);">Local & Seasonal</strong>
+                <span style="font-size:0.85rem;">Filter by organic, in-season, and distance from you</span>
+            </div>
+            <div class="featured-placeholder">
+                <i class="bi bi-stars" style="color:var(--color-accent);"></i>
+                <strong style="color:var(--color-text);">Quality Assured</strong>
+                <span style="font-size:0.85rem;">Every product scanned with our AI quality system</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── How It Works ── -->
+<section class="home-section">
+    <div class="home-section-header">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-subtitle">Three simple steps to fresh local food</p>
+    </div>
+    <div class="how-grid">
+        <div class="how-step">
+            <div class="how-icon-wrap">
+                <i class="bi bi-search"></i>
+            </div>
+            <h3>1. Browse</h3>
+            <p>Search the marketplace by category, season, or food miles. Filter for organic or in-season produce.</p>
+        </div>
+        <div class="how-step">
+            <div class="how-icon-wrap">
+                <i class="bi bi-cart3"></i>
+            </div>
+            <h3>2. Order</h3>
+            <p>Add items to your cart, choose your delivery date and address, then pay securely via Stripe.</p>
+        </div>
+        <div class="how-step">
+            <div class="how-icon-wrap">
+                <i class="bi bi-truck"></i>
+            </div>
+            <h3>3. Delivered</h3>
+            <p>Fresh produce delivered directly from the farm to your door — tracking every step of the way.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── Producer CTA ── -->
+<section class="producer-cta">
+    <div style="max-width:600px; margin:0 auto;">
+        <h2>Grow your business with us</h2>
+        <p>Join over 50 local farms already selling on FarmDirect. Reach thousands of customers who value fresh, locally sourced food.</p>
+        <a href="{% url 'mainApp:producers:register' %}" class="btn-outline-white" style="padding:0.75rem 2rem; font-size:1rem;">
+            <i class="bi bi-shop"></i> Become a Producer
+        </a>
+    </div>
+</section>
+
 {% endblock %}

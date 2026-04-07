@@ -3,269 +3,169 @@
 {% block title %}Producer Registration{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="flex justify-center mb-4">
-                <i class="bi bi-truck-front text-5xl text-green-600"></i>
+<div class="auth-split">
+
+    <!-- Left panel -->
+    <div class="auth-split-left">
+        <div style="text-align:center;">
+            <i class="bi bi-shop" style="font-size:4rem; color:#6ee76e; margin-bottom:1rem; display:block;"></i>
+            <h2 style="font-size:1.75rem; font-weight:800; margin-bottom:0.5rem;">Become a Producer</h2>
+            <p style="color:rgba(255,255,255,0.75); font-size:1rem; line-height:1.6; max-width:280px; margin:0 auto 1.5rem;">
+                Join 50+ local farms already selling on FarmDirect. Reach thousands of customers who value fresh, local food.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:0.6rem; text-align:left; background:rgba(255,255,255,0.1); border-radius:10px; padding:1.25rem; max-width:280px; margin:0 auto;">
+                <div style="display:flex; align-items:center; gap:0.6rem; font-size:0.875rem; color:rgba(255,255,255,0.85);">
+                    <i class="bi bi-check-circle-fill" style="color:#6ee76e;"></i> Easy product management
+                </div>
+                <div style="display:flex; align-items:center; gap:0.6rem; font-size:0.875rem; color:rgba(255,255,255,0.85);">
+                    <i class="bi bi-check-circle-fill" style="color:#6ee76e;"></i> Only 5% commission
+                </div>
+                <div style="display:flex; align-items:center; gap:0.6rem; font-size:0.875rem; color:rgba(255,255,255,0.85);">
+                    <i class="bi bi-check-circle-fill" style="color:#6ee76e;"></i> AI quality assurance
+                </div>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900">Become a Producer</h2>
-            <p class="text-sm text-gray-600 mt-2">Join our network of local food producers</p>
         </div>
+    </div>
 
-        <!-- Error Messages (non-field errors) -->
-        {% if form.non_field_errors %}
-            <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                <div class="flex items-center">
-                    <i class="bi bi-exclamation-triangle-fill text-red-500 mr-3"></i>
-                    <div class="text-sm text-red-700">
-                        {% for error in form.non_field_errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                </div>
+    <!-- Right panel -->
+    <div class="auth-split-right">
+        <div style="width:100%; max-width:560px; padding-top:2rem; padding-bottom:2rem;">
+
+            <div style="margin-bottom:1.5rem;">
+                <h2 style="font-size:1.6rem; font-weight:800; color:var(--color-text); margin-bottom:0.3rem;">Become a Producer</h2>
+                <p style="color:var(--color-muted); font-size:0.9rem;">Join our network of local food producers</p>
             </div>
-        {% endif %}
 
-        <!-- Registration Form -->
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Left Column - Personal Information -->
-                <div class="space-y-4">
-                    <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
-                        <i class="bi bi-person-badge text-green-600 mr-2"></i>
-                        Personal Information
-                    </h3>
-                    
-                    <!-- Username -->
-                    <div>
-                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-person mr-2"></i>Username *
-                        </label>
+            <!-- Non-field errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                <div>{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Personal + Business info -->
+                <h6 style="font-weight:700; color:var(--color-text); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.4rem;">
+                    <i class="bi bi-person-badge" style="color:var(--color-primary);"></i> Personal Information
+                </h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Username *</label>
                         {{ form.username }}
-                        {% if form.username.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
-                        {% endif %}
-                        {% if form.username.help_text %}
-                            <p class="text-xs text-gray-500 mt-1">{{ form.username.help_text }}</p>
-                        {% endif %}
+                        {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors.0 }}</div>{% endif %}
+                        {% if form.username.help_text %}<small class="text-muted">{{ form.username.help_text }}</small>{% endif %}
                     </div>
-                    
-                    <!-- Email -->
-                    <div>
-                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-envelope mr-2"></i>Email *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Email *</label>
                         {{ form.email }}
-                        {% if form.email.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- First Name -->
-                    <div>
-                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-person mr-2"></i>First Name *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.first_name.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">First Name *</label>
                         {{ form.first_name }}
-                        {% if form.first_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- Last Name -->
-                    <div>
-                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-person mr-2"></i>Last Name *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.last_name.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Last Name *</label>
                         {{ form.last_name }}
-                        {% if form.last_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- Phone Number -->
-                    <div>
-                        <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-telephone mr-2"></i>Phone Number *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.phone_number.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Phone Number *</label>
                         {{ form.phone_number }}
-                        {% if form.phone_number.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
-                        {% endif %}
-                        <p class="text-xs text-gray-500 mt-1">For order coordination</p>
+                        {% if form.phone_number.errors %}<div class="text-danger small">{{ form.phone_number.errors.0 }}</div>{% endif %}
                     </div>
-                </div>
-                
-                <!-- Right Column - Business Information -->
-                <div class="space-y-4">
-                    <h3 class="font-semibold text-gray-700 border-b pb-2 flex items-center">
-                        <i class="bi bi-shop text-green-600 mr-2"></i>
-                        Business Information
-                    </h3>
-                    
-                    <!-- Business Name -->
-                    <div>
-                        <label for="{{ form.business_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-building mr-2"></i>Farm/Business Name *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.business_name.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;"><i class="bi bi-building me-1"></i>Farm/Business Name *</label>
                         {{ form.business_name }}
-                        {% if form.business_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.business_name.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.business_name.errors %}<div class="text-danger small">{{ form.business_name.errors.0 }}</div>{% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Farm Address Section - Full Width -->
-            <div class="pt-4 border-t border-gray-200">
-                <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
-                    <i class="bi bi-geo-alt text-green-600 mr-2"></i>
-                    Farm Location
-                </h3>
-                <!-- <p class="text-sm text-gray-500 mb-4">This address will be used to calculate food miles (TC-013)</p> -->
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Farm Address Line 1 -->
-                    <div>
-                        <label for="{{ form.farm_address_line1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-house-door mr-2"></i>Address Line 1 *
-                        </label>
+
+                <!-- Farm Location -->
+                <h6 style="font-weight:700; color:var(--color-text); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.4rem;">
+                    <i class="bi bi-geo-alt" style="color:var(--color-primary);"></i> Farm Location
+                </h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <label for="{{ form.farm_address_line1.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Address Line 1 *</label>
                         {{ form.farm_address_line1 }}
-                        {% if form.farm_address_line1.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.farm_address_line1.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.farm_address_line1.errors %}<div class="text-danger small">{{ form.farm_address_line1.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- Farm Address Line 2 (Optional) -->
-                    <div>
-                        <label for="{{ form.farm_address_line2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-building mr-2"></i>Address Line 2 <span class="text-gray-400 text-xs">(Optional)</span>
-                        </label>
+                    <div class="col-12">
+                        <label for="{{ form.farm_address_line2.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Address Line 2 <span style="font-weight:400; color:var(--color-muted);">(Optional)</span></label>
                         {{ form.farm_address_line2 }}
-                        {% if form.farm_address_line2.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.farm_address_line2.errors.0 }}</p>
-                        {% endif %}
-                        <p class="text-xs text-gray-500 mt-1">Farm name, building name, etc.</p>
+                        {% if form.farm_address_line2.errors %}<div class="text-danger small">{{ form.farm_address_line2.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- Farm City -->
-                    <div>
-                        <label for="{{ form.farm_city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-building mr-2"></i>City/Town *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.farm_city.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">City/Town *</label>
                         {{ form.farm_city }}
-                        {% if form.farm_city.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.farm_city.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.farm_city.errors %}<div class="text-danger small">{{ form.farm_city.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- Farm County (Optional) -->
-                    <div>
-                        <label for="{{ form.farm_county.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-map mr-2"></i>County <span class="text-gray-400 text-xs">(Optional)</span>
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.farm_county.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">County <span style="font-weight:400; color:var(--color-muted);">(Optional)</span></label>
                         {{ form.farm_county }}
-                        {% if form.farm_county.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.farm_county.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.farm_county.errors %}<div class="text-danger small">{{ form.farm_county.errors.0 }}</div>{% endif %}
                     </div>
-                    
-                    <!-- Farm Post Code -->
-                    <div>
-                        <label for="{{ form.farm_post_code.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-mailbox mr-2"></i>Post Code *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.farm_post_code.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">Post Code *</label>
                         {{ form.farm_post_code }}
-                        {% if form.farm_post_code.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.farm_post_code.errors.0 }}</p>
-                        {% endif %}
-                        <p class="text-xs text-gray-500 mt-1">Used to calculate food miles to customers</p>
+                        {% if form.farm_post_code.errors %}<div class="text-danger small">{{ form.farm_post_code.errors.0 }}</div>{% endif %}
+                        <small class="text-muted">Used to calculate food miles to customers</small>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Password Section - Full Width -->
-            <div class="pt-4 border-t border-gray-200">
-                <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
-                    <i class="bi bi-shield-lock text-green-600 mr-2"></i>
-                    Security
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Password -->
-                    <div>
-                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-lock mr-2"></i>{{ form.password1.label }} *
-                        </label>
+
+                <!-- Security -->
+                <h6 style="font-weight:700; color:var(--color-text); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.4rem;">
+                    <i class="bi bi-shield-lock" style="color:var(--color-primary);"></i> Security
+                </h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">{{ form.password1.label }} *</label>
                         {{ form.password1 }}
-                        {% if form.password1.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
-                        {% endif %}
-                        <div class="text-xs text-gray-500 mt-2">
-                            <p>• At least 8 characters long</p>
-                            <p>• Can't be too similar to your personal information</p>
-                            <p>• Can't be a commonly used password</p>
+                        {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors.0 }}</div>{% endif %}
+                        <div style="font-size:0.75rem; color:var(--color-muted); margin-top:0.3rem;">
+                            <div>• At least 8 characters</div>
+                            <div>• Cannot be too similar to personal info</div>
                         </div>
                     </div>
-                    
-                    <!-- Confirm Password -->
-                    <div>
-                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="bi bi-lock-fill mr-2"></i>{{ form.password2.label }} *
-                        </label>
+                    <div class="col-md-6">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label fw-semibold" style="font-size:0.875rem;">{{ form.password2.label }} *</label>
                         {{ form.password2 }}
-                        {% if form.password2.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors.0 }}</div>{% endif %}
                     </div>
                 </div>
-            </div>
 
-            <!-- Terms and Conditions -->
-            <div class="flex items-start">
-                <div class="flex items-center h-5">
-                    <input type="checkbox" name="terms" id="terms" required
-                           class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <!-- Terms -->
+                <div class="form-check mb-4">
+                    <input type="checkbox" name="terms" id="terms" required class="form-check-input">
+                    <label for="terms" class="form-check-label" style="font-size:0.875rem;">
+                        I agree to the <a href="#" style="color:var(--color-primary);">Producer Terms of Service</a> and <a href="#" style="color:var(--color-primary);">Privacy Policy</a> *
+                    </label>
                 </div>
-                <label for="terms" class="ml-2 block text-sm text-gray-700">
-                    I agree to the <a href="#" class="text-green-600 hover:text-green-700">Producer Terms of Service</a> and 
-                    <a href="#" class="text-green-600 hover:text-green-700">Privacy Policy</a> *
-                </label>
-            </div>
 
-            <!-- Submit Button -->
-            <div class="pt-6">
-                <button type="submit" 
-                        class="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
-                    <i class="bi bi-person-plus"></i>
-                    <span>Register as Producer</span>
+                <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:0.75rem; font-size:0.95rem; margin-bottom:1rem;">
+                    <i class="bi bi-person-plus"></i> Register as Producer
                 </button>
-            </div>
-        </form>
+            </form>
 
-        <!-- Login Link -->
-        <div class="mt-6 text-center">
-            <p class="text-sm text-gray-600">
+            <p style="text-align:center; font-size:0.875rem; color:var(--color-muted); margin-bottom:1rem;">
                 Already have a producer account?
-                <a href="{% url 'mainApp:producers:login' %}" 
-                   class="font-medium text-green-600 hover:text-green-700 ml-1">
-                    Login here <i class="bi bi-arrow-right ml-1"></i>
+                <a href="{% url 'mainApp:producers:login' %}" style="color:var(--color-primary); font-weight:600;">
+                    Login here <i class="bi bi-arrow-right"></i>
                 </a>
             </p>
-        </div>
 
-        <!-- Switch to Customer Registration -->
-        <div class="mt-4 pt-4 border-t border-gray-200 text-center">
-            <p class="text-xs text-gray-500">
-                Are you a customer? 
-                <a href="{% url 'mainApp:customers:register' %}" class="text-green-600 hover:text-green-700">
-                    Customer Registration
-                </a>
-            </p>
+            <div style="border-top:1px solid var(--color-border); padding-top:1rem; text-align:center;">
+                <p style="font-size:0.8rem; color:var(--color-muted); margin:0;">
+                    Are you a customer?
+                    <a href="{% url 'mainApp:customers:register' %}" style="color:var(--color-primary);">Customer Registration</a>
+                </p>
+            </div>
+
         </div>
     </div>
 </div>
