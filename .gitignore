@@ -9,3 +9,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media
+.DS_Store
+DESD_BRFN/TODOX.md
+.gitignore
+DESD_BRFN/ml/best_model.keras
+.idea/
+.idea

@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% block title %}AI Quality Scan{% endblock %}
+
+{% block extra_css %}
+<style>
+    a { text-decoration: none; }
+
+    .drop-zone {
+        transition: border-color 0.2s, background-color 0.2s;
+    }
+    .drop-zone.drag-over {
+        border-color: #16a34a;
+        background-color: #f0fdf4;
+    }
+
+    .score-ring {
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+    .score-ring-bg { fill: none; stroke: #e5e7eb; stroke-width: 8; }
+    .score-ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+
+    .bar-fill { transition: width 0.7s ease; }
+
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="qualityScan()" x-cloak class="container mx-auto px-4 py-8">
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">AI Quality Scan</h1>
+        <p class="text-gray-600">Upload or capture an image of your produce to get an AI quality assessment.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- ── Left Panel: Input ── -->
+        <div>
+            <!-- Mode tabs -->
+            <div class="flex rounded-lg overflow-hidden border border-gray-300 mb-4 w-fit">
+                <button
+                    @click="switchMode('upload')"
+                    :class="mode === 'upload' ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                    class="px-5 py-2 text-sm font-medium transition">
+                    <i class="bi bi-upload me-1"></i> Upload
+                </button>
+                <button
+                    @click="switchMode('camera')"
+                    :class="mode === 'camera' ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                    class="px-5 py-2 text-sm font-medium transition border-l border-gray-300">
+                    <i class="bi bi-camera me-1"></i> Camera
+                </button>
+            </div>
+
+            <!-- Upload mode -->
+            <div x-show="mode === 'upload'">
+                <div
+                    class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer"
+                    :class="{ 'drag-over': dragOver }"
+                    @dragover.prevent="dragOver = true"
+                    @dragleave.prevent="dragOver = false"
+                    @drop.prevent="handleDrop($event)"
+                    @click="$refs.fileInput.click()">
+                    <i class="bi bi-cloud-arrow-up text-5xl text-gray-400"></i>
+                    <p class="mt-3 text-gray-600 font-medium">Drag & drop an image here</p>
+                    <p class="text-sm text-gray-400 mt-1">or click to browse</p>
+                    <p class="text-xs text-gray-400 mt-2">JPG, PNG, WEBP supported</p>
+                </div>
+                <input
+                    type="file"
+                    x-ref="fileInput"
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleFileSelect($event)">
+            </div>
+
+            <!-- Camera mode -->
+            <div x-show="mode === 'camera'">
+                <div class="relative rounded-xl overflow-hidden bg-black" style="aspect-ratio: 4/3;">
+                    <video
+                        x-ref="video"
+                        autoplay
+                        playsinline
+                        class="w-full h-full object-cover"
+                        x-show="cameraActive">
+                    </video>
+                    <div x-show="!cameraActive" class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                        <i class="bi bi-camera-video-off text-4xl mb-3 text-gray-400"></i>
+                        <p class="text-gray-400 text-sm">Camera inactive</p>
+                    </div>
+                </div>
+                <canvas x-ref="canvas" class="hidden"></canvas>
+
+                <div class="flex gap-3 mt-3">
+                    <button
+                        x-show="!cameraActive"
+                        @click="startCamera()"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition">
+                        <i class="bi bi-camera me-1"></i> Start Camera
+                    </button>
+                    <button
+                        x-show="cameraActive"
+                        @click="capturePhoto()"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition">
+                        <i class="bi bi-camera me-1"></i> Capture Photo
+                    </button>
+                    <button
+                        x-show="cameraActive"
+                        @click="stopCamera()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition">
+                        <i class="bi bi-stop-circle me-1"></i> Stop
+                    </button>
+                </div>
+
+                <div x-show="cameraError" class="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <span x-text="cameraError"></span>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div x-show="imagePreview" class="mt-5">
+                <p class="text-sm font-medium text-gray-700 mb-2">Preview</p>
+                <div class="relative rounded-xl overflow-hidden border border-gray-200" style="max-height: 280px;">
+                    <img :src="imagePreview" class="w-full object-contain" style="max-height: 280px;">
+                    <button
+                        @click="clearImage()"
+                        class="absolute top-2 right-2 bg-white rounded-full w-7 h-7 flex items-center justify-center shadow text-gray-500 hover:text-red-600 transition">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+
+                <button
+                    @click="submitScan()"
+                    :disabled="scanning"
+                    class="mt-4 w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                    <template x-if="!scanning">
+                        <span><i class="bi bi-stars me-1"></i> Analyse Quality</span>
+                    </template>
+                    <template x-if="scanning">
+                        <span>
+                            <svg class="animate-spin inline w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            Analysing...
+                        </span>
+                    </template>
+                </button>
+            </div>
+
+            <!-- Scan error -->
+            <div x-show="scanError" class="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <span x-text="scanError"></span>
+            </div>
+        </div>
+
+        <!-- ── Right Panel: Results ── -->
+        <div>
+            <!-- Placeholder when no results yet -->
+            <div x-show="!results && !scanning" class="h-full flex flex-col items-center justify-center text-center text-gray-400 py-16 border-2 border-dashed border-gray-200 rounded-xl">
+                <i class="bi bi-bar-chart-line text-5xl mb-3"></i>
+                <p class="font-medium">Results will appear here</p>
+                <p class="text-sm mt-1">Upload or capture an image and click Analyse</p>
+            </div>
+
+            <!-- Loading skeleton -->
+            <div x-show="scanning" class="space-y-4">
+                <div class="bg-gray-100 rounded-xl h-40 animate-pulse"></div>
+                <div class="bg-gray-100 rounded-xl h-24 animate-pulse"></div>
+                <div class="bg-gray-100 rounded-xl h-24 animate-pulse"></div>
+            </div>
+
+            <!-- Results card -->
+            <div x-show="results" class="space-y-5">
+
+                <!-- Mock notice -->
+                <template x-if="results && results.is_mock">
+                    <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-lg flex items-start gap-2">
+                        <i class="bi bi-info-circle mt-0.5"></i>
+                        <span x-text="results.message"></span>
+                    </div>
+                </template>
+
+                <!-- Overall score -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-6">
+                    <!-- Score ring -->
+                    <div class="flex-shrink-0 relative w-24 h-24">
+                        <svg viewBox="0 0 36 36" class="w-24 h-24">
+                            <circle class="score-ring-bg" cx="18" cy="18" r="14"/>
+                            <circle
+                                class="score-ring-fill"
+                                :stroke="scoreColor(results && results.overall_score)"
+                                cx="18" cy="18" r="14"
+                                :stroke-dasharray="scoreDash(results && results.overall_score)"
+                                stroke-dashoffset="0"
+                                style="transform: rotate(-90deg); transform-origin: 50% 50%;"/>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-xl font-bold" :style="'color:' + scoreColor(results && results.overall_score)"
+                                x-text="results && results.overall_score !== null ? results.overall_score : '–'">
+                            </span>
+                            <span class="text-xs text-gray-400" x-show="results && results.overall_score !== null">/100</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Overall Score</p>
+                        <p class="text-2xl font-bold"
+                            x-text="results && results.grade ? results.grade : '–'"
+                            :style="'color:' + scoreColor(results && results.overall_score)">
+                        </p>
+                        <p class="text-sm mt-1 font-medium"
+                            :class="results && results.labels && results.labels.condition === 'Healthy' ? 'text-green-600' : 'text-red-600'"
+                            x-text="results && results.labels ? results.labels.condition : ''">
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Breakdown bars -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <p class="text-sm font-semibold text-gray-700 mb-4">Score Breakdown</p>
+                    <div class="space-y-5">
+
+                        <!-- Condition -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">
+                                    <i class="bi bi-heart-pulse me-1"></i>Condition
+                                    <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                        :class="results && results.labels && results.labels.condition === 'Healthy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                                        x-text="results && results.labels ? results.labels.condition + ' (' + results.confidences.condition + '%)' : ''">
+                                    </span>
+                                </span>
+                                <span class="font-medium"
+                                    x-text="results && results.breakdown ? results.breakdown.condition + '/100' : '–'">
+                                </span>
+                            </div>
+                            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="bar-fill h-full rounded-full"
+                                    :style="'width:' + (results && results.breakdown ? results.breakdown.condition : 0) + '%; background-color:' + scoreColor(results && results.breakdown && results.breakdown.condition)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Color -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">
+                                    <i class="bi bi-palette me-1"></i>Color
+                                    <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+                                        x-text="results && results.labels ? results.labels.colour + ' (' + results.confidences.colour + '%)' : ''">
+                                    </span>
+                                </span>
+                                <span class="font-medium"
+                                    x-text="results && results.breakdown ? results.breakdown.color + '/100' : '–'">
+                                </span>
+                            </div>
+                            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="bar-fill h-full rounded-full"
+                                    :style="'width:' + (results && results.breakdown ? results.breakdown.color : 0) + '%; background-color:' + scoreColor(results && results.breakdown && results.breakdown.color)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Size -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">
+                                    <i class="bi bi-arrows-angle-expand me-1"></i>Size
+                                    <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+                                        x-text="results && results.labels ? results.labels.size + ' (' + results.confidences.size + '%)' : ''">
+                                    </span>
+                                </span>
+                                <span class="font-medium"
+                                    x-text="results && results.breakdown ? results.breakdown.size + '/100' : '–'">
+                                </span>
+                            </div>
+                            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="bar-fill h-full rounded-full"
+                                    :style="'width:' + (results && results.breakdown ? results.breakdown.size : 0) + '%; background-color:' + scoreColor(results && results.breakdown && results.breakdown.size)">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Scan again -->
+                <button
+                    @click="clearResults()"
+                    class="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition text-sm">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Scan Another Image
+                </button>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script>
+    const QUALITY_SCAN_URL = '{% url "mainApp:producers:quality_scan" %}';
+</script>
+<script src="{% static 'producers/quality_scan.js' %}"></script>
+{% endblock %}

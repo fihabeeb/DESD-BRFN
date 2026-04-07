@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Confirmed{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 700px;">
+
+    <!-- Status icon -->
+    <div class="text-center mb-4">
+        {% if order and order.status == 'confirmed' %}
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h1 class="mt-3">Thank you for your order!</h1>
+            <p class="text-muted">Payment received — your order is confirmed.</p>
+        {% elif order and order.status == 'pending' %}
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2" stroke-linecap="round"/>
+            </svg>
+            <h1 class="mt-3">Payment pending</h1>
+            <p class="text-muted">We're waiting for payment confirmation. Your order will appear once confirmed.</p>
+        {% else %}
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h1 class="mt-3">Order received!</h1>
+            <p class="text-muted">Your order is being processed.</p>
+        {% endif %}
+    </div>
+
+    {% if order %}
+    <!-- Order summary card -->
+    <div style="border:1px solid #dee2e6; border-radius:10px; overflow:hidden;">
+
+        <!-- Order header -->
+        <div style="background:#f8f9fa; padding:1rem 1.25rem; border-bottom:1px solid #dee2e6; display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Order</span><br>
+                <strong>#{{ order.id }}</strong>
+            </div>
+            <div>
+                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Date</span><br>
+                <strong>{{ order.created_at|date:"d M Y" }}</strong>
+            </div>
+            {% if order.delivery_date %}
+            <div>
+                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Delivery</span><br>
+                <strong>{{ order.delivery_date|date:"d M Y" }}</strong>
+            </div>
+            {% endif %}
+            <div>
+                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Status</span><br>
+                <span style="
+                    padding:2px 10px; border-radius:20px; font-size:0.82rem; font-weight:600;
+                    {% if order.status == 'confirmed' %}background:#dcfce7; color:#15803d;
+                    {% elif order.status == 'pending' %}background:#fef9c3; color:#92400e;
+                    {% elif order.status == 'delivered' %}background:#dbeafe; color:#1e40af;
+                    {% else %}background:#f1f5f9; color:#475569;{% endif %}
+                ">{{ order.get_status_display }}</span>
+            </div>
+        </div>
+
+        <!-- Items -->
+        <div style="padding:0.25rem 0;">
+            {% for item in order.items.all %}
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1.25rem; border-bottom:1px solid #f1f3f5;">
+                <div>
+                    <span style="font-weight:600;">{{ item.product_name }}</span>
+                    <span style="color:#6c757d; font-size:0.85rem; margin-left:0.5rem;">× {{ item.quantity }} {{ item.unit }}</span>
+                </div>
+                <span style="font-weight:600;">£{{ item.line_total }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Totals -->
+        <div style="padding:1rem 1.25rem; background:#f8f9fa;">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.3rem;">
+                <span style="color:#6c757d;">Subtotal</span>
+                <span>£{{ order.subtotal }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem;">
+                <span style="color:#6c757d;">Network commission (5%)</span>
+                <span>£{{ order.commission }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1rem; border-top:1px solid #dee2e6; padding-top:0.5rem;">
+                <span>Total</span>
+                <span>£{{ order.total_amount }}</span>
+            </div>
+        </div>
+
+        <!-- Shipping address -->
+        {% if order.shipping_address %}
+        <div style="padding:0.85rem 1.25rem; border-top:1px solid #dee2e6; font-size:0.875rem; color:#495057;">
+            <i class="bi bi-geo-alt"></i> <strong>Delivery to:</strong> {{ order.shipping_address }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="text-center mt-4">
+        <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-success">
+            <i class="bi bi-basket"></i> Continue Shopping
+        </a>
+    </div>
+
+</div>
+{% endblock %}

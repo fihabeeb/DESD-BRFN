@@ -8,8 +8,10 @@ services:
             python manage.py makemigrations &&
             python manage.py migrate &&
             python manage.py seed_producers &&
-            python manage.py seed_products &&
+            python manage.py seed_customers &&
             python manage.py seed_allergens &&
+            python manage.py seed_products &&
+            python manage.py seed_orders &&
             python manage.py seed_admins &&
             python manage.py runserver 0.0.0.0:8000"
     volumes:
@@ -40,6 +42,7 @@ services:
       - "5432:5432"
     volumes:
       - db:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   db:

@@ -4,6 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}My Site{% endblock %}</title>
+    <script>
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
 
     <link rel="stylesheet" href="{% static 'base.css' %}">
 
@@ -191,13 +196,24 @@
                 </a>
             </div>
 
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleDarkMode()" id="dark-mode-btn"
+                title="Toggle dark mode"
+                class="text-gray-300 hover:text-white transition p-2 rounded-lg hover:bg-gray-700">
+                <i id="dark-mode-icon" class="bi bi-moon-fill text-lg"></i>
+            </button>
+
             <!-- User Section -->
             <div class="relative">
                 {% if user.is_authenticated %}
                     <!-- Authenticated User Menu -->
                     <div class="flex items-center space-x-4">
-                        <a href="{% url 'mainApp:profile' %}">
-                            <div class="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-lg">
+                        <div x-data="{ open: false }" class="relative">
+                            <button 
+                                @click="open = !open"
+                                @keydown.escape="open = false"
+                                class="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-lg"
+                            >
                                 <i class="bi bi-person-circle text-green-400"></i>
                                 <span class="text-sm">
                                     {{ user.username }}
@@ -205,8 +221,43 @@
                                         {{ user.get_role_display }}
                                     </span>
                                 </span>
+                                <i class="bi bi-chevron-down text-gray-300"></i>
+                            </button>
+
+                            <div 
+                                x-show="open"
+                                @click.away="open = false"
+                                x-transition
+                                class="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl z-50"
+                                style="display:none;"
+                            >
+                                <a href="{% url 'mainApp:profile' %}" 
+                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
+                                    <i class="bi bi-person me-2"></i> Account
+                                </a>
+
+                                <a href="{% url 'mainApp:customers:view_cart' %}"
+                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
+                                    <i class="bi bi-cart3 me-2"></i> Cart
+                                </a>
+
+                                {% if user.role == 'producer' %}
+                                <a href="{% url 'mainApp:producers:myproduct' %}"
+                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
+                                    <i class="bi bi-box-seam me-2"></i> My Products
+                                </a>
+                                <a href="{% url 'mainApp:producers:myorders' %}"
+                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
+                                    <i class="bi bi-receipt me-2"></i> My Orders
+                                </a>
+                                <a href="{% url 'mainApp:producers:quality_scan' %}"
+                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
+                                    <i class="bi bi-stars me-2"></i> Quality Scan
+                                </a>
+                                {% endif %}
                             </div>
-                        </a>
+                        </div>
+
                         <form action="{% url 'mainApp:logout' %}" method="post" class="inline">
                             {% csrf_token %}
                             <button type="submit" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition">
@@ -402,6 +453,23 @@
                 // Store timeout on element to allow cancellation
                 message._dismissTimeout = timeoutId;
             });
+        });
+    </script>
+
+    <script>
+        function toggleDarkMode() {
+            var isDark = document.documentElement.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            updateDarkModeIcon(isDark);
+        }
+
+        function updateDarkModeIcon(isDark) {
+            var icon = document.getElementById('dark-mode-icon');
+            if (icon) icon.className = isDark ? 'bi bi-sun-fill text-lg' : 'bi bi-moon-fill text-lg';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateDarkModeIcon(document.documentElement.classList.contains('dark-mode'));
         });
     </script>
 

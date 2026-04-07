@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.template.defaultfilters import slugify
+from products.utility import product_image_path
 
 class Product(models.Model):
     '''
@@ -14,9 +15,9 @@ class Product(models.Model):
     ]
 
     AVAILABILITY_CHOICES = [
-    ('in_season', 'In Season'),
+    # ('in_season', 'In Season'),
     ('available', 'Available'),
-    ('out_of_season', 'Out of Season'),
+    # ('out_of_season', 'Out of Season'),
     ('unavailable', 'Unavailable'),
     ]
 
@@ -40,7 +41,8 @@ class Product(models.Model):
     availability = models.CharField(
         max_length=20,
         choices=AVAILABILITY_CHOICES,
-        default='available'
+        default='available',
+        help_text='is this product available for purchase?'
     )
 
 
@@ -53,7 +55,7 @@ class Product(models.Model):
     season_end = models.IntegerField(choices=MONTH_CHOICES, null=True, blank=True)
 
     # media
-    image = models.ImageField(upload_to='products/',null=True,blank=True)
+    image = models.ImageField(upload_to=product_image_path,null=True,blank=True, help_text="Product image")
 
     category = models.ForeignKey(
         'ProductCategory',
@@ -115,18 +117,18 @@ class Product(models.Model):
 
     ### Functions
     ## TODO : in_season: check product in season or not.
-    def in_season(self):
-        if not(self.season_start and self.season_end):
-            return True # assume always in season
+    # def in_season(self):
+    #     if not(self.season_start and self.season_end):
+    #         return True # assume always in season
 
-        current_month = timezone.now().month
+    #     current_month = timezone.now().month
 
-        if self.season_start <= self.season_end:
-            # for normal season that doesn't overlap between Dec and Jan
-            return self.season_start <= current_month <= self.season_end
-        else:
-            # specifically for winter
-            return current_month >= self.season_start or current_month<= self.season_end
+    #     if self.season_start <= self.season_end:
+    #         # for normal season that doesn't overlap between Dec and Jan
+    #         return self.season_start <= current_month <= self.season_end
+    #     else:
+    #         # specifically for winter
+    #         return current_month >= self.season_start or current_month<= self.season_end
 
     def deduct_stock(self, quantity):
         if self.stock_quantity >= quantity:
@@ -136,6 +138,17 @@ class Product(models.Model):
         return False
 
     def save(self, *args, **kwargs):
+        try:
+            # Check if this is an existing product being updated
+            if self.pk:
+                old_product = Product.objects.get(pk=self.pk)
+                
+                # If there was an old image and it's different from the new one
+                if old_product.image and old_product.image != self.image:
+                    old_product.image.delete(save=False) 
+        except Product.DoesNotExist:
+            pass
+
         if not self.slug:
             self.slug = slugify(self.name)
             original_slug = self.slug
@@ -160,9 +173,58 @@ class Product(models.Model):
 
         super().save(*args, **kwargs)
 
+        # TODO:
+        # async for image processing tumbnails
+        # if self.image:
+            # from 
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            self.image.delete(save=False)
+        super().delete(*args,**kwargs)
+
+    @property
+    def is_in_season(self):
+        """
+        Check if product is currently in season based on season_start and season_end.
+        Returns True if:
+        - No season dates set (always in season)
+        - Current month falls within season range
+        """
+        if not (self.season_start and self.season_end):
+            return True  # No season restriction = always in season
+        
+        current_month = timezone.now().month
+        
+        if self.season_start <= self.season_end:
+            return self.season_start <= current_month <= self.season_end
+        else:
+            return current_month >= self.season_start or current_month <= self.season_end
+
+    @property
+    def is_available(self):
+        """
+        Combined availability: product must be both available AND in season
+        This is what should be shown to customers
+        """
+        return self.availability == 'available'
+
+
     @property
     def is_low_stock(self):
         return 0 < self.stock_quantity < 10
+
+    @property
+    def food_miles(self):
+        """
+        TC-013: Distance in miles from the producer's farm to Bristol city centre.
+        Returns None if the producer has no geocoded location.
+        """
+        from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
+        producer = self.producer
+        if not producer or not producer.latitude or not producer.longitude:
+            return None
+        return round(haversine_miles(producer.latitude, producer.longitude, BRISTOL_LAT, BRISTOL_LON), 1)
     
     @property
     def allergen_display(self):

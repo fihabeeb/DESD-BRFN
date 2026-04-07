@@ -1,15 +1,16 @@
-# producer/management/commands/seed_producers_simple.py
+# producers/management/commands/seed_producers.py
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from mainApp.models import ProducerProfile
+from mainApp.models import ProducerProfile, Address
 import random
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 
 User = get_user_model()
 
 class Command(BaseCommand):
-    help = 'Seed producer table with mock data (simple version)'
+    help = 'Seed producer table with mock data and addresses'
 
     def handle(self, *args, **options):
         # Sample data lists
@@ -19,27 +20,45 @@ class Command(BaseCommand):
         last_names = ['Smith', 'Jones', 'Williams', 'Brown', 'Taylor', 'Davies', 'Evans', 'Wilson',
                      'Thomas', 'Johnson', 'Roberts', 'Walker', 'Wright', 'Robinson', 'Thompson', 'White']
         
-        farm_names = ['Green Acres', 'Sunny Meadow', 'Valley View', 'Oak Tree', 'River Bend',
-                     'Happy Hens', 'Organic Oasis', 'Heritage Harvest', 'Wildflower', 'Pasture Prime',
-                     'Golden Grain', 'Blue Sky', 'Red Barn', 'Misty Morning', 'Country Gardens']
+        farm_names = [
+            'Green Acres Farm', 'Sunny Meadow Organic', 'Valley View Produce', 'Oak Tree Orchard', 
+            'River Bend Dairy', 'Happy Hens Free Range', 'Organic Oasis', 'Heritage Harvest', 
+            'Wildflower Farm', 'Pasture Prime Meats', 'Golden Grain Bakery', 'Blue Sky Farm',
+            'Red Barn Produce', 'Misty Morning Mushrooms', 'Country Gardens', 'Bristol Valley Farm',
+            'Hillside Dairy', 'Clifton Orchard', 'St. George\'s Market Garden', 'Bedminster Bees'
+        ]
         
-        cities = ['Bristol', 'Bath', 'Wells', 'Weston-super-Mare', 'Clevedon', 'Portishead',
-                 'Yate', 'Keynsham', 'Thornbury', 'Bradford-on-Avon', 'Frome', 'Radstock']
+        # Real Bristol area addresses with coordinates
+        farm_addresses = [
+            {'line1': 'Long Ashton Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS41 9AF', 'lat': 51.4345, 'lon': -2.6560},
+            {'line1': 'Wrington Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS40 5NB', 'lat': 51.3675, 'lon': -2.7630},
+            {'line1': 'Chew Valley Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS40 8XB', 'lat': 51.3470, 'lon': -2.6170},
+            {'line1': 'Keynsham Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS31 1AB', 'lat': 51.4130, 'lon': -2.4960},
+            {'line1': 'Portishead Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS20 7AB', 'lat': 51.4840, 'lon': -2.7660},
+            {'line1': 'Bath Road Farm', 'city': 'Bath', 'county': 'Somerset', 'postcode': 'BA1 2AB', 'lat': 51.3820, 'lon': -2.3590},
+            {'line1': 'Mendip Hills Farm', 'city': 'Wells', 'county': 'Somerset', 'postcode': 'BA5 3AB', 'lat': 51.2080, 'lon': -2.6520},
+            {'line1': 'Yate Farm', 'city': 'Bristol', 'county': 'Gloucestershire', 'postcode': 'BS37 4AB', 'lat': 51.5400, 'lon': -2.4070},
+            {'line1': 'Thornbury Farm', 'city': 'Bristol', 'county': 'Gloucestershire', 'postcode': 'BS35 2AB', 'lat': 51.6070, 'lon': -2.5260},
+            {'line1': 'Clevedon Farm', 'city': 'Clevedon', 'county': 'Somerset', 'postcode': 'BS21 6AB', 'lat': 51.4350, 'lon': -2.8530},
+        ]
         
-        postcodes = ['BS1 1AB', 'BS2 8EF', 'BS3 4GH', 'BS4 2JK', 'BS5 6LM', 'BS6 7NP',
-                    'BS7 9QR', 'BS8 3ST', 'BS9 5UV', 'BA1 2WX', 'BA2 4YZ', 'BA3 6CD']
-        
-        counties = ['Somerset', 'Gloucestershire', 'Avon', 'Wiltshire']
+        phone_prefixes = ['07700', '07701', '07702', '07703', '07704', '07705']
         
         self.stdout.write(self.style.SUCCESS('Creating mock producers...'))
         
-        for i in range(4):  # Create 20 producers
+        created_count = 0
+        
+        for i in range(10):  # Create 10 producers
             username = f"demo_producer{i+1}"
             email = f"demo_producer{i+1}@example.com"
             
             # Skip if already exists
-            if User.objects.filter(username=username).exists() or User.objects.filter(email=email).exists():
+            if User.objects.filter(username=username).exists():
+                self.stdout.write(self.style.WARNING(f"Skipping {username} - already exists"))
                 continue
+            
+            # Get random address data
+            addr_data = random.choice(farm_addresses)
             
             # Create user
             user = User.objects.create_user(
@@ -49,34 +68,30 @@ class Command(BaseCommand):
                 first_name=random.choice(first_names),
                 last_name=random.choice(last_names),
                 role=User.Role.PRODUCER,
-                phone_number=f"07700 900{random.randint(100, 999)}",
-                address=f"{random.randint(1, 100)} High Street",
-                post_code=random.choice(postcodes),
+                phone_number=f"{random.choice(phone_prefixes)} {random.randint(100, 999)} {random.randint(100, 999)}",
             )
             
-            # Create producer profile
-            profile = ProducerProfile.objects.create(
+            profile = user.producer_profile  # This will exist due to the signal
+            profile.business_name = random.choice(farm_names)
+            profile.save()
+
+            
+            # Create farm address
+            address = Address.objects.get_or_create(
                 user=user,
-                business_name=random.choice(farm_names),
-            #     farm_description=f"A family-run farm providing fresh, local produce to the {random.choice(cities)} area.",
-            #     farm_address=f"{random.randint(1, 50)} Farm Lane",
-            #     farm_city=random.choice(cities),
-            #     farm_postcode=random.choice(postcodes),
-            #     farm_county=random.choice(counties),
-            #     website=f"www.{username}.farm" if random.choice([True, False]) else '',
-            #     phone=user.phone_number,
-            #     delivery_options=','.join(random.sample(['collection', 'local_delivery', 'national_delivery'], 
-            #                                            random.randint(1, 3))),
-            #     delivery_radius=random.choice([5, 10, 15, 20, 30]),
-            #     minimum_order=random.choice([0, 5, 10, 15, 20]),
-            #     lead_time_hours=random.choice([24, 48, 72]),
-            #     accepts_returns=random.choice([True, False]),
-            #     is_verified=random.choice([True, False]),
-            #     total_sales=random.randint(0, 10000),
-            #     total_orders=random.randint(0, 500),
-            #     joined_at=timezone.now() - timedelta(days=random.randint(30, 365)),
+                address_line1=addr_data['line1'],
+                address_line2=f"Farm {random.randint(1, 10)}" if random.choice([True, False]) else '',
+                city=addr_data['city'],
+                county=addr_data['county'],
+                post_code=addr_data['postcode'],
+                country='UK',
+                address_type='farm',
+                is_default=True,
+                latitude=Decimal(str(addr_data['lat'])),
+                longitude=Decimal(str(addr_data['lon'])),
             )
             
-            self.stdout.write(f"  Created producer: {user.username} - {profile}")
+            created_count += 1
+            self.stdout.write(self.style.SUCCESS(f"  Created producer: {user.username} - {profile.business_name} at {addr_data['postcode']}"))
         
-        # self.stdout.write(self.style.SUCCESS('Mock producers created successfully!'))
+        self.stdout.write(self.style.SUCCESS(f'Successfully created {created_count} producers!'))
