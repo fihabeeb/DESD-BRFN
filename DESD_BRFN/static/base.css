@@ -453,12 +453,14 @@ nav [x-show] a {
 [data-theme="dark"] .stat-card {
     background: var(--color-surface);
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: #374151;
 }
 [data-theme="dark"] .stat-card .stat-label { color: var(--color-muted); }
 [data-theme="dark"] .stat-card .stat-value { color: var(--color-text); }
 [data-theme="dark"] .filter-bar {
     background: var(--color-surface);
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: #374151;
 }
 [data-theme="dark"] .filter-bar select,
 [data-theme="dark"] .filter-bar input[type="text"] {
