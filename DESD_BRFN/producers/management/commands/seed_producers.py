@@ -77,7 +77,7 @@ class Command(BaseCommand):
 
             
             # Create farm address
-            address = Address.objects.get_or_create(
+            address = Address.objects.create(
                 user=user,
                 address_line1=addr_data['line1'],
                 address_line2=f"Farm {random.randint(1, 10)}" if random.choice([True, False]) else '',

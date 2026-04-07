@@ -43,22 +43,63 @@ class Cart(models.Model):
     customer = models.OneToOneField(CustomerProfile, on_delete=models.CASCADE, related_name="cart")
     updated_at = models.DateTimeField(auto_now=True)
 
+    # @property
     def total_amount(self):
-        subtotal = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
-        commission = subtotal * Decimal('0.05')
-        total = round(subtotal + commission,2)
+        '''
+        Returns total amount fo the cart.
+        '''
+        # customers only pay the total amount of items (NO COMISSION)
+        total = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
         return total
     
     def subtotal(self):
         subtotal = sum((item.line_total for item in self.items.all()), Decimal("0.00"))
         return round(subtotal,2)
-
-    def commission(self):
-        commission = self.subtotal() * Decimal('0.05')
-        return round(commission,2)
     
     def item_count(self):
         return sum(item.quantity for item in self.items.all())
+    
+    def get_items_by_producer(self):
+        """
+        Group cart items by producer.
+        Commission is calculated at payout time, not at checkout.
+        """
+        groups = {}
+        for item in self.items.select_related('product__producer').all():
+            producer = item.product.producer
+            if not producer:
+                continue
+                
+            if producer.id not in groups:
+                groups[producer.id] = {
+                    'producer': producer,
+                    'business_name': producer.business_name,
+                    'items': [],
+                    'subtotal': Decimal('0.00'),
+                    'lead_time_hours': getattr(producer, 'lead_time_hours', 48),
+                }
+            groups[producer.id]['items'].append(item)
+            groups[producer.id]['subtotal'] += item.line_total
+        
+        return groups
+    
+    def get_producer_summary(self):
+        """
+        Get a summary of producers in cart (without full item details)
+        Useful for checkout page
+        """
+        groups = self.get_items_by_producer()
+        summary = []
+        for producer_id, data in groups.items():
+            summary.append({
+                'producer_id': producer_id,
+                'business_name': data['business_name'],
+                'item_count': len(data['items']),
+                'total_quantity': sum(item.quantity for item in data['items']),
+                'subtotal': data['subtotal'],
+                'lead_time_hours': data['lead_time_hours'],
+            })
+        return summary
 
     def __str__(self):
         return f"Cart({self.customer})"

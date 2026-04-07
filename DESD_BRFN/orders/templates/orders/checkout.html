@@ -16,6 +16,7 @@
         border-radius: 8px;
         padding: 12px;
         transition: all 0.2s ease;
+        cursor: pointer;
     }
     
     .address-option:hover {
@@ -23,7 +24,7 @@
         border-color: #28a745;
     }
     
-    .address-option:has(input:checked) {
+    .address-option.selected {
         background-color: #e8f5e9;
         border-color: #28a745;
     }
@@ -59,110 +60,204 @@
         margin-right: 6px;
     }
     
-    .form-check {
-        margin-bottom: 0;
+    .producer-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e9ecef;
     }
     
-    .form-check-input:checked + .form-check-label .address-option {
-        background-color: #e8f5e9;
+    .producer-section h4 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #28a745;
+        display: inline-block;
     }
     
-    /* Scrollbar styling */
-    .address-list::-webkit-scrollbar {
-        width: 6px;
+    .producer-subtotal {
+        text-align: right;
+        font-weight: bold;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #dee2e6;
     }
     
-    .address-list::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
+    .delivery-info {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
+        border: 1px solid #e9ecef;
     }
     
-    .address-list::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
+    .delivery-info label {
+        font-weight: 500;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
     }
     
-    .address-list::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
+    .total-section {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-top: 2px solid #28a745;
+    }
+    
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    
+    .total-amount {
+        color: #28a745;
+        font-size: 1.3rem;
+    }
+    
+    .form-control-sm {
+        font-size: 0.85rem;
     }
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="container py-4">
-    <h1>Checkout</h1>
+    <h1 class="mb-4">Checkout</h1>
     
-    <div class="row">
-        <!-- Order Summary -->
-        <div class="col-md-7">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3>Order Summary</h3>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in cart_items %}
-                            <tr>
-                                <td>
-                                    {{ item.product.name }}
-                                    {% if item.product.is_organic %}
-                                        <span class="badge bg-success">Organic</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ item.quantity }}</td>
-                                <td>£{{ item.product.price }}/{{ item.product.unit }}</td>
-                                <td>£{{ item.line_total }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="3"><strong>Subtotal</strong></td>
-                                <td><strong>£{{ subtotal }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td colspan="3">Network Commission (5%)</td>
-                                <td>£{{ commission }}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="3"><strong>Total</strong></td>
-                                <td><strong>£{{ total }}</strong></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+    <form id="checkout-form" method="post">
+    {% csrf_token %}
+        <div class="row">
+
+            <!-- Order Summary with Producer Sections -->
+            <div class="col-md-7">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="mb-0">Order Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Per-Producer Sections (TC-008) -->
+                        {% for producer_id, producer_data in producer_groups.items %}
+                        <div class="producer-section">
+                            <h4>
+                                <i class="bi bi-shop"></i> 
+                                {{ producer_data.business_name }}
+                            </h4>
+                            
+                            <!-- Products Table -->
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid #dee2e6;">
+                                        <th>Product</th>
+                                        <th class="text-center">Qty</th>
+                                        <th class="text-end">Price</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in producer_data.items %}
+                                    <tr>
+                                        <td>
+                                            {{ item.product_name }}
+                                            {% if item.product.is_organic %}
+                                                <span class="badge bg-success ms-1">Organic</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">{{ item.quantity }}</td>
+                                        <td class="text-end">£{{ item.unit_price }}/{{ item.product.unit }}</td>
+                                        <td class="text-end">£{{ item.line_total }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="text-end"><strong>Producer Subtotal:</strong></td>
+                                        <td class="text-end"><strong>£{{ producer_data.subtotal }}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            
+                            <!-- Per-Producer Delivery Info (TC-008) -->
+                            <div class="delivery-info">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            <i class="bi bi-calendar-event"></i> Delivery Date for {{ producer_data.business_name }}
+                                        </label>
+                                        <input type="date" 
+                                                name="delivery_date_{{ producer_id }}" 
+                                                class="form-control form-control-sm"
+                                                min="{{ producer_data.min_delivery_date }}"
+                                                data-lead-hours="{{ producer_data.lead_time_hours }}"
+                                                required>
+                                        <small class="text-muted">
+                                            Minimum {{ producer_data.lead_time_hours }} hours notice
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            <i class="bi bi-chat-left-text"></i> Special Instructions for {{ producer_data.business_name }}
+                                        </label>
+                                        <textarea name="customer_note_{{ producer_id }}" 
+                                                    class="form-control form-control-sm"
+                                                    rows="2"
+                                                    placeholder="e.g., Leave at back door, Call on arrival, Gate code: 1234"></textarea>
+                                        <small class="text-muted">Optional: Any specific instructions for this producer</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Global Delivery Notes -->
+                        <div class="card mt-3">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-info-circle"></i> General Delivery Notes
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <textarea name="global_delivery_notes" 
+                                            class="form-control" 
+                                            rows="2"
+                                            placeholder="Any instructions that apply to all producers (e.g., 'Please ring doorbell', 'Gate code: 5678')"></textarea>
+                                <small class="text-muted">These notes will be shared with all producers</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Total -->
+                        <div class="total-section mt-3">
+                            <div class="total-row">
+                                <span>Order Total:</span>
+                                <span class="total-amount">£{{ total }}</span>
+                            </div>
+                            <small class="text-muted">Your payment will be processed securely via Stripe</small>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Payment Form -->
-        <div class="col-md-5">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0">Delivery Address</h3>
-                    {% if addresses %}
-                        <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-geo-alt"></i> Manage Addresses
-                        </a>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if addresses %}
-                        <form id="checkout-form">
-                            {% csrf_token %}
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Select Delivery Address</label>
+            
+            <!-- Delivery Address Selection -->
+            <div class="col-md-5">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">Delivery Address</h3>
+                        {% if addresses %}
+                            <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-geo-alt"></i> Manage
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if addresses %}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Select Delivery Address</label>
                                 <div class="address-list">
-                                    {% for address in addresses %}
-                                        <div class="address-option mb-2">
+                                {% for address in addresses %}
+                                        <div class="address-option mb-2" onclick="selectAddress(this, '{{ address.id }}')">
                                             <div class="form-check">
                                                 <input class="form-check-input" 
                                                     type="radio" 
@@ -171,7 +266,7 @@
                                                     id="address_{{ address.id }}"
                                                     {% if address.is_default %}checked{% endif %}
                                                     required>
-                                                <label class="form-check-label" for="address_{{ address.id }}">
+                                                <label class="form-check-label w-100" for="address_{{ address.id }}">
                                                     <div class="address-display">
                                                         <div class="address-type-badge">
                                                             <i class="bi bi-{% if address.address_type == 'home' %}house-door{% elif address.address_type == 'shipping' %}truck{% elif address.address_type == 'billing' %}credit-card{% elif address.address_type == 'business' %}building{% else %}geo-alt{% endif %}"></i>
@@ -182,69 +277,99 @@
                                                         </div>
                                                         <div class="address-details">
                                                             {% if address.label %}
-                                                                <span class="address-label">{{ address.label }}</span> -
+                                                                <span class="address-label">{{ address.label }}</span>
                                                             {% endif %}
                                                             {{ address.address_line1 }}, {{ address.city }}, {{ address.post_code }}
                                                         </div>
                                                     </div>
                                                 </label>
                                             </div>
-                                            {% if address.is_default %}
-                                                <div class="ms-4 mt-1">
-                                                    <small class="text-success">
-                                                        <i class="bi bi-star-fill"></i> This is your default address
-                                                    </small>
-                                                </div>
-                                            {% endif %}
                                         </div>
                                     {% endfor %}
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label">Delivery Date (minimum 48 hours)</label>
-                                <input type="date" 
-                                    name="delivery_date" 
-                                    class="form-control"
-                                    min="{{ min_delivery_date }}"
-                                    required>
-                                <small class="text-muted">Producers need at least 48 hours to prepare your order.</small>
-                            </div>
-                            
                             <button type="submit" class="btn btn-primary btn-lg w-100" id="checkout-button">
                                 <i class="bi bi-lock"></i> Pay £{{ total }}
                             </button>
-                        </form>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="bi bi-geo-alt-fill" style="font-size: 3rem; color: #6c757d;"></i>
-                            <p class="mt-3 mb-2">You need to add a shipping address first.</p>
-                            <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i> Add Address
-                            </a>
-                        </div>
-                    {% endif %}
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="bi bi-geo-alt-fill" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3 mb-2">You need to add a shipping address first.</p>
+                                <a href="{% url 'mainApp:manage_addresses' %}" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Add Address
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
     const stripe = Stripe('{{ stripe_publishable_key }}');
     const checkoutButton = document.getElementById('checkout-button');
-    const checkoutForm = document.getElementById('checkout-form');
     
-    if (checkoutForm) {
-        checkoutForm.addEventListener('submit', async (event) => {
+    // Address selection styling
+    function selectAddress(element, addressId) {
+        // Remove selected class from all address options
+        document.querySelectorAll('.address-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        // Add selected class to clicked element
+        element.classList.add('selected');
+        // Check the radio button
+        const radio = element.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+    }
+    
+    // Highlight default address on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const defaultRadio = document.querySelector('input[name="address_id"]:checked');
+        if (defaultRadio) {
+            const parentOption = defaultRadio.closest('.address-option');
+            if (parentOption) parentOption.classList.add('selected');
+        }
+    });
+    
+    // Form submission
+    if (checkoutButton) {
+        checkoutButton.addEventListener('click', async (event) => {
             event.preventDefault();
+            
+            // Validate address selection
+            const selectedAddress = document.querySelector('input[name="address_id"]:checked');
+            if (!selectedAddress) {
+                alert('Please select a delivery address.');
+                return;
+            }
+            
+            // Validate per-producer delivery dates
+            const deliveryDateInputs = document.querySelectorAll('input[type="date"][name^="delivery_date_"]');
+            let allValid = true;
+            let errorMessages = [];
+            
+            deliveryDateInputs.forEach(input => {
+                if (!input.value) {
+                    const producerName = input.closest('.producer-section').querySelector('h4').innerText;
+                    errorMessages.push(`Please select a delivery date for ${producerName}`);
+                    allValid = false;
+                }
+            });
+            
+            if (!allValid) {
+                alert(errorMessages.join('\n'));
+                return;
+            }
             
             // Disable button to prevent double submission
             checkoutButton.disabled = true;
-            checkoutButton.textContent = 'Processing...';
+            checkoutButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
             
-            const formData = new FormData(checkoutForm);
+            const formData = new FormData(document.getElementById('checkout-form'));
             
             try {
                 const response = await fetch("{% url 'mainApp:orders:create_checkout_session' %}", {
@@ -258,9 +383,13 @@
                 const data = await response.json();
                 
                 if (data.error) {
-                    alert(data.error);
+                    if (Array.isArray(data.error)) {
+                        alert(data.error.join('\n'));
+                    } else {
+                        alert(data.error);
+                    }
                     checkoutButton.disabled = false;
-                    checkoutButton.textContent = 'Pay £{{ total }}';
+                    checkoutButton.innerHTML = '<i class="bi bi-lock"></i> Pay £{{ total }}';
                     return;
                 }
                 
@@ -271,18 +400,23 @@
                 console.error('Error:', error);
                 alert('Something went wrong. Please try again.');
                 checkoutButton.disabled = false;
-                checkoutButton.textContent = 'Pay £{{ total }}';
+                checkoutButton.innerHTML = '<i class="bi bi-lock"></i> Pay £{{ total }}';
             }
         });
     }
     
-    // Set minimum delivery date (48 hours from now)
-    const today = new Date();
-    const minDate = new Date(today);
-    minDate.setDate(today.getDate() + 2);  // Add 2 days
-    const dateInput = document.querySelector('input[name="delivery_date"]');
-    if (dateInput) {
-        dateInput.min = minDate.toISOString().split('T')[0];
+    // Set minimum delivery date for each producer based on lead time
+    function setMinDeliveryDates() {
+        const today = new Date();
+        
+        document.querySelectorAll('input[type="date"][name^="delivery_date_"]').forEach(input => {
+            const leadHours = parseInt(input.dataset.leadHours) || 48;
+            const minDate = new Date(today);
+            minDate.setDate(today.getDate() + Math.ceil(leadHours / 24));
+            input.min = minDate.toISOString().split('T')[0];
+        });
     }
+    
+    setMinDeliveryDates();
 </script>
 {% endblock %}

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'producers',
     'orders',
     'storages',
+    'django_celery_beat',
 ]
 
 AUTH_USER_MODEL = 'mainApp.RegularUser'
@@ -184,3 +185,20 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
 stripe.api_key = STRIPE_SECRET_KEY
 
 DEV_NAME= os.environ.get("DEV_NAME")
+
+
+
+# redis
+# Celery config
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Optional (recommended)
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+
+
+# logout redirect for admin
+LOGOUT_REDIRECT_URL = 'mainApp:home'

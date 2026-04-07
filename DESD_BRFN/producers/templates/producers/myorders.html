@@ -1,28 +1,19 @@
+<!-- producers/templates/producers/myorders.html -->
 {% extends 'base.html' %}
 {% load static %}
 
 {% block title %}My Orders{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'producers/myorders.css' %}">
-<style>
-    
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="orders-container">
     <!-- Header -->
     <div class="orders-header">
-        <h1>
-            <i class="bi bi-bag-check"></i> 
-            <span>{{ producer.business_name }}</span> Orders
-        </h1>
+        <h1><span>{{ producer.business_name }}</span> — Orders</h1>
         <a href="{% url 'mainApp:producers:myproduct' %}" class="btn-link">
-            <i class="bi bi-box-seam"></i> View My Products →
+            <i class="bi bi-box-seam"></i> My Products
         </a>
     </div>
-
+    
     <!-- Stats Cards -->
     <div class="stats-grid">
         <div class="stat-card">
@@ -30,27 +21,31 @@
             <div class="stat-label">Total Orders</div>
         </div>
         <div class="stat-card">
-            <div class="stat-number">{{ stats.pending }}</div>
-            <div class="stat-label">Pending</div>
+            <div class="stat-number">{{ stats.confirmed }}</div>
+            <div class="stat-label">Confirmed</div>
         </div>
         <div class="stat-card">
-            <div class="stat-number">{{ stats.processing }}</div>
-            <div class="stat-label">Processing</div>
+            <div class="stat-number">{{ stats.preparing }}</div>
+            <div class="stat-label">Preparing</div>
         </div>
         <div class="stat-card">
-            <div class="stat-number">{{ stats.completed }}</div>
-            <div class="stat-label">Completed</div>
+            <div class="stat-number">{{ stats.ready }}</div>
+            <div class="stat-label">Ready</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.delivered }}</div>
+            <div class="stat-label">Delivered</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">£{{ stats.total_revenue|floatformat:2 }}</div>
             <div class="stat-label">Total Revenue</div>
         </div>
     </div>
-
+    
     <!-- Filter Bar -->
     <form method="get" class="filter-bar">
-        <i class="bi bi-funnel" style="color: #6c757d;"></i>
-        <select name="status">
+        <i class="bi bi-funnel"></i>
+        <select name="status" onchange="this.form.submit()">
             <option value="">All Statuses</option>
             {% for value, label in status_choices %}
                 <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
@@ -58,39 +53,33 @@
                 </option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn-filter">
-            <i class="bi bi-search"></i> Apply Filter
-        </button>
         {% if current_status %}
-            <a href="?status=" class="btn-link" style="font-size: 0.85rem;">
-                <i class="bi bi-x-circle"></i> Clear Filter
-            </a>
+            <a href="?status=" class="clear-filter">Clear Filter</a>
         {% endif %}
     </form>
-
+    
     <!-- Orders List -->
     {% if page_obj %}
-        {% for entry in page_obj %}
-        {% with order=entry.order items=entry.items producer_subtotal=entry.producer_subtotal %}
+        {% for order_data in page_obj %}
         <div class="order-card">
             <!-- Order Header -->
             <div class="order-header">
                 <div class="order-info">
                     <span class="order-number">
-                        <i class="bi bi-receipt"></i> #{{ order.id }}
+                        <i class="bi bi-receipt"></i> Order #{{ order_data.order.id }}
                     </span>
                     <span class="order-date">
-                        <i class="bi bi-calendar3"></i> {{ order.created_at|date:"d M Y, H:i" }}
+                        <i class="bi bi-calendar3"></i> {{ order_data.order.created_at|date:"d M Y, H:i" }}
                     </span>
-                    {% if order.delivery_date %}
+                    {% if order_data.delivery_date %}
                     <span class="delivery-date">
-                        <i class="bi bi-truck"></i> Delivery: {{ order.delivery_date|date:"d M Y" }}
+                        <i class="bi bi-truck"></i> Delivery: {{ order_data.delivery_date|date:"d M Y" }}
                     </span>
                     {% endif %}
                 </div>
-                <span class="status-badge status-{{ order.status }}">
-                    <i class="bi bi-{% if order.status == 'confirmed' %}check-circle{% elif order.status == 'delivered' %}check2-circle{% elif order.status == 'cancelled' %}x-circle{% elif order.status == 'processing' %}arrow-repeat{% else %}clock{% endif %}"></i>
-                    {{ order.get_status_display }}
+                <span class="status-badge status-{{ order_data.order.order_status }}">
+                    <i class="bi bi-{% if order_data.order.order_status == 'confirmed' %}check-circle{% elif order_data.order.order_status == 'delivered' %}check2-circle{% elif order_data.order.order_status == 'cancelled' %}x-circle{% elif order_data.order.order_status == 'preparing' %}arrow-repeat{% else %}clock{% endif %}"></i>
+                    {{ order_data.order.get_order_status_display }}
                 </span>
             </div>
             
@@ -98,15 +87,15 @@
             <div class="customer-info">
                 <div class="customer-detail">
                     <i class="bi bi-person-circle"></i>
-                    <span>{{ order.user.get_full_name|default:order.user.username }}</span>
+                    <span>{{ order_data.customer_name }}</span>
                 </div>
                 <div class="customer-detail">
                     <i class="bi bi-envelope"></i>
-                    <span>{{ order.user.email }}</span>
+                    <span>{{ order_data.customer_email }}</span>
                 </div>
                 <div class="customer-detail">
                     <i class="bi bi-geo-alt"></i>
-                    <span>{{ order.shipping_address|default:"No address provided"|truncatechars:50 }}</span>
+                    <span>{{ order_data.order.payment.shipping_address|truncatechars:50 }}</span>
                 </div>
             </div>
             
@@ -116,77 +105,198 @@
                     <thead>
                         <tr>
                             <th>Product</th>
+                            <th>Quantity</th>
                             <th>Unit Price</th>
-                            <th>Qty</th>
                             <th>Total</th>
-                        </tr>
-                    </thead>
+                        </thead>
                     <tbody>
-                        {% for item in items %}
+                        {% for item in order_data.items %}
                         <tr>
                             <td class="product-name">{{ item.product_name }}</td>
-                            <td class="item-price">£{{ item.product_price }}/{{ item.unit }}</td>
-                            <td class="item-quantity">× {{ item.quantity }}</td>
+                            <td class="item-quantity">{{ item.quantity }} {{ item.unit }}</td>
+                            <td class="item-price">£{{ item.product_price }}</td>
                             <td class="item-total">£{{ item.line_total }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                            <td class="item-total"><strong>£{{ order_data.producer_subtotal }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-end">Commission (5%):</td>
+                            <td>£{{ order_data.order.commission }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Your Payout:</strong></td>
+                            <td class="text-success"><strong>£{{ order_data.order.producer_payout }}</strong></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
             
-            <!-- Order Footer -->
-            <div class="order-footer">
-                <div class="producer-subtotal">
-                    Your Subtotal: <span>£{{ producer_subtotal }}</span>
-                </div>
-            </div>
-            
-            {% if order.delivery_notes %}
-            <div class="delivery-note">
+            <!-- Customer Note -->
+            {% if order_data.customer_note %}
+            <div class="customer-note">
                 <i class="bi bi-chat-left-quote"></i>
-                <em>{{ order.delivery_notes }}</em>
+                <strong>Customer note:</strong> {{ order_data.customer_note }}
+            </div>
+            {% endif %}
+            
+            <!-- Status Update Form (if not delivered) -->
+            {% if order_data.order.order_status != 'delivered' and order_data.order.order_status != 'cancelled' %}
+            <div class="order-footer">
+                <form method="post" action="{% url 'mainApp:producers:update_order_status' order_data.order.id %}">
+                    {% csrf_token %}
+                    <select name="status" class="status-select">
+                        <option value="pending" {% if order_data.order.order_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="confirmed" {% if order_data.order.order_status == 'confirmed' %}selected{% endif %}>Confirm Order</option>
+                        <option value="preparing" {% if order_data.order.order_status == 'preparing' %}selected{% endif %}>Preparing</option>
+                        <option value="ready" {% if order_data.order.order_status == 'ready' %}selected{% endif %}>Ready for Delivery</option>
+                        <option value="delivered" {% if order_data.order.order_status == 'delivered' %}selected{% endif %}>Delivered</option>
+                    </select>
+                    <button type="submit" class="btn-update-status">Update Status</button>
+                </form>
             </div>
             {% endif %}
         </div>
-        {% endwith %}
         {% endfor %}
     {% else %}
         <div class="empty-state">
             <i class="bi bi-inbox"></i>
             <p>No orders found{% if current_status %} with status "{{ current_status }}"{% endif %}.</p>
-            {% if not current_status %}
-                <a href="{% url 'mainApp:producers:myproduct' %}" class="btn-filter">
-                    <i class="bi bi-box-seam"></i> Manage Your Products
-                </a>
-            {% else %}
-                <a href="?status=" class="btn-filter">
-                    <i class="bi bi-funnel"></i> Clear Filter
-                </a>
+            {% if current_status %}
+                <a href="?status=" class="btn-filter">Clear Filter</a>
             {% endif %}
         </div>
     {% endif %}
-
+    
     <!-- Pagination -->
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="pagination-bar">
         {% if page_obj.has_previous %}
-            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}">
-                <i class="bi bi-chevron-double-left"></i>
-            </a>
-            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">
-                <i class="bi bi-chevron-left"></i> Previous
-            </a>
+            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}">&laquo; First</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a>
         {% endif %}
         <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">
-                Next <i class="bi bi-chevron-right"></i>
-            </a>
-            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}">
-                <i class="bi bi-chevron-double-right"></i>
-            </a>
+            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}">Last &raquo;</a>
         {% endif %}
     </div>
     {% endif %}
 </div>
+
+<style>
+    /* Add your CSS styles here */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .order-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    .order-header {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .customer-info {
+        padding: 1rem;
+        background: #fafbfc;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .customer-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    .items-table-wrapper {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .items-table th, .items-table td {
+        padding: 0.5rem;
+        text-align: left;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .item-total {
+        font-weight: bold;
+        color: #28a745;
+    }
+    .customer-note {
+        padding: 0.75rem 1rem;
+        background: #fff8e7;
+        border-top: 1px solid #ffe6b3;
+        font-size: 0.85rem;
+    }
+    .order-footer {
+        padding: 1rem;
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .status-select {
+        padding: 0.5rem;
+        margin-right: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+    .btn-update-status {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .status-confirmed { background: #d4edda; color: #155724; }
+    .status-preparing { background: #cce5ff; color: #004085; }
+    .status-ready { background: #d1ecf1; color: #0c5460; }
+    .status-delivered { background: #d4edda; color: #155724; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+</style>
 {% endblock %}

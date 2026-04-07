@@ -16,7 +16,7 @@ from datetime import timezone
 from producers.forms import ProducerRegistrationForm
 from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
-from orders.models import Order, OrderItem
+from orders.models import OrderPayment, OrderItem, OrderProducer
 
 from django.contrib.auth import logout, update_session_auth_hash
 from producers.forms_personal_info import ProducerPersonalInfoForm
@@ -295,52 +295,143 @@ def myorders_view(request):
     Only shows this producer's items within each order.
     """
     producer_profile = request.user.producer_profile
-
-    # Orders that have at least one item belonging to this producer
-    orders = Order.objects.filter(
-        items__producer=producer_profile
-    ).distinct().order_by('-created_at')
-
-    # Status filter
-    status_filter = request.GET.get('status')
+    
+    if not producer_profile:
+        logger.warning(f"Producer profile missing for user {request.user.id}")
+        return redirect('mainApp:home')
+    
+    # Get status filter from request
+    status_filter = request.GET.get('status', '')
+    
+    # Get all OrderProducer records for this producer
+    producer_orders = OrderProducer.objects.filter(
+        producer=producer_profile
+    ).exclude(
+        order_status='pending'
+    ).select_related('payment', 'payment__user').order_by('-created_at')
+    
+    # Apply status filter if provided
     if status_filter:
-        orders = orders.filter(status=status_filter)
-
-    # For each order, annotate with this producer's items and subtotal
+        producer_orders = producer_orders.filter(order_status=status_filter)
+    
+    # Build orders data with items and subtotals
     orders_data = []
-    for order in orders:
-        producer_items = order.items.filter(producer=producer_profile)
-        producer_subtotal = sum(item.line_total for item in producer_items)
+    for producer_order in producer_orders:
+        # Get items for this producer order
+        order_items = OrderItem.objects.filter(
+            producer_order=producer_order
+        ).select_related('product')
+        
+        # Calculate subtotal for this producer's items
+        producer_subtotal = sum(item.line_total for item in order_items)
+        
         orders_data.append({
-            'order': order,
-            'items': producer_items,
+            'order': producer_order,
+            'items': order_items,
             'producer_subtotal': producer_subtotal,
+            'order_payment': producer_order.payment,  # Access the main payment
+            'customer_name': producer_order.payment.user.get_full_name() or producer_order.payment.user.username,
+            'customer_email': producer_order.payment.user.email,
+            'delivery_date': producer_order.delivered_by,
+            'customer_note': producer_order.customer_note,
         })
-
-
+    
+    # Calculate statistics
     stats = {
-        'total': orders.count(),
-        'pending': orders.filter(status='pending').count(),
-        'processing': orders.filter(status='processing').count(),
-        'completed': orders.filter(status='delivered').count(),
-        # 'total_revenue': orders.filter(status='delivered').aggregate(
-        #     total=models.Sum('producer_subtotal')
-        # )['total'] or 0,
+        'total': producer_orders.count(),
+        'confirmed': producer_orders.filter(order_status='confirmed').count(),
+        'preparing': producer_orders.filter(order_status='preparing').count(),
+        'ready': producer_orders.filter(order_status='ready').count(),
+        'delivered': producer_orders.filter(order_status='delivered').count(),
+        'cancelled': producer_orders.filter(order_status='cancelled').count(),
+        'total_revenue': sum(
+            data['producer_subtotal'] for data in orders_data 
+            if data['order'].order_status == 'delivered'
+        ),
     }
-
+    
     # Pagination
     paginator = Paginator(orders_data, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    available_status_choices = [
+        choice for choice in OrderProducer.ORDER_STATUS_CHOICES 
+        if choice[0] != 'pending'
+    ]
+    
     context = {
         'page_obj': page_obj,
         'producer': producer_profile,
-        'status_choices': Order.STATUS_CHOICES,
-        'stats': stats,
+        'status_choices': available_status_choices,
         'current_status': status_filter,
+        'stats': stats,
     }
+    
     return render(request, 'producers/myorders.html', context)
+
+@login_required
+@producer_required
+def update_order_status(request, order_id):
+    """
+    Update the status of a producer's order (e.g., confirmed, preparing, ready)
+    """
+    producer_profile = request.user.producer_profile
+    
+    # Get the producer order (ensure it belongs to this producer)
+    producer_order = get_object_or_404(
+        OrderProducer, 
+        id=order_id, 
+        producer=producer_profile
+    )
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        
+        if new_status in dict(OrderProducer.ORDER_STATUS_CHOICES):
+            producer_order.order_status = new_status
+            producer_order.save()
+            
+            # Log the status change
+            logger.info(f"Producer {producer_profile.id} updated order {order_id} to {new_status}")
+            
+            # You could add notification here
+            # send_order_status_notification(producer_order)
+    
+    return redirect('mainApp:producers:myorders')
+
+
+@login_required
+@producer_required
+def order_detail(request, order_id):
+    """
+    View detailed information for a specific producer order
+    """
+    producer_profile = request.user.producer_profile
+    
+    producer_order = get_object_or_404(
+        OrderProducer, 
+        id=order_id, 
+        producer=producer_profile
+    )
+    
+    # Get all items for this order
+    order_items = OrderItem.objects.filter(
+        producer_order=producer_order
+    ).select_related('product')
+    
+    # Calculate subtotal
+    producer_subtotal = sum(item.line_total for item in order_items)
+    
+    context = {
+        'producer_order': producer_order,
+        'order_payment': producer_order.payment,
+        'items': order_items,
+        'producer_subtotal': producer_subtotal,
+        'status_choices': OrderProducer.ORDER_STATUS_CHOICES,
+    }
+    
+    return render(request, 'producers/order_detail.html', context)
 
 
 @login_required
@@ -385,62 +476,6 @@ def quality_scan_view(request):
 
     return render(request, 'producers/quality_scan.html')
 
-# @login_required
-# @producer_required
-# def personal_info_view(request):
-#     user = request.user
-
-#     # Ensure producer profile exists
-#     # should not be get or create
-#     ProducerProfile.objects.get(user=user)
-
-#     # Ensure farm address exists
-#     if not user.addresses.filter(address_type="farm", is_default=True).exists():
-#         Address.objects.create(
-#             user=user,
-#             address_line1="",
-#             city="",
-#             post_code="",
-#             country="UK",
-#             address_type="farm",
-#             is_default=True
-#         )
-
-#     # DELETE ACCOUNT HANDLER
-#     if request.method == "POST" and "delete_account" in request.POST:
-#         # Delete the user and all related objects
-#         user.delete()
-
-#         # Log out the session
-#         logout(request)
-
-#         # Redirect to home or login
-#         return redirect("mainApp:home")
-
-#     # UPDATE ACCOUNT HANDLER
-#     if request.method == "POST":
-#         form = ProducerPersonalInfoForm(request.POST, user=user)
-#         if form.is_valid():
-#             form.save()
-
-#             # FORCE LOGOUT after updating credentials
-#             logout(request)
-
-#             # Redirect to producer login
-#             return redirect("mainApp:producers:login")
-#     else:
-#         form = ProducerPersonalInfoForm(
-#             user=user,
-#             initial={
-#                 "username": user.username,
-#                 "email": user.email,
-#                 "first_name": user.first_name,
-#                 "last_name": user.last_name,
-#                 "phone_number": user.phone_number,
-#             }
-#         )
-
-#     return render(request, "producers/personal_info.html", {"form": form})
 
 @login_required
 @producer_required
