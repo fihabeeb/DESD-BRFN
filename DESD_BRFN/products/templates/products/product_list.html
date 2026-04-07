@@ -4,71 +4,8 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'products/products.css' %}">
-
-<style>
-.search-bar-area {
-    padding: 1.5rem 0;
-    border-bottom: 1px solid #dee2e6;
-    margin-bottom: 1.5rem;
-    background: #f8f9fa;
-}
-
-.search-box {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    max-width: 700px;
-    margin: 0 auto;  /* This centers the form */
-    position: relative;
-}
-
-.search-box .bi-search {
-    position: absolute;
-    left: 16px;
-    color: #6c757d;
-    font-size: 1rem;
-    z-index: 1;
-}
-
-.search-box input {
-    flex: 1;
-    padding: 14px 16px 14px 42px;
-    border: 1px solid #ced4da;
-    border-radius: 10px;
-    font-size: 1rem;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.search-box input:focus {
-    border-color: #2d6a4f;
-    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
-}
-
-.search-box button {
-    padding: 14px 28px;
-    background: #2d6a4f;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.search-box button:hover {
-    background: #1b4332;
-    transform: translateY(-2px);
-}
-
-.search-results-info {
-    text-align: center;
-    margin-top: 1rem;
-    color: #6c757d;
-}
-</style>
-
 {% endblock %}
+
 {% block content %}
 
 <!-- Page Header -->
@@ -77,119 +14,206 @@
     <p>Fresh, local produce from Bristol-area producers</p>
 </div>
 
-<!-- Search bar -->
-<div class="search-bar-area">
-    <form method="get" action="{% url 'mainApp:products:product_list' %}" class="search-box" id="product-search-form">
-        <i class="bi bi-search" style="color:#6c757d;"></i>
-        <input type="text"
-            name="q"
-            id="product-search-input"
-            placeholder="Search products..."
-            value="{{ search_query }}"
-            autocomplete="off">
-        {% if current_category %}
-            <input type="hidden" name="category" value="{{ current_category }}">
-        {% endif %}
-    </form>
-    {% if search_query %}
-    <p class="search-results-info">
-        Results for <strong>"{{ search_query }}"</strong> &mdash; {{ products.count }} found
-    </p>
-    {% endif %}
-</div>
-
-<!-- Category Filter -->
-<div class="category-filter">
-    <a href="{% url 'mainApp:products:product_list' %}"
-       class="{% if not current_categories %}active{% endif %}">
-        All
-    </a>
-    {% for category in categories %}
-        <a href="?category={{ category.id }}"
-           class="{% if category.id|stringformat:'s' in current_categories|default:'' %}active{% endif %}">
-            {{ category.name }}
-        </a>
-    {% endfor %}
-</div>
-
-<!-- Product Grid -->
-<div class="product-grid">
-    {% for product in products %}
-        <div class="product-card">
-
-            <!-- Image -->
-            <div class="product-card-image">
-                {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+<!-- Personalized Recommendations -->
+{% if user.is_authenticated and has_recommendations %}
+<div class="container mt-4 mb-2">
+    <div class="recommendations-bar">
+        <div class="recommendations-header">
+            <i class="bi bi-stars text-warning"></i>
+            <strong>Personalised for You</strong>
+            {% if user_purchase_history %}<span class="text-muted" style="font-size:0.8rem;">based on your recent purchases</span>{% endif %}
+        </div>
+        <div class="recommendations-scroll">
+            {% for rec in recommended_products %}
+            <a href="{% url 'mainApp:products:product_detail' rec.product.id %}" class="rec-card">
+                {% if rec.product.image %}
+                    <img src="{{ rec.product.image.url }}" alt="{{ rec.product.name }}" loading="lazy">
                 {% else %}
-                    <div class="no-image">
-                        <i class="bi bi-image"></i>
-                    </div>
+                    <div class="rec-card-placeholder"><i class="bi bi-image"></i></div>
                 {% endif %}
-
-                <!-- Badges -->
-                <div class="product-badges">
-                    {% if product.is_organic %}
-                        <span class="badge-organic">
-                            <i class="bi leaf"></i> Organic
-                        </span>
-                    {% endif %}
-                    {% if product.is_in_season %}
-                        <span class="badge-in-season">
-                            <i class="bi bi-flower2"></i> In Season
-                        </span>
-                    {% endif %}
-                    <span class="badge-status
-                        {% if product.availability == 'available' %}available
-                        {% else %}unavailable{% endif %}">
-                        {{ product.get_availability_display }}
-                    </span>
+                <div class="rec-card-body">
+                    <div class="rec-match">{{ rec.confidence }} match</div>
+                    <div class="rec-name">{{ rec.product.name }}</div>
+                    <div class="rec-price">£{{ rec.product.price }}</div>
                 </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Two-column layout: sidebar + main -->
+<div class="marketplace-layout" x-data="{ sidebarOpen: false }">
+
+    <!-- Sidebar filters -->
+    <aside class="marketplace-sidebar" :class="{ 'sidebar-open': sidebarOpen }">
+        <div class="sidebar-header">
+            <span class="sidebar-title"><i class="bi bi-funnel"></i> Filters</span>
+            <button class="sidebar-close" @click="sidebarOpen = false" aria-label="Close filters">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <!-- Category filter -->
+        <div class="sidebar-section">
+            <h3 class="sidebar-section-title">Category</h3>
+            <div class="sidebar-cat-links">
+                <a href="{% url 'mainApp:products:product_list' %}{% if search_query %}?q={{ search_query }}{% endif %}"
+                   class="sidebar-cat-link {% if not current_categories %}active{% endif %}">
+                    <i class="bi bi-grid-3x3-gap"></i> All Products
+                </a>
+                {% for category in categories %}
+                <a href="?category={{ category.id }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="sidebar-cat-link {% if category.id|stringformat:'s' in current_categories|default:'' %}active{% endif %}">
+                    <i class="bi bi-tag"></i> {{ category.name }}
+                </a>
+                {% endfor %}
             </div>
+        </div>
 
-            <!-- Body -->
-            <div class="product-card-body">
-                <h3><a href="{% url 'mainApp:products:product_detail' product.id %}">{{ product.name }}</a></h3>
+        <!-- Organic filter -->
+        <div class="sidebar-section">
+            <h3 class="sidebar-section-title">Attributes</h3>
+            <label class="sidebar-checkbox">
+                <input type="checkbox" id="organic-filter" onchange="applyFilter('organic', this.checked)">
+                <span><i class="bi bi-leaf text-success"></i> Organic only</span>
+            </label>
+            <label class="sidebar-checkbox">
+                <input type="checkbox" id="season-filter" onchange="applyFilter('in_season', this.checked)">
+                <span><i class="bi bi-flower2 text-warning"></i> In Season</span>
+            </label>
+        </div>
+    </aside>
 
-                <div class="product-price">
-                    £{{ product.price }} <span>per {{ product.unit }}</span>
-                </div>
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay" x-show="sidebarOpen" @click="sidebarOpen = false" style="display:none;"></div>
 
-                <div class="product-stock {% if product.is_low_stock %}low{% endif %}">
-                    <i class="bi bi-box-seam"></i>
-                    {% if product.is_low_stock %}
-                        Only {{ product.stock_quantity }} left!
+    <!-- Main content -->
+    <main class="marketplace-main">
+
+        <!-- Top bar: mobile filter btn + search + sort -->
+        <div class="marketplace-topbar">
+            <button class="mobile-filter-btn" @click="sidebarOpen = true">
+                <i class="bi bi-funnel"></i> Filters
+            </button>
+
+            <form method="get" action="{% url 'mainApp:products:product_list' %}" class="main-search-form" id="product-search-form">
+                <i class="bi bi-search"></i>
+                <input type="text"
+                    name="q"
+                    id="product-search-input"
+                    placeholder="Search products…"
+                    value="{{ search_query }}"
+                    autocomplete="off">
+                {% if current_category %}
+                    <input type="hidden" name="category" value="{{ current_category }}">
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Results info -->
+        <div class="marketplace-results-bar">
+            <span class="results-count">
+                {% if search_query %}
+                    Results for <strong>"{{ search_query }}"</strong> &mdash;
+                {% endif %}
+                <strong>{{ products|length }}</strong> product{{ products|length|pluralize }} found
+            </span>
+        </div>
+
+        <!-- Product grid -->
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card">
+
+                <!-- Image -->
+                <div class="product-card-image">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
                     {% else %}
-                        {{ product.stock_quantity }} in stock
+                        <div class="no-image">
+                            <i class="bi bi-image"></i>
+                        </div>
+                    {% endif %}
+
+                    <!-- Floating badges -->
+                    <div class="product-badges">
+                        {% if product.is_organic %}
+                            <span class="badge-organic"><i class="bi bi-leaf"></i> Organic</span>
+                        {% endif %}
+                        {% if product.is_in_season %}
+                            <span class="badge-in-season"><i class="bi bi-flower2"></i> In Season</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Availability status -->
+                    <div class="product-avail-badge">
+                        <span class="badge-status
+                            {% if product.availability == 'available' %}available
+                            {% elif product.availability == 'in_season' %}in-season
+                            {% else %}unavailable{% endif %}">
+                            {{ product.get_availability_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="product-card-body">
+                    {% if product.category %}
+                        <div class="product-category">{{ product.category.name }}</div>
+                    {% endif %}
+                    <h3><a href="{% url 'mainApp:products:product_detail' product.id %}">{{ product.name }}</a></h3>
+
+                    {% if product.producer %}
+                        <div class="product-producer"><i class="bi bi-shop"></i> {{ product.producer.business_name }}</div>
+                    {% endif %}
+
+                    <div class="product-price">
+                        £{{ product.price }} <span>per {{ product.unit }}</span>
+                    </div>
+
+                    <div class="product-stock {% if product.is_low_stock %}low{% endif %}">
+                        <i class="bi bi-box-seam"></i>
+                        {% if product.is_low_stock %}
+                            Only {{ product.stock_quantity }} left!
+                        {% else %}
+                            {{ product.stock_quantity }} in stock
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action -->
+                <div class="product-card-footer">
+                    {% if user.is_authenticated %}
+                        <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="btn-add-cart">
+                                <i class="bi bi-cart-plus"></i> Add to Cart
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_list' %}"
+                           class="btn-login-prompt">
+                            <i class="bi bi-box-arrow-in-right"></i> Log in to buy
+                        </a>
                     {% endif %}
                 </div>
-            </div>
 
-            <!-- Action -->
-            <div class="product-card-footer">
-                {% if user.is_authenticated %}
-                    <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="btn-add-cart">
-                            <i class="bi bi-cart-plus"></i> Add to Cart
-                        </button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_list' %}"
-                       class="btn-login-prompt">
-                        <i class="bi bi-box-arrow-in-right"></i> Log in to buy
+            </div>
+            {% empty %}
+                <div class="products-empty">
+                    <i class="bi bi-basket"></i>
+                    <p>No products found. Try a different search or category.</p>
+                    <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary" style="margin-top:1rem;">
+                        Clear filters
                     </a>
-                {% endif %}
-            </div>
+                </div>
+            {% endfor %}
+        </div>
 
-        </div>
-    {% empty %}
-        <div class="products-empty">
-            <i class="bi bi-basket"></i>
-            <p>No products available right now. Check back soon!</p>
-        </div>
-    {% endfor %}
+    </main>
 </div>
 
 {% endblock %}
@@ -204,6 +228,25 @@
         clearTimeout(timer);
         timer = setTimeout(function () { input.form.submit(); }, 500);
     });
+})();
+
+function applyFilter(name, value) {
+    var url = new URL(window.location.href);
+    if (value) {
+        url.searchParams.set(name, 'true');
+    } else {
+        url.searchParams.delete(name);
+    }
+    window.location.href = url.toString();
+}
+
+// Restore checkbox state from URL params
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var organicCb = document.getElementById('organic-filter');
+    var seasonCb = document.getElementById('season-filter');
+    if (organicCb && params.get('organic') === 'true') organicCb.checked = true;
+    if (seasonCb && params.get('in_season') === 'true') seasonCb.checked = true;
 })();
 </script>
 {% endblock %}

@@ -1,246 +1,245 @@
 {% extends 'base.html' %}
 {% block title %}{% if is_edit %}Edit{% else %}Add New{% endif %} Product{% endblock %}
 
-
 {% block extra_css %}
 <style>
-    a {
-        text-decoration: none;
-    }
+a { text-decoration: none; }
+.addproduct-form {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.addproduct-form label { font-weight: 600; font-size: 0.875rem; color: var(--color-text); margin-bottom: 0.3rem; display: block; }
+.addproduct-form input[type="text"],
+.addproduct-form input[type="number"],
+.addproduct-form input[type="date"],
+.addproduct-form select,
+.addproduct-form textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--color-text);
+    background: var(--color-bg);
+    transition: border-color 0.15s;
+}
+.addproduct-form input:focus,
+.addproduct-form select:focus,
+.addproduct-form textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(45,106,45,0.1);
+}
+.section-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+.section-card-header {
+    padding: 0.875rem 1.25rem;
+    background: var(--color-primary-light);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.section-card-header i { color: var(--color-primary); }
+.section-card-body { padding: 1.25rem; }
 </style>
 {% endblock %}
 
-
-
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">
-            {% if is_edit %}
-                Edit Product: {{ product.name }}
-            {% else %}
-                Add New Product
-            {% endif %}
-        </h1>
-        <p class="text-gray-600">
-            {% if is_edit %}
-                Update your product details below
-            {% else %}
-                List a new product for customers to purchase (TC-003)
-            {% endif %}
-        </p>
-    </div>
+<div class="producer-layout">
 
-    <!-- Form -->
-    <form method="post" enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {{ form.non_field_errors }}
-        </div>
-        {% endif %}
+    <!-- Sidebar -->
+    <nav class="producer-sidebar">
+        <a href="{% url 'mainApp:producers:myproduct' %}" class="producer-sidebar-link active">
+            <i class="bi bi-box-seam"></i> Products
+        </a>
+        <a href="{% url 'mainApp:producers:myorders' %}" class="producer-sidebar-link">
+            <i class="bi bi-receipt"></i> Orders
+        </a>
+        <a href="{% url 'mainApp:producers:quality_scan' %}" class="producer-sidebar-link">
+            <i class="bi bi-stars"></i> Quality AI
+        </a>
+        <a href="{% url 'mainApp:producers:personal_info' %}" class="producer-sidebar-link">
+            <i class="bi bi-person"></i> Profile
+        </a>
+        <div style="height:1px; background:rgba(255,255,255,0.1); margin:0.5rem 1rem;"></div>
+        <a href="{% url 'mainApp:products:product_list' %}" class="producer-sidebar-link">
+            <i class="bi bi-basket2"></i> Marketplace
+        </a>
+    </nav>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Left Column -->
-            <div>
-                <!-- Product Name (Required) -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
-                        Product Name *
-                    </label>
-                    {{ form.name }}
-                    {% if form.name.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.name.errors.0 }}</p>
-                    {% endif %}
-                </div>
+    <!-- Main content -->
+    <div class="producer-main">
+        <div style="max-width:900px;">
 
-                <!-- Category -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="category">
-                        Category *
-                    </label>
-                    {{ form.category }}
-                    {% if form.category.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.category.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Price and Unit -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="price">
-                            Price (£) *
-                        </label>
-                        {{ form.price }}
-                        {% if form.price.errors %}
-                            <p class="text-red-500 text-xs italic">{{ form.price.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="unit">
-                            Unit *
-                        </label>
-                        {{ form.unit }}
-                        {% if form.unit.errors %}
-                            <p class="text-red-500 text-xs italic">{{ form.unit.errors.0 }}</p>
-                        {% endif %}
-                        <p class="text-gray-500 text-xs mt-1">e.g., kg, dozen, each</p>
-                    </div>
-                </div>
-
-                <!-- Stock Quantity -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="stock_quantity">
-                        Stock Quantity *
-                    </label>
-                    {{ form.stock_quantity }}
-                    {% if form.stock_quantity.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.stock_quantity.errors.0 }}</p>
-                    {% endif %}
-                    {% if form.stock_quantity.value|default:0 < 10 and form.stock_quantity.value|default:0 > 0 %}
-                        <p class="text-yellow-600 text-xs mt-1">Low stock - customers will see limited availability</p>
-                    {% endif %}
-                </div>
-
-                <!-- Organic Certification (TC-014) -->
-                <div class="mb-4">
-                    <label class="flex items-center">
-                        {{ form.is_organic }}
-                        <span class="ml-2 text-sm text-gray-700">This product is organically certified</span>
-                    </label>
-                </div>
+            <!-- Header -->
+            <div style="margin-bottom:1.5rem;">
+                <h1 style="font-size:1.75rem; font-weight:800; color:var(--color-text); margin-bottom:0.25rem;">
+                    {% if is_edit %}Edit Product: {{ product.name }}{% else %}Add New Product{% endif %}
+                </h1>
+                <p style="color:var(--color-muted); font-size:0.9rem; margin:0;">
+                    {% if is_edit %}Update your product details below{% else %}List a new product for customers to purchase{% endif %}
+                </p>
             </div>
 
-            <!-- Right Column -->
-            <div>
-                <!-- Description -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
-                        Description *
-                    </label>
-                    {{ form.description }}
-                    {% if form.description.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.description.errors.0 }}</p>
-                    {% endif %}
-                    <p class="text-gray-500 text-xs mt-1">Describe your product, including taste, uses, and qualities</p>
-                </div>
+            <!-- Form -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
 
-                <!-- Availability (TC-016) -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="availability">
-                        Availability Status
-                    </label>
-                    {{ form.availability }}
-                    {% if form.availability.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.availability.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Seasonal Availability (TC-016) -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="season_start">
-                            Season Start
-                        </label>
-                        <select name="season_start" class="form-control">
-                            <option value="">-- Select Month --</option>
-                            {% for month_num, month_name in month_choices %}
-                                <option value="{{ month_num }}" {% if form.season_start.value == month_num %}selected{% endif %}>
-                                    {{ month_name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="season_end">
-                            Season End
-                        </label>
-                        <select name="season_end" class="form-control">
-                            <option value="">-- Select Month --</option>
-                            {% for month_num, month_name in month_choices %}
-                                <option value="{{ month_num }}" {% if form.season_end.value == month_num %}selected{% endif %}>
-                                    {{ month_name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Harvest Date -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="harvest_date">
-                        Harvest Date
-                    </label>
-                    {{ form.harvest_date }}
-                    {% if form.harvest_date.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.harvest_date.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Product Image -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="image">
-                        Product Image
-                    </label>
-                    {% if is_edit and product.image %}
-                        <div class="mb-2">
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-32 h-32 object-cover rounded">
-                            <label class="inline-flex items-center mt-2">
-                                <input type="checkbox" name="image-clear">
-                                <span class="ml-2 text-sm text-gray-700">Remove current image</span>
-                            </label>
-                        </div>
-                    {% endif %}
-                    {{ form.image }}
-                    {% if form.image.errors %}
-                        <p class="text-red-500 text-xs italic">{{ form.image.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Allergen Information - To be added when model includes it (TC-015) -->
-        <div class="mb-6">
-            <label class="block text-gray-700 text-sm font-bold mb-2">
-                Allergen Information
-            </label>
-
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {{ form.allergen_list }}
-            </div>
-
-            {% if form.allergen_list.errors %}
-                <p class="text-red-500 text-xs italic">{{ form.allergen_list.errors.0 }}</p>
-            {% endif %}
-
-            <p class="text-gray-500 text-xs mt-2">
-                Select all allergens present in this product
-            </p>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="flex items-center justify-between mt-6 pt-4 border-t">
-            <div>
-                {% if is_edit %}
-                    <button type="button" 
-                            onclick="showDeleteModal()" 
-                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Delete Product
-                    </button>
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
                 {% endif %}
-            </div>
-            <div class="flex items-center space-x-4">
-                <a href="{% url 'mainApp:producers:myproduct' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
-                    Cancel
-                </a>
-                <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                    {% if is_edit %}Update{% else %}List{% endif %} Product
-                </button>
-            </div>
+
+                <!-- Basic Info -->
+                <div class="section-card">
+                    <div class="section-card-header"><i class="bi bi-tag"></i> Product Information</div>
+                    <div class="section-card-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label>Product Name *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label>Category *</label>
+                                {{ form.category }}
+                                {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label>Price (£) *</label>
+                                {{ form.price }}
+                                {% if form.price.errors %}<div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label>Unit *</label>
+                                {{ form.unit }}
+                                {% if form.unit.errors %}<div class="text-danger small mt-1">{{ form.unit.errors.0 }}</div>{% endif %}
+                                <small class="text-muted">e.g., kg, dozen, each</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Stock Quantity *</label>
+                                {{ form.stock_quantity }}
+                                {% if form.stock_quantity.errors %}<div class="text-danger small mt-1">{{ form.stock_quantity.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label>Availability Status</label>
+                                {{ form.availability }}
+                                {% if form.availability.errors %}<div class="text-danger small mt-1">{{ form.availability.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label>Description *</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+                                <small class="text-muted">Describe your product, including taste, uses and qualities</small>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    {{ form.is_organic }}
+                                    <label class="form-check-label" for="{{ form.is_organic.id_for_label }}">
+                                        This product is organically certified
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seasonal + Image -->
+                <div class="section-card">
+                    <div class="section-card-header"><i class="bi bi-calendar3"></i> Season & Image</div>
+                    <div class="section-card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label>Season Start</label>
+                                <select name="season_start" class="form-control">
+                                    <option value="">-- Select Month --</option>
+                                    {% for month_num, month_name in month_choices %}
+                                        <option value="{{ month_num }}" {% if form.season_start.value == month_num %}selected{% endif %}>
+                                            {{ month_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Season End</label>
+                                <select name="season_end" class="form-control">
+                                    <option value="">-- Select Month --</option>
+                                    {% for month_num, month_name in month_choices %}
+                                        <option value="{{ month_num }}" {% if form.season_end.value == month_num %}selected{% endif %}>
+                                            {{ month_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Harvest Date</label>
+                                {{ form.harvest_date }}
+                                {% if form.harvest_date.errors %}<div class="text-danger small mt-1">{{ form.harvest_date.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label>Product Image</label>
+                                {% if is_edit and product.image %}
+                                <div class="mb-2 d-flex align-items-center gap-3">
+                                    <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid var(--color-border);">
+                                    <label class="d-flex align-items-center gap-2" style="font-weight:400; font-size:0.875rem; cursor:pointer;">
+                                        <input type="checkbox" name="image-clear"> Remove current image
+                                    </label>
+                                </div>
+                                {% endif %}
+                                {{ form.image }}
+                                {% if form.image.errors %}<div class="text-danger small mt-1">{{ form.image.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Allergens -->
+                <div class="section-card">
+                    <div class="section-card-header"><i class="bi bi-exclamation-triangle"></i> Allergen Information</div>
+                    <div class="section-card-body">
+                        <div class="row row-cols-2 row-cols-md-3 g-2">
+                            {{ form.allergen_list }}
+                        </div>
+                        {% if form.allergen_list.errors %}<div class="text-danger small mt-1">{{ form.allergen_list.errors.0 }}</div>{% endif %}
+                        <small class="text-muted d-block mt-2">Select all allergens present in this product</small>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex align-items-center justify-content-end gap-3 mt-2">
+                    <div>
+                        {% if is_edit %}
+                            <button type="button" 
+                                    onclick="showDeleteModal()" 
+                                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                                Delete Product
+                            </button>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'mainApp:producers:myproduct' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn-primary" style="padding:0.6rem 1.5rem;">
+                        <i class="bi bi-{% if is_edit %}save{% else %}plus-lg{% endif %}"></i>
+                        {% if is_edit %}Update{% else %}List{% endif %} Product
+                    </button>
+                </div>
+
+            </form>
         </div>
-    </form>
+    </div>
 
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
@@ -277,6 +276,24 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    function showDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+    
+    function hideDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('deleteModal');
+        if (event.target == modal) {
+            modal.classList.add('hidden');
+        }
+    }
+</script>
+
 <script>
     function showDeleteModal() {
         document.getElementById('deleteModal').classList.remove('hidden');

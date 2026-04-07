@@ -140,59 +140,8 @@ class Address(models.Model):
                     f"Cannot set non-farm address as default."
                 )
     
-    # def _ensure_producer_has_default_farm(self):
-    #     """
-    #     Ensure producers have at least one farm address as default.
-    #     If there's a farm address but none is default, make one default.
-    #     """
-    #     if not self.is_producer:
-    #         return
-        
-    #     # Check if there are any farm addresses
-    #     farm_addresses = Address.objects.filter(
-    #         user=self.user,
-    #         address_type='farm'
-    #     )
-        
-    #     if farm_addresses.exists():
-    #         # Check if any farm address is default
-    #         has_farm_default = farm_addresses.filter(is_default=True).exists()
-            
-    #         if not has_farm_default:
-    #             # Make the most recent farm address default
-    #             latest_farm = farm_addresses.order_by('-created_at').first()
-    #             latest_farm.is_default = True
-    #             latest_farm.save(update_fields=['is_default'])
-    #             logger.info(
-    #                 f"Producer {self.user.username} had no default farm address. "
-    #                 f"Set farm address {latest_farm.id} as default."
-    #             )
-    
-    # def _prevent_farm_address_type_change(self):
-    #     """
-    #     Aliff: THIS IS ALREADY HANDLED A FRONT-END (MAYBE REMOVE IDK)
-    #     Prevent producers from changing a farm address to a different type.
-    #     Producers can only edit their farm address, not change its type.
-    #     """
-    #     if not self.is_producer or not self.pk:
-    #         return
-        
-    #     try:
-    #         old_address = Address.objects.get(pk=self.pk)
-    #         # If it was a farm address and is being changed to something else
-    #         if old_address.address_type == 'farm' and self.address_type != 'farm':
-    #             raise ValidationError(
-    #                 "You cannot change your farm address to a different type. "
-    #                 "If you need a different address type, please add it separately."
-    #             )
-    #     except Address.DoesNotExist:
-    #         pass
-    
-    # In your Address model
-    def save(self, *args, **kwargs):
-        # Skip the default handling if we're only updating is_default
-        # You can pass a flag to skip the logic
 
+    def save(self, *args, **kwargs):
         skip_default_handling = kwargs.pop('skip_default_handling', False)
         skip_geocoding = kwargs.pop('skip_geocoding', False)
         
@@ -320,7 +269,11 @@ class RegularUser(AbstractUser):
         return f"{self.username} ({self.get_role_display()})"
     
     def soft_delete(self):
-        """Soft delete user and anonymize personal data"""
+        """
+        Soft delete user and anonymize personal data
+        
+        Currently not in use, cant decide if i wanna use this or not tbh - aliff
+        """
         # Don't delete, just anonymize
         self.is_active = False
         self.deleted_at = timezone.now()

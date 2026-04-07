@@ -3,163 +3,422 @@
 {% load static %}
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}My Site{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FarmDirect{% endblock %}</title>
     <script>
         if (localStorage.getItem('darkMode') === 'true') {
-            document.documentElement.classList.add('dark-mode');
+            document.documentElement.setAttribute('data-theme', 'dark');
         }
+        var _p = localStorage.getItem('colourPalette');
+        if (_p) document.documentElement.setAttribute('data-palette', _p);
     </script>
 
-    <link rel="stylesheet" href="{% static 'base.css' %}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Design System -->
+    <link rel="stylesheet" href="{% static 'design-system.css' %}">
+
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{% static 'base.css' %}">
 
     <style>
         /* Message Animations */
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(30px); }
+            to   { opacity: 1; transform: translateX(0); }
         }
-        
         @keyframes slideOut {
-            from {
-                opacity: 1;
-                transform: translateX(0);
-            }
-            to {
-                opacity: 0;
-                transform: translateX(30px);
-            }
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(30px); }
         }
-        
         @keyframes progressShrink {
             from { width: 100%; }
-            to { width: 0%; }
+            to   { width: 0%; }
         }
-        
-        /* Messages Container - Fixed overlay positioning */
+
         .messages-container {
             position: fixed;
-            top: 80px; /* Below the navbar */
+            top: 80px;
             right: 20px;
             z-index: 9999;
             width: 350px;
             max-width: calc(100vw - 40px);
-            pointer-events: none; /* Allow clicking through container */
+            pointer-events: none;
         }
-        
-        /* Individual Message */
         .message-item {
-            pointer-events: auto; /* But messages themselves are clickable */
+            pointer-events: auto;
             margin-bottom: 12px;
             border-radius: 8px;
             overflow: hidden;
             animation: slideIn 0.3s ease-out forwards;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.02);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        
-        .message-item.removing {
-            animation: slideOut 0.2s ease-in forwards;
-        }
-        
-        /* Message Types with semi-transparent backgrounds */
-        /* Modern Toast Colors */
+        .message-item.removing { animation: slideOut 0.2s ease-in forwards; }
+        .message-success  { background: linear-gradient(135deg, rgba(240,253,244,0.97), rgba(220,252,231,0.97)); border-left: 4px solid #16a34a; color: #14532d; }
+        .message-error    { background: linear-gradient(135deg, rgba(254,242,242,0.97), rgba(254,226,226,0.97)); border-left: 4px solid #dc2626; color: #7f1d1d; }
+        .message-warning  { background: linear-gradient(135deg, rgba(255,251,235,0.97), rgba(254,243,199,0.97)); border-left: 4px solid #d97706; color: #78350f; }
+        .message-info     { background: linear-gradient(135deg, rgba(239,246,255,0.97), rgba(219,234,254,0.97)); border-left: 4px solid #2563eb; color: #1e3a8a; }
+        .message-content  { display: flex; align-items: flex-start; padding: 16px; }
+        .message-icon     { flex-shrink: 0; margin-right: 12px; font-size: 1.25rem; }
+        .message-text     { flex: 1; font-size: 0.875rem; line-height: 1.5; word-break: break-word; }
+        .message-close    { flex-shrink: 0; margin-left: 12px; background: none; border: none; color: #9ca3af; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .message-close:hover { color: #4b5563; background-color: rgba(0,0,0,0.05); }
+        .message-progress { height: 3px; width: 100%; background-color: rgba(0,0,0,0.1); }
+        .progress-fill    { height: 100%; width: 100%; animation: progressShrink 5s linear forwards; }
+        .progress-fill.success { background: #16a34a; }
+        .progress-fill.error   { background: #dc2626; }
+        .progress-fill.warning { background: #d97706; }
+        .progress-fill.info    { background: #2563eb; }
+        .message-item:hover .progress-fill { animation-play-state: paused; }
 
-        .message-success {
-            background: linear-gradient(135deg, rgba(240,253,244,0.95), rgba(220,252,231,0.95));
-            border-left: 4px solid #16a34a;
-            color: #14532d;
+        /* ── Navbar ── */
+        .fd-navbar {
+            background-color: var(--color-nav-bg);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
 
-        .message-error {
-            background: linear-gradient(135deg, rgba(254,242,242,0.95), rgba(254,226,226,0.95));
-            border-left: 4px solid #dc2626;
-            color: #7f1d1d;
-        }
-
-        .message-warning {
-            background: linear-gradient(135deg, rgba(255,251,235,0.95), rgba(254,243,199,0.95));
-            border-left: 4px solid #d97706;
-            color: #78350f;
-        }
-
-        .message-info {
-            background: linear-gradient(135deg, rgba(239,246,255,0.95), rgba(219,234,254,0.95));
-            border-left: 4px solid #2563eb;
-            color: #1e3a8a;
-        }
-        
-        /* Message Content */
-        .message-content {
+        .fd-navbar-inner {
             display: flex;
-            align-items: flex-start;
-            padding: 16px;
+            align-items: center;
+            padding: 0 1.25rem;
+            height: 64px;
+            gap: 1rem;
         }
-        
-        .message-icon {
+
+        /* Brand */
+        .fd-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
             flex-shrink: 0;
-            margin-right: 12px;
-            font-size: 1.25rem;
         }
-        
-        .message-text {
+        .fd-brand i { color: #6ee76e; font-size: 1.35rem; }
+        .fd-brand span { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
+
+        /* Center search */
+        .fd-search {
             flex: 1;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            word-break: break-word;
+            max-width: 480px;
+            margin: 0 auto;
         }
-        
-        .message-close {
-            flex-shrink: 0;
-            margin-left: 12px;
+        .fd-search form {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 0 0.75rem;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .fd-search form:focus-within {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.4);
+        }
+        .fd-search form i { color: rgba(255,255,255,0.6); font-size: 0.9rem; flex-shrink: 0; }
+        .fd-search input {
             background: none;
             border: none;
-            color: #9ca3af;
+            outline: none;
+            color: white;
+            font-size: 0.875rem;
+            padding: 0.55rem 0.5rem;
+            width: 100%;
+            font-family: inherit;
+        }
+        .fd-search input::placeholder { color: rgba(255,255,255,0.5); }
+        [data-theme="dark"] .fd-search input { background: none !important; }
+
+        /* Right nav */
+        .fd-nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            flex-shrink: 0;
+        }
+
+        .fd-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.45rem 0.75rem;
+            border-radius: 7px;
+            transition: background-color 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+        .fd-nav-link:hover { background: rgba(255,255,255,0.1); color: white; }
+
+        .fd-icon-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.8);
             cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
+            padding: 0.45rem;
+            border-radius: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            font-size: 1.1rem;
+            transition: background-color 0.15s, color 0.15s;
+            position: relative;
         }
-        
-        .message-close:hover {
-            color: #4b5563;
-            background-color: rgba(0, 0, 0, 0.05);
+        .fd-icon-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+        /* ── Palette switcher dropdown ── */
+        .palette-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: var(--color-surface);
+            border: 1.5px solid var(--color-border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 9999;
+            padding: 0.5rem;
         }
-        
-        /* Progress Bar */
-        .message-progress {
-            height: 3px;
+        .palette-dropdown-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--color-muted);
+            padding: 0.3rem 0.5rem 0.5rem;
+        }
+        .palette-swatch {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
             width: 100%;
-            background-color: rgba(0, 0, 0, 0.1);
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 0.45rem 0.6rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text);
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            transition: background 0.12s;
         }
-        
-        .progress-fill {
-            height: 100%;
+        .palette-swatch:hover { background: var(--color-primary-light); }
+        .swatch-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: inline-block;
+        }
+        .swatch-check {
+            margin-left: auto;
+            color: var(--color-primary);
+            font-size: 0.8rem;
+            display: none;
+        }
+        .swatch-check.visible { display: inline; }
+
+        .fd-cart-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #f59e0b;
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 700;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        /* User dropdown */
+        .fd-user-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.15s;
+        }
+        .fd-user-btn:hover { background: rgba(255,255,255,0.2); }
+        .fd-user-btn i { font-size: 1rem; }
+
+        .fd-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            min-width: 200px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        .fd-dropdown-section {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            background: #f9fafb;
+        }
+        .fd-dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 1rem;
+            color: #374151;
+            font-size: 0.875rem;
+            text-decoration: none;
+            transition: background-color 0.12s, color 0.12s;
+        }
+        .fd-dropdown a:hover { background: #f0fdf4; color: #15803d; }
+        .fd-dropdown a i { width: 16px; text-align: center; color: #6b7280; }
+        .fd-dropdown a:hover i { color: #15803d; }
+        .fd-dropdown hr { margin: 0.25rem 0; border-color: #f3f4f6; }
+
+        [data-theme="dark"] .fd-dropdown {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        [data-theme="dark"] .fd-dropdown-section { background: #111827; color: #6b7280; }
+        [data-theme="dark"] .fd-dropdown a { color: #d1d5db; }
+        [data-theme="dark"] .fd-dropdown a:hover { background: #1a3c1a; color: #6ee76e; }
+        [data-theme="dark"] .fd-dropdown a i { color: #6b7280; }
+        [data-theme="dark"] .fd-dropdown a:hover i { color: #6ee76e; }
+        [data-theme="dark"] .fd-dropdown hr { border-color: #374151; }
+
+        .fd-logout-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: background 0.15s;
+        }
+        .fd-logout-btn:hover { background: #b91c1c; }
+
+        /* Mobile hamburger */
+        .fd-hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.4rem;
+            padding: 0.35rem;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .fd-hamburger:hover { background: rgba(255,255,255,0.1); }
+
+        /* Mobile menu */
+        .fd-mobile-menu {
+            background: #1a3c1a;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem 1.25rem 1rem;
+        }
+
+        .fd-mobile-menu .fd-search { max-width: 100%; margin: 0 0 0.75rem; }
+
+        .fd-mobile-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .fd-mobile-links a, .fd-mobile-links button {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.5rem 0.75rem;
+            border-radius: 7px;
+            transition: background 0.15s;
+            background: none;
+            border: none;
+            cursor: pointer;
             width: 100%;
-            animation: progressShrink 5s linear forwards;
+            text-align: left;
         }
-        
-        .progress-fill.success { background: #16a34a; }
-        .progress-fill.error { background: #dc2626; }
-        .progress-fill.warning { background: #d97706; }
-        .progress-fill.info { background: #2563eb; }
-        
-        /* Hover pause effect */
-        .message-item:hover .progress-fill {
-            animation-play-state: running;
+        .fd-mobile-links a:hover, .fd-mobile-links button:hover { background: rgba(255,255,255,0.1); color: white; }
+        .fd-mobile-links hr { border-color: rgba(255,255,255,0.12); margin: 0.35rem 0; }
+
+        @media (max-width: 900px) {
+            .fd-search { display: none; }
+            .fd-nav-link.hide-mobile { display: none; }
         }
-    
+        @media (max-width: 640px) {
+            .fd-hamburger { display: flex; }
+            .fd-nav-right { display: none; }
+        }
+        @media (min-width: 641px) {
+            .fd-mobile-menu { display: none !important; }
+        }
+
+        /* ── Footer ── */
+        .fd-footer {
+            background-color: #1a3c1a;
+            color: rgba(255,255,255,0.85);
+            padding: 3rem 0 0;
+            margin-top: 4rem;
+        }
+        .fd-footer-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1.5fr;
+            gap: 3rem;
+        }
+        .fd-footer-brand i { color: #6ee76e; font-size: 1.4rem; }
+        .fd-footer-brand span { font-weight: 700; font-size: 1.15rem; color: white; }
+        .fd-footer-tagline { font-size: 0.9rem; color: rgba(255,255,255,0.65); margin-top: 0.5rem; line-height: 1.6; max-width: 260px; }
+        .fd-footer h4 { font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.5); margin-bottom: 1rem; }
+        .fd-footer-links { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+        .fd-footer-links a { color: rgba(255,255,255,0.75); font-size: 0.9rem; text-decoration: none; transition: color 0.15s; }
+        .fd-footer-links a:hover { color: white; }
+        .fd-trust-item { display: flex; align-items: center; gap: 0.6rem; color: rgba(255,255,255,0.8); font-size: 0.875rem; margin-bottom: 0.7rem; }
+        .fd-trust-item i { color: #6ee76e; font-size: 1rem; }
+        .fd-footer-bottom { background: rgba(0,0,0,0.25); margin-top: 2.5rem; padding: 1rem 1.5rem; }
+        .fd-footer-bottom-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+        @media (max-width: 768px) {
+            .fd-footer-grid { grid-template-columns: 1fr; gap: 2rem; }
+        }
+
+        main { min-height: calc(100vh - 64px - 200px); }
     </style>
 
     <!-- Bootstrap CSS -->
@@ -171,217 +430,238 @@
     <!-- Tailwind -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-    <!-- alphine js -->
+    <!-- Alpine.js -->
     <script src="//unpkg.com/alpinejs" defer></script>
 
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
-    <nav class="bg-gray-800 text-white py-3 px-4">
-        <div class="container mx-auto flex items-center justify-between">
-            <!-- Logo/Brand -->
-            <a href="{% url 'mainApp:home' %}">
-                <div class="flex items-center space-x-2">
-                    <i class="bi bi-shop text-green-400 text-xl"></i>
-                    <span class="font-bold text-lg">Bristol Food Network</span>
-                </div>
+    <!-- ══════════════ NAVBAR ══════════════ -->
+    <nav class="fd-navbar" x-data="{ mobileOpen: false }">
+        <div class="fd-navbar-inner">
+
+            <!-- Brand -->
+            <a href="{% url 'mainApp:home' %}" class="fd-brand">
+                <i class="bi bi-flower1"></i>
+                <span>FarmDirect</span>
             </a>
 
-            <!-- Navigation Links -->
-            <div class="flex items-center space-x-6">
-                <a href="{% url 'mainApp:products:product_list' %}" class="hover:text-green-400 transition flex items-center space-x-1">
-                    <i class="bi bi-basket"></i>
-                    <span>Marketplace</span>
-                </a>
+            <!-- Center Search (desktop) -->
+            <div class="fd-search">
+                <form method="get" action="{% url 'mainApp:products:product_list' %}">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="q" placeholder="Search fresh produce…" autocomplete="off">
+                </form>
             </div>
 
-            <!-- Dark Mode Toggle -->
-            <button onclick="toggleDarkMode()" id="dark-mode-btn"
-                title="Toggle dark mode"
-                class="text-gray-300 hover:text-white transition p-2 rounded-lg hover:bg-gray-700">
-                <i id="dark-mode-icon" class="bi bi-moon-fill text-lg"></i>
-            </button>
+            <!-- Right nav -->
+            <div class="fd-nav-right">
+                <!-- Marketplace link -->
+                <a href="{% url 'mainApp:products:product_list' %}" class="fd-nav-link hide-mobile">
+                    <i class="bi bi-basket2"></i> Marketplace
+                </a>
 
-            <!-- User Section -->
-            <div class="relative">
-                {% if user.is_authenticated %}
-                    <!-- Authenticated User Menu -->
-                    <div class="flex items-center space-x-4">
-                        <div x-data="{ open: false }" class="relative">
-                            <button 
-                                @click="open = !open"
-                                @keydown.escape="open = false"
-                                class="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-lg"
-                            >
-                                <i class="bi bi-person-circle text-green-400"></i>
-                                <span class="text-sm">
-                                    {{ user.username }}
-                                    <span class="text-xs bg-gray-600 px-2 py-0.5 rounded-full ml-2">
-                                        {{ user.get_role_display }}
-                                    </span>
-                                </span>
-                                <i class="bi bi-chevron-down text-gray-300"></i>
-                            </button>
-
-                            <div 
-                                x-show="open"
-                                @click.away="open = false"
-                                x-transition
-                                class="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl z-50"
-                                style="display:none;"
-                            >
-                                <a href="{% url 'mainApp:profile' %}" 
-                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
-                                    <i class="bi bi-person me-2"></i> Account
-                                </a>
-
-                                <a href="{% url 'mainApp:customers:view_cart' %}"
-                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
-                                    <i class="bi bi-cart3 me-2"></i> Cart
-                                </a>
-
-                                {% if user.role == 'producer' %}
-                                <a href="{% url 'mainApp:producers:myproduct' %}"
-                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
-                                    <i class="bi bi-box-seam me-2"></i> My Products
-                                </a>
-                                <a href="{% url 'mainApp:producers:myorders' %}"
-                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
-                                    <i class="bi bi-receipt me-2"></i> My Orders
-                                </a>
-                                <a href="{% url 'mainApp:producers:quality_scan' %}"
-                                class="block px-4 py-2 hover:bg-green-500 hover:text-white transition">
-                                    <i class="bi bi-stars me-2"></i> Quality Scan
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <form action="{% url 'mainApp:logout' %}" method="post" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition">
-                                <i class="bi bi-box-arrow-right"></i>
-                                <span>Logout</span>
-                            </button>
-                        </form>
+                <!-- Theme switcher -->
+                <div x-data="{ paletteOpen: false }" style="position:relative;">
+                    <button @click="paletteOpen = !paletteOpen" @keydown.escape="paletteOpen = false"
+                        class="fd-icon-btn" title="Change theme" aria-label="Change colour theme">
+                        <i class="bi bi-palette2"></i>
+                    </button>
+                    <div x-show="paletteOpen" @click.away="paletteOpen = false"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="palette-dropdown" style="display:none;">
+                        <div class="palette-dropdown-title">Colour Theme</div>
+                        <button class="palette-swatch" onclick="setPalette('')" data-palette="">
+                            <span class="swatch-dot" style="background:#2d6a2d;"></span>
+                            <span>Farm Green</span>
+                            <i class="bi bi-check-lg swatch-check" id="check-"></i>
+                        </button>
+                        <button class="palette-swatch" onclick="setPalette('slate-forest')" data-palette="slate-forest">
+                            <span class="swatch-dot" style="background:#1e3a2f;"></span>
+                            <span>Slate &amp; Forest</span>
+                            <i class="bi bi-check-lg swatch-check" id="check-slate-forest"></i>
+                        </button>
+                        <button class="palette-swatch" onclick="setPalette('warm-olive')" data-palette="warm-olive">
+                            <span class="swatch-dot" style="background:#3d5a3e; outline: 2px solid #c8a96e; outline-offset:1px;"></span>
+                            <span>Warm Olive</span>
+                            <i class="bi bi-check-lg swatch-check" id="check-warm-olive"></i>
+                        </button>
+                        <button class="palette-swatch" onclick="setPalette('navy-green')" data-palette="navy-green">
+                            <span class="swatch-dot" style="background:#0f172a;"></span>
+                            <span>Navy &amp; Green</span>
+                            <i class="bi bi-check-lg swatch-check" id="check-navy-green"></i>
+                        </button>
+                        <button class="palette-swatch" onclick="setPalette('charcoal-sage')" data-palette="charcoal-sage">
+                            <span class="swatch-dot" style="background:#6b7c4d;"></span>
+                            <span>Charcoal &amp; Sage</span>
+                            <i class="bi bi-check-lg swatch-check" id="check-charcoal-sage"></i>
+                        </button>
+                        <button class="palette-swatch" onclick="setPalette('teal-orange')" data-palette="teal-orange">
+                            <span class="swatch-dot" style="background:#0d7c66;"></span>
+                            <span>Teal &amp; Orange</span>
+                            <i class="bi bi-check-lg swatch-check" id="check-teal-orange"></i>
+                        </button>
                     </div>
-                {% else %}
-                    <!-- Dropdown Menu with Alpine.js -->
-                    <div x-data="{ open: false }" class="relative">
-                        <!-- Dropdown Button -->
-                        <button 
-                            @click="open = !open" 
-                            @keydown.escape="open = false"
-                            class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition"
-                        >
+                </div>
+
+                <!-- Dark mode toggle -->
+                <button onclick="toggleDarkMode()" id="dark-mode-btn" class="fd-icon-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <i id="dark-mode-icon" class="bi bi-moon-fill"></i>
+                </button>
+
+                {% if user.is_authenticated %}
+                    <!-- Cart icon -->
+                    <a href="{% url 'mainApp:customers:view_cart' %}" class="fd-icon-btn" aria-label="View cart">
+                        <i class="bi bi-cart3"></i>
+                    </a>
+
+                    <!-- User dropdown -->
+                    <div x-data="{ open: false }" class="relative" style="position:relative;">
+                        <button @click="open = !open" @keydown.escape="open = false" class="fd-user-btn">
                             <i class="bi bi-person-circle"></i>
-                            <span>Account</span>
-                            <i class="bi bi-chevron-down" :class="{ 'rotate-180': open }" style="transition: transform 0.2s;"></i>
+                            <span>{{ user.username }}</span>
+                            <i class="bi bi-chevron-down" style="font-size:0.7rem;" :class="{ 'rotate-180': open }" style="transition:transform 0.2s;"></i>
                         </button>
 
-                        <!-- Dropdown Menu -->
-                        <div 
-                            x-show="open" 
-                            @click.away="open = false"
-                            x-transition:enter="transition ease-out duration-200"
-                            x-transition:enter-start="opacity-0 transform scale-95"
-                            x-transition:enter-end="opacity-100 transform scale-100"
-                            x-transition:leave="transition ease-in duration-150"
-                            x-transition:leave-start="opacity-100 transform scale-100"
-                            x-transition:leave-end="opacity-0 transform scale-95"
-                            class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl z-50"
-                            style="display: none;"
-                        >
-                            <!-- Admin Section -->
-                            <div class="px-4 py-2 bg-gray-100 rounded-t-lg flex items-center space-x-2">
-                                <i class="bi bi-shield-lock text-gray-700"></i>
-                                <span class="font-semibold text-gray-700 text-sm">Administrator</span>
-                            </div>
-                            <a href="{% url 'admin:index' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
-                                <i class="bi bi-box-arrow-in-right group-hover:text-white text-gray-500"></i>
-                                <span>Admin Login</span>
-                            </a>
-
-                            <div class="border-t border-gray-200 my-1"></div>
-
-                            <!-- Producer Section -->
-                            <div class="px-4 py-2 bg-gray-50 flex items-center space-x-2">
-                                <i class="bi bi-truck text-gray-700"></i>
-                                <span class="font-semibold text-gray-700 text-sm">Producer</span>
-                            </div>
-                            <a href="{% url 'mainApp:producers:login' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
-                                <i class="bi bi-box-arrow-in-right group-hover:text-white text-gray-500"></i>
-                                <span>Login</span>
-                            </a>
-                            <a href="{% url 'mainApp:producers:register' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
-                                <i class="bi bi-pencil-square group-hover:text-white text-gray-500"></i>
-                                <span>Register</span>
-                            </a>
-
-                            <div class="border-t border-gray-200 my-1"></div>
-
-                            <!-- Customer Section -->
-                            <div class="px-4 py-2 bg-gray-50 flex items-center space-x-2">
-                                <i class="bi bi-person text-gray-700"></i>
-                                <span class="font-semibold text-gray-700 text-sm">Customer</span>
-                            </div>
-                            <a href="{% url 'mainApp:customers:login' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition group">
-                                <i class="bi bi-box-arrow-in-right group-hover:text-white text-gray-500"></i>
-                                <span>Login</span>
-                            </a>
-                            <a href="{% url 'mainApp:customers:register' %}" class="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-green-500 hover:text-white transition rounded-b-lg group">
-                                <i class="bi bi-pencil-square group-hover:text-white text-gray-500"></i>
-                                <span>Register</span>
-                            </a>
+                        <div x-show="open" @click.away="open = false" x-transition class="fd-dropdown" style="display:none;">
+                            <div class="fd-dropdown-section">My Account</div>
+                            <a href="{% url 'mainApp:profile' %}"><i class="bi bi-person"></i> Profile</a>
+                            <a href="{% url 'mainApp:customers:view_cart' %}"><i class="bi bi-cart3"></i> Cart</a>
+                            {% if user.role == 'producer' %}
+                            <hr>
+                            <div class="fd-dropdown-section">Producer</div>
+                            <a href="{% url 'mainApp:producers:myproduct' %}"><i class="bi bi-box-seam"></i> My Products</a>
+                            <a href="{% url 'mainApp:producers:myorders' %}"><i class="bi bi-receipt"></i> My Orders</a>
+                            <a href="{% url 'mainApp:producers:quality_scan' %}"><i class="bi bi-stars"></i> Quality Scan</a>
+                            {% endif %}
                         </div>
                     </div>
+
+                    <form action="{% url 'mainApp:logout' %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="fd-logout-btn">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </form>
+
+                {% else %}
+                    <!-- Account dropdown for guests -->
+                    <div x-data="{ open: false }" class="relative" style="position:relative;">
+                        <button @click="open = !open" @keydown.escape="open = false" class="fd-user-btn">
+                            <i class="bi bi-person-circle"></i>
+                            <span>Account</span>
+                            <i class="bi bi-chevron-down" style="font-size:0.7rem;"></i>
+                        </button>
+
+                        <div x-show="open" @click.away="open = false"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="fd-dropdown" style="display:none;">
+
+                            <div class="fd-dropdown-section">Customer</div>
+                            <a href="{% url 'mainApp:customers:login' %}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                            <a href="{% url 'mainApp:customers:register' %}"><i class="bi bi-pencil-square"></i> Register</a>
+
+                            <hr>
+
+                            <div class="fd-dropdown-section">Producer</div>
+                            <a href="{% url 'mainApp:producers:login' %}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                            <a href="{% url 'mainApp:producers:register' %}"><i class="bi bi-pencil-square"></i> Register</a>
+
+                            <hr>
+
+                            <div class="fd-dropdown-section">Administrator</div>
+                            <a href="{% url 'admin:index' %}"><i class="bi bi-shield-lock"></i> Admin Login</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Mobile hamburger -->
+            <button class="fd-hamburger" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
+                <i :class="mobileOpen ? 'bi bi-x-lg' : 'bi bi-list'"></i>
+            </button>
+        </div>
+
+        <!-- Mobile menu -->
+        <div class="fd-mobile-menu" x-show="mobileOpen" x-transition style="display:none;">
+            <div class="fd-search">
+                <form method="get" action="{% url 'mainApp:products:product_list' %}">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="q" placeholder="Search produce…" autocomplete="off">
+                </form>
+            </div>
+            <div class="fd-mobile-links">
+                <a href="{% url 'mainApp:products:product_list' %}"><i class="bi bi-basket2"></i> Marketplace</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'mainApp:profile' %}"><i class="bi bi-person"></i> My Account</a>
+                    <a href="{% url 'mainApp:customers:view_cart' %}"><i class="bi bi-cart3"></i> Cart</a>
+                    {% if user.role == 'producer' %}
+                        <a href="{% url 'mainApp:producers:myproduct' %}"><i class="bi bi-box-seam"></i> My Products</a>
+                        <a href="{% url 'mainApp:producers:myorders' %}"><i class="bi bi-receipt"></i> My Orders</a>
+                        <a href="{% url 'mainApp:producers:quality_scan' %}"><i class="bi bi-stars"></i> Quality Scan</a>
+                    {% endif %}
+                    <hr>
+                    <form action="{% url 'mainApp:logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                    </form>
+                {% else %}
+                    <hr>
+                    <a href="{% url 'mainApp:customers:login' %}"><i class="bi bi-person"></i> Customer Login</a>
+                    <a href="{% url 'mainApp:customers:register' %}"><i class="bi bi-pencil-square"></i> Customer Register</a>
+                    <a href="{% url 'mainApp:producers:login' %}"><i class="bi bi-truck"></i> Producer Login</a>
+                    <a href="{% url 'mainApp:producers:register' %}"><i class="bi bi-pencil-square"></i> Producer Register</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <!-- Django Messages - Overlay Container -->
+    <!-- ══════════════ MESSAGES ══════════════ -->
     {% if messages %}
         <div class="messages-container">
             {% for message in messages %}
-                <div class="message-item 
+                <div class="message-item
                     {% if message.tags == 'success' %}message-success
                     {% elif message.tags == 'error' %}message-error
                     {% elif message.tags == 'warning' %}message-warning
-                    {% else %}message-info{% endif %}" 
+                    {% else %}message-info{% endif %}"
                     role="alert"
                     data-message-id="{{ forloop.counter }}">
-                    
+
                     <div class="message-content">
-                        <!-- Icon based on message type -->
                         <div class="message-icon">
-                            <i class="bi 
-                                {% if message.tags == 'success' %}bi-check-circle-fill text-green-500
-                                {% elif message.tags == 'error' %}bi-exclamation-triangle-fill text-red-500
-                                {% elif message.tags == 'warning' %}bi-exclamation-triangle text-yellow-500
-                                {% else %}bi-info-circle-fill text-blue-500{% endif %}">
+                            <i class="bi
+                                {% if message.tags == 'success' %}bi-check-circle-fill text-success
+                                {% elif message.tags == 'error' %}bi-exclamation-triangle-fill text-danger
+                                {% elif message.tags == 'warning' %}bi-exclamation-triangle text-warning
+                                {% else %}bi-info-circle-fill text-info{% endif %}">
                             </i>
                         </div>
-                        
-                        <!-- Message text -->
-                        <div class="message-text 
-                            {% if message.tags == 'success' %}text-green-800
-                            {% elif message.tags == 'error' %}text-red-800
-                            {% elif message.tags == 'warning' %}text-yellow-800
-                            {% else %}text-blue-800{% endif %}">
+                        <div class="message-text
+                            {% if message.tags == 'success' %}text-success
+                            {% elif message.tags == 'error' %}text-danger
+                            {% elif message.tags == 'warning' %}text-warning
+                            {% else %}text-info{% endif %}">
                             {{ message }}
                         </div>
-                        
-                        <!-- Close button -->
                         <button class="message-close" onclick="dismissMessage(this)" aria-label="Close">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
-                    
-                    <!-- Progress bar -->
+
                     <div class="message-progress">
-                        <div class="progress-fill 
+                        <div class="progress-fill
                             {% if message.tags == 'success' %}success
                             {% elif message.tags == 'error' %}error
                             {% elif message.tags == 'warning' %}warning
@@ -393,87 +673,130 @@
         </div>
     {% endif %}
 
+    <!-- ══════════════ MAIN CONTENT ══════════════ -->
     <main>
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <p>My Footer</p>
+    <!-- ══════════════ FOOTER ══════════════ -->
+    <footer class="fd-footer">
+        <div class="fd-footer-grid">
+            <!-- Brand column -->
+            <div>
+                <div class="fd-footer-brand d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-flower1"></i>
+                    <span>FarmDirect</span>
+                </div>
+                <p class="fd-footer-tagline">Fresh from farm to your door. Supporting local producers across the Bristol region.</p>
+            </div>
+
+            <!-- Quick links -->
+            <div>
+                <h4>Quick Links</h4>
+                <ul class="fd-footer-links">
+                    <li><a href="{% url 'mainApp:products:product_list' %}"><i class="bi bi-basket2 me-1"></i> Marketplace</a></li>
+                    <li><a href="{% url 'mainApp:producers:register' %}"><i class="bi bi-shop me-1"></i> Become a Producer</a></li>
+                    {% if user.is_authenticated %}
+                    <li><a href="{% url 'mainApp:profile' %}"><i class="bi bi-person me-1"></i> My Account</a></li>
+                    {% else %}
+                    <li><a href="{% url 'mainApp:customers:login' %}"><i class="bi bi-box-arrow-in-right me-1"></i> Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Trust badges -->
+            <div>
+                <h4>Our Commitment</h4>
+                <div class="fd-trust-item"><i class="bi bi-patch-check-fill"></i> Locally Sourced Produce</div>
+                <div class="fd-trust-item"><i class="bi bi-leaf-fill"></i> Food Miles Tracked</div>
+                <div class="fd-trust-item"><i class="bi bi-shield-lock-fill"></i> Secure Payments</div>
+                <div class="fd-trust-item"><i class="bi bi-arrow-repeat"></i> Free Returns</div>
+            </div>
+        </div>
+
+        <div class="fd-footer-bottom">
+            <div class="fd-footer-bottom-inner">
+                <span>&copy; 2026 FarmDirect &mdash; Bristol Food Network</span>
+                <span>Supporting local farmers &amp; communities</span>
+            </div>
+        </div>
     </footer>
 
-    <!-- JavaScript for enhanced message functionality -->
+    <!-- ══════════════ JAVASCRIPT ══════════════ -->
     <script>
-        // Message dismissal function
         function dismissMessage(button) {
             const messageItem = button.closest('.message-item');
             if (messageItem) {
-                // Add removing class for exit animation
                 messageItem.classList.add('removing');
-                
-                // Remove after animation completes
                 setTimeout(() => {
                     if (messageItem.parentNode) {
                         messageItem.remove();
-                        
-                        // If no messages left, remove container if empty
                         const container = document.querySelector('.messages-container');
-                        if (container && container.children.length === 0) {
-                            container.remove();
-                        }
+                        if (container && container.children.length === 0) container.remove();
                     }
                 }, 200);
             }
         }
-        
-        // Auto-dismiss messages after 5 seconds
-        document.addEventListener('DOMContentLoaded', function() {
+
+        document.addEventListener('DOMContentLoaded', function () {
             const messages = document.querySelectorAll('.message-item');
-            
-            messages.forEach(function(message) {
-                // Auto-dismiss after 5 seconds
+            messages.forEach(function (message) {
                 const timeoutId = setTimeout(() => {
                     if (message && message.parentNode) {
                         message.classList.add('removing');
-                        
                         setTimeout(() => {
                             if (message.parentNode) {
                                 message.remove();
-                                
-                                // Check if container is empty
                                 const container = document.querySelector('.messages-container');
-                                if (container && container.children.length === 0) {
-                                    container.remove();
-                                }
+                                if (container && container.children.length === 0) container.remove();
                             }
                         }, 200);
                     }
                 }, 5000);
-                
-                // Store timeout on element to allow cancellation
                 message._dismissTimeout = timeoutId;
             });
         });
     </script>
 
     <script>
+        /* ── Dark mode ── */
         function toggleDarkMode() {
-            var isDark = document.documentElement.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', isDark);
-            updateDarkModeIcon(isDark);
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+            localStorage.setItem('darkMode', !isDark);
+            updateDarkModeIcon(!isDark);
         }
 
         function updateDarkModeIcon(isDark) {
-            var icon = document.getElementById('dark-mode-icon');
-            if (icon) icon.className = isDark ? 'bi bi-sun-fill text-lg' : 'bi bi-moon-fill text-lg';
+            const icon = document.getElementById('dark-mode-icon');
+            if (icon) icon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+        }
+
+        /* ── Colour palette ── */
+        function setPalette(palette) {
+            if (palette) {
+                document.documentElement.setAttribute('data-palette', palette);
+            } else {
+                document.documentElement.removeAttribute('data-palette');
+            }
+            localStorage.setItem('colourPalette', palette);
+            updatePaletteChecks(palette);
+        }
+
+        function updatePaletteChecks(active) {
+            document.querySelectorAll('.swatch-check').forEach(function(el) {
+                el.classList.remove('visible');
+            });
+            const activeCheck = document.getElementById('check-' + active);
+            if (activeCheck) activeCheck.classList.add('visible');
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            updateDarkModeIcon(document.documentElement.classList.contains('dark-mode'));
+            updateDarkModeIcon(document.documentElement.getAttribute('data-theme') === 'dark');
+            updatePaletteChecks(localStorage.getItem('colourPalette') || '');
         });
     </script>
 
-    {% block extra_js %}
-    {% endblock %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

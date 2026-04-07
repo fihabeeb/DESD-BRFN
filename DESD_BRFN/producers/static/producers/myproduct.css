@@ -1,9 +1,8 @@
 /* ===== PRODUCER — MY PRODUCTS PAGE ===== */
 
 .myproduct-wrapper {
-    max-width: 1100px;
-    margin: 2rem auto;
-    padding: 0 1rem 4rem;
+    max-width: 100%;
+    padding: 0 0 4rem;
 }
 
 /* ── Page header ── */
@@ -295,4 +294,85 @@
     color: white;
     border-color: #2d6a2d;
     pointer-events: none;
+}
+
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+[data-theme="dark"] .producer-sidebar {
+    background: #0d1f0d;
+}
+
+[data-theme="dark"] .producer-main {
+    background: var(--color-bg);
+}
+
+[data-theme="dark"] .myproduct-wrapper {
+    background: var(--color-bg);
+}
+
+[data-theme="dark"] .filter-bar {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .filter-bar label,
+[data-theme="dark"] .filter-checkbox {
+    color: #d1d5db;
+}
+
+[data-theme="dark"] .table-card {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .table-card thead {
+    background: var(--color-bg);
+    border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .table-card th,
+[data-theme="dark"] .table-card th a {
+    color: var(--color-muted);
+}
+
+[data-theme="dark"] .table-card td {
+    border-bottom-color: var(--color-border);
+    color: #d1d5db;
+}
+
+[data-theme="dark"] .table-card tbody tr:hover { background: #253347; }
+[data-theme="dark"] .table-card tbody tr.row-low-stock { background: #2d1f1f; }
+[data-theme="dark"] .table-card tbody tr.row-low-stock:hover { background: #3a2020; }
+
+[data-theme="dark"] .avail-pill.in-season   { background: #1e3a5f; color: #93c5fd; }
+[data-theme="dark"] .avail-pill.available   { background: #14532d; color: #86efac; }
+[data-theme="dark"] .avail-pill.unavailable { background: #374151; color: #9ca3af; }
+[data-theme="dark"] .avail-pill.out-season  { background: #431407; color: #fdba74; }
+
+[data-theme="dark"] .stat-card {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .stat-label { color: var(--color-muted); }
+[data-theme="dark"] .stat-value { color: var(--color-text); }
+
+[data-theme="dark"] .pagination-bar a,
+[data-theme="dark"] .pagination-bar span {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-primary);
+}
+
+[data-theme="dark"] .pagination-bar a:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+[data-theme="dark"] .pagination-bar span {
+    background: var(--color-primary);
+    color: white;
 }

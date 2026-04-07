@@ -4,200 +4,250 @@
 
 {% block extra_css %}
 <style>
-    /* Product link styling */
-    .product-link {
-        color: #4f46e5;
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    
-    .product-link:hover {
-        color: #4338ca;
-        text-decoration: underline;
-        text-decoration-thickness: 2px;
-        text-underline-offset: 2px;
-    }
-    
-    /* Alternative: if you want no underline at all even on hover */
-    .product-link-no-underline {
-        color: #4f46e5;
-        text-decoration: none;
-        font-weight: 500;
-        transition: color 0.2s ease;
-    }
-    
-    .product-link-no-underline:hover {
-        color: #4338ca;
-        text-decoration: none;
-    }
-    
-    /* For table cell specific styling */
-    .order-item-link {
-        color: #1f2937;
-        text-decoration: none;
-        font-weight: 500;
-        display: inline-block;
-        transition: color 0.2s ease;
-    }
-    
-    .order-item-link:hover {
-        color: #4f46e5;
-        text-decoration: underline;
-        text-decoration-thickness: 1px;
-        text-underline-offset: 2px;
-    }
+.profile-wrapper { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+
+/* Profile hero */
+.profile-hero {
+    background: linear-gradient(135deg, #1a3c1a 0%, #2d6a2d 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.profile-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    border: 3px solid rgba(255,255,255,0.3);
+}
+.profile-hero-name { font-size: 1.4rem; font-weight: 800; margin: 0 0 0.2rem; }
+.profile-hero-sub  { font-size: 0.875rem; color: rgba(255,255,255,0.75); }
+
+/* Tabs */
+.profile-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+}
+.profile-tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 0.65rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+.profile-tab-btn:hover { color: var(--color-primary); }
+.profile-tab-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+/* Tab panels */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Stats */
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 640px) { .profile-stats { grid-template-columns: repeat(2, 1fr); } }
+.profile-stat-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+}
+.profile-stat-num { font-size: 1.6rem; font-weight: 800; color: var(--color-primary); }
+.profile-stat-label { font-size: 0.75rem; color: var(--color-muted); font-weight: 500; margin-top: 0.2rem; }
+
+/* Info cards */
+.profile-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+.profile-card-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.profile-card-title i { color: var(--color-primary); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8" style="max-width: 900px;">
-    <!-- Header -->
-    <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 mb-2">My Account</h2>
-        <p class="text-gray-600">Manage your personal information and view your active orders.</p>
+<div class="profile-wrapper">
+
+    <!-- Profile hero -->
+    <div class="profile-hero">
+        <div class="profile-avatar"><i class="bi bi-person-circle"></i></div>
+        <div>
+            <h1 class="profile-hero-name">{{ user.first_name|default:user.username }}</h1>
+            {% if user.role == 'customer' %}
+            <p class="profile-hero-sub">@{{ user.username }} &mdash; Customer Account</p>
+
+            {% elif user.role == 'producer' %}
+            <p class="profile-hero-sub">@{{ user.username }} &mdash; Producer Account</p>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Personal Information Card -->
-    <div class="card mb-6 shadow-sm border-0">
-        <div class="card-body p-6">
-            <h4 class="card-title text-xl font-semibold text-gray-800 mb-2">Personal Information</h4>
-            <p class="card-text text-gray-600 mb-4">View and update your personal details and delivery address.</p>
-            {% if user.role == 'producer' %}
-            <a href="{% url 'mainApp:producers:personal_info' %}" class="btn btn-primary">
-                View Personal Info
+    <!-- Tabs nav -->
+    <div class="profile-tabs">
+        <button class="profile-tab-btn active" data-tab="overview">
+            <i class="bi bi-grid-1x2"></i> Overview
+        </button>
+        <button class="profile-tab-btn" data-tab="orders">
+            <i class="bi bi-receipt"></i> Orders
+        </button>
+        <button class="profile-tab-btn" data-tab="addresses">
+            <i class="bi bi-geo-alt"></i> Addresses
+        </button>
+        <button class="profile-tab-btn" data-tab="settings">
+            <i class="bi bi-gear"></i> Settings
+        </button>
+    </div>
+
+    <!-- Tab content -->
+    <div id="tab-overview" class="tab-panel active">
+        <div class="profile-stats">
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">—</div>
+                <div class="profile-stat-label">Total Orders</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">—</div>
+                <div class="profile-stat-label">Total Spent</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">—</div>
+                <div class="profile-stat-label">Farms Supported</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">Free</div>
+                <div class="profile-stat-label">Returns</div>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <div class="profile-card-title"><i class="bi bi-lightning-charge"></i> Quick Actions</div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary">
+                    <i class="bi bi-basket2"></i> Browse Marketplace
+                </a>
+                <a href="{% url 'mainApp:customers:view_cart' %}" class="btn-outline">
+                    <i class="bi bi-cart3"></i> View Cart
+                </a>
+                <a href="{% url 'mainApp:manage_addresses' %}" class="btn-outline">
+                    <i class="bi bi-geo-alt"></i> Manage Addresses
+                </a>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <div class="profile-card-title"><i class="bi bi-person"></i> Personal Information</div>
+            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Keep your profile up to date for accurate deliveries.</p>
+
+            {% if user.role == "customer" %}
+            <a href="{% url 'mainApp:customers:personal_info' %}" class="btn-primary">
+                <i class="bi bi-pencil"></i> Edit Profile
             </a>
-            {% else %}
-            <a href="{% url 'mainApp:customers:personal_info' %}" class="btn btn-primary">
-                View Personal Info
+            {% elif user.role == "producer" %}
+            <a href="{% url 'mainApp:producers:personal_info' %}" class="btn-primary">
+                <i class="bi bi-pencil"></i> Edit Profile
             </a>
             {% endif %}
         </div>
     </div>
 
-     <!-- Header -->
-    <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 mt-5">Active Orders</h2>
+    <div id="tab-orders" class="tab-panel">
+        <div class="profile-card">
+            <div class="profile-card-title"><i class="bi bi-receipt"></i> Order History</div>
+
+            
+            <p style="color:var(--color-muted); font-size:0.875rem;">Your order history will appear here once you've made purchases.</p>
+            <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary" style="margin-top:0.75rem; display:inline-flex;">
+                <i class="bi bi-basket2"></i> Start Shopping
+            </a>
+        </div>
     </div>
 
-    <!-- Latest Order Section -->
-    {% if latest_order %}
-        <div class="card shadow-sm border-0 overflow-hidden">
-            <!-- Header -->
-            <div class="p-6 text-white bg-gradient-to-r from-green-600 to-emerald-600">
-                <h3 class="text-xl font-bold mb-1">Latest Order</h3>
-                <p class="opacity-90">Order #{{ latest_order.id }}</p>
-                <p class="text-sm opacity-75 mt-1">Status: {{ latest_order.get_payment_status_display }}</p>
-            </div>
-            
-            <!-- Order Summary -->
-            <div class="bg-gray-50 p-4 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <span class="text-gray-600 font-medium">Order Date:</span>
-                        <span class="text-gray-800 ml-2">{{ latest_order.created_at|date:"F j, Y" }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-600 font-medium">Total Amount:</span>
-                        <span class="text-gray-800 font-semibold ml-2">£{{ latest_order.total_amount }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-600 font-medium">Items:</span>
-                        <span class="text-gray-800 ml-2">{{ latest_order.producer_orders.count }} package(s)</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Producer Orders -->
-            {% for producer in order_data.producers %}
-                <div class="border-bottom p-4 hover:bg-gray-50 transition-colors">
-                    <!-- Producer Header -->
-                    <div class="flex justify-between align-items-start mb-3 flex-wrap">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-2 md:mb-0">{{ producer.business_name }}</h4>
-                        <span class="badge 
-                            {% if producer.status == 'Confirmed' %}bg-success
-                            {% elif producer.status == 'Preparing' %}bg-info
-                            {% elif producer.status == 'Ready' %}bg-primary
-                            {% elif producer.status == 'Delivered' %}bg-secondary
-                            {% elif producer.status == 'Cancelled' %}bg-danger
-                            {% else %}bg-warning{% endif %}">
-                            {{ producer.status }}
-                        </span>
-                    </div>
-                    
-                    <!-- Delivery Date -->
-                    <div class="text-gray-600 text-sm mb-3">
-                        Delivery by: {{ producer.delivery_date|date:"F j, Y" }}
-                    </div>
-                    
-                    {% if producer.customer_note %}
-                        <div class="bg-gray-50 p-2 rounded mb-3 text-sm">
-                            <strong class="text-gray-700">Note to producer:</strong> {{ producer.customer_note }}
-                        </div>
-                    {% endif %}
-                    
-                    <!-- Items Table -->
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="border-0 py-2">Product</th>
-                                    <th class="border-0 py-2 text-center">Quantity</th>
-                                    <th class="border-0 py-2 text-end">Price</th>
-                                    <th class="border-0 py-2 text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in producer.items %}
-                                    <tr>
-                                        <td class="border-0 py-2">
-                                            <a href="{% url 'mainApp:products:product_detail' item.product_id %}"
-                                            class="text-primary text-decoration-none fw-medium hover-text-decoration-underline">
-                                                {{ item.name }}
-                                            </a>
-                                        </td>
-                                        <td class="border-0 py-2 text-center">
-                                            {{ item.quantity }} {% if item.unit %}{{ item.unit }}{% endif %}
-                                        </td>
-                                        <td class="border-0 py-2 text-end">£{{ item.price }}</td>
-                                        <td class="border-0 py-2 text-end font-medium">£{{ item.line_total }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot class="bg-gray-50">
-                                <tr>
-                                    <td colspan="3" class="border-0 py-2 text-end font-semibold">Subtotal:</td>
-                                    <td class="border-0 py-2 text-end font-semibold">£{{ producer.subtotal }}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            {% endfor %}
-            
-            <!-- View All Orders Link -->
-            <div class="text-center p-4 bg-gray-50">
-                <a href="{% url 'mainApp:orders:order_history' %}" 
-                class="text-indigo-600 hover:text-indigo-800 font-medium text-decoration-none">
-                    View All Orders →
-                </a>
-            </div>
+    <div id="tab-addresses" class="tab-panel">
+        <div class="profile-card">
+            <div class="profile-card-title"><i class="bi bi-geo-alt"></i>Addresses</div>
+            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Manage your saved delivery addresses, business address or others.</p>
+            <a href="{% url 'mainApp:manage_addresses' %}" class="btn-primary">
+                <i class="bi bi-geo-alt-fill"></i> Manage Addresses
+            </a>
         </div>
-        
-    {% else %}
-        <!-- Empty State -->
-        <div class="card shadow-sm border-0 overflow-hidden">
-            <div class="text-center py-12 px-4">
-                <div class="text-gray-400 text-5xl mb-4">
-                    <i class="bi bi-box2-fill"></i>
-                </div>
-                <p class="text-gray-600 mb-4">You haven't placed any orders yet.</p>
-                <a href="{% url 'mainApp:home' %}"
-                class="btn btn-primary">
-                    Start Shopping
-                </a>
-            </div>
+    </div>
+
+    <div id="tab-settings" class="tab-panel">
+        <div class="profile-card">
+            <div class="profile-card-title"><i class="bi bi-gear"></i> Account Settings</div>
+            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Update your personal information, password, or delete your account.</p>
+
+            {% if user.role == "customer" %}
+            <a href="{% url 'mainApp:customers:personal_info' %}" class="btn-primary">
+                <i class="bi bi-pencil"></i> Edit Settings
+            </a>
+            {% elif user.role == "producer" %}
+            <a href="{% url 'mainApp:producers:personal_info' %}" class="btn-primary">
+                <i class="bi bi-pencil"></i> Edit Settings
+            </a>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabBtns = document.querySelectorAll('.profile-tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const targetId = 'tab-' + this.getAttribute('data-tab');
+
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabPanels.forEach(p => p.classList.remove('active'));
+
+            this.classList.add('active');
+            const panel = document.getElementById(targetId);
+            if (panel) panel.classList.add('active');
+        });
+    });
+});
+</script>
 {% endblock %}
