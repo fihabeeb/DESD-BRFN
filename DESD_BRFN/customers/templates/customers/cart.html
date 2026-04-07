@@ -8,191 +8,201 @@
 {% endblock %}
 
 {% block content %}
-<div class="cart-wrapper">
+<div class="cart-page-wrapper">
 
-    <div class="cart-header">
-        <h2><i class="bi bi-cart3"></i> Your Cart</h2>
+    <!-- Page heading -->
+    <div class="cart-page-header">
+        <h1><i class="bi bi-cart3"></i> Your Cart</h1>
         {% if producer_sections %}
-            <p>Items grouped by producer &mdash; food miles measured from each farm to Bristol city centre</p>
+            <p class="text-muted">Items grouped by producer &mdash; food miles measured from each farm to Bristol city centre</p>
         {% endif %}
     </div>
 
     {% if producer_sections %}
-        <!-- Producer sections view -->
-        {% for section in producer_sections %}
-        <div class="producer-section">
-            <!-- Producer header with food miles -->
-            <div class="producer-section-header">
-                <div class="producer-name">
-                    <i class="bi bi-shop"></i>
-                    {% if section.producer %}
-                        {{ section.producer.business_name }}
+    <!-- Two-column layout: items + sidebar -->
+    <div class="cart-layout">
+
+        <!-- Left: items -->
+        <div class="cart-items-col">
+            {% for section in producer_sections %}
+            <div class="producer-section">
+                <!-- Producer header -->
+                <div class="producer-section-header">
+                    <div class="producer-name">
+                        <i class="bi bi-shop"></i>
+                        {% if section.producer %}{{ section.producer.business_name }}{% else %}Unknown Producer{% endif %}
+                    </div>
+                    {% if section.food_miles is not None %}
+                        {% if section.food_miles <= 30 %}
+                            <span class="food-miles-badge local"><i class="bi bi-geo-alt-fill"></i> {{ section.food_miles }} mi &mdash; Local</span>
+                        {% elif section.food_miles <= 100 %}
+                            <span class="food-miles-badge medium"><i class="bi bi-geo-alt-fill"></i> {{ section.food_miles }} mi &mdash; Regional</span>
+                        {% else %}
+                            <span class="food-miles-badge far"><i class="bi bi-geo-alt-fill"></i> {{ section.food_miles }} mi &mdash; Far</span>
+                        {% endif %}
                     {% else %}
-                        Unknown Producer
+                        <span class="food-miles-badge unknown"><i class="bi bi-geo-alt"></i> Location unknown</span>
                     {% endif %}
                 </div>
 
-                {% if section.food_miles is not None %}
-                    {% if section.food_miles <= 30 %}
-                        <span class="food-miles-badge local">
-                            <i class="bi bi-geo-alt-fill"></i>
-                            {{ section.food_miles }} miles &mdash; Local
-                        </span>
-                    {% elif section.food_miles <= 100 %}
-                        <span class="food-miles-badge medium">
-                            <i class="bi bi-geo-alt-fill"></i>
-                            {{ section.food_miles }} miles &mdash; Regional
-                        </span>
-                    {% else %}
-                        <span class="food-miles-badge far">
-                            <i class="bi bi-geo-alt-fill"></i>
-                            {{ section.food_miles }} miles &mdash; Long distance
-                        </span>
-                    {% endif %}
-                {% else %}
-                    <span class="food-miles-badge unknown">
-                        <i class="bi bi-geo-alt"></i> Location not set
-                    </span>
-                {% endif %}
+                <!-- Items -->
+                {% for item in section.items %}
+                <div class="cart-item-row">
+                    <!-- Thumbnail placeholder -->
+                    <div class="cart-item-thumb">
+                        {% if item.product and item.product.image %}
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" loading="lazy">
+                        {% else %}
+                            <div class="cart-item-thumb-placeholder"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Item info -->
+                    <div class="cart-item-info">
+                        {% if item.product %}
+                            <a href="{% url 'mainApp:products:product_detail' item.product.id %}" class="cart-item-name">
+                                {{ item.product_name }}
+                            </a>
+                            <div class="cart-item-unit">£{{ item.unit_price }} / {{ item.product.unit }}</div>
+                        {% else %}
+                            <span class="cart-item-name">{{ item.product_name }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Qty form -->
+                    <div class="cart-item-qty">
+                        <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="qty-form">
+                            {% csrf_token %}
+                            <input type="number"
+                                name="quantity"
+                                value="{{ item.quantity }}"
+                                min="1"
+                                {% if item.product %}max="{{ item.product.stock_quantity }}"{% endif %}
+                                class="cart-qty-input qty-input"
+                                aria-label="Quantity">
+                        </form>
+                    </div>
+
+                    <!-- Subtotal -->
+                    <div class="cart-item-subtotal">£{{ item.line_total }}</div>
+
+                    <!-- Remove -->
+                    <div class="cart-item-remove">
+                        <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-remove" aria-label="Remove item">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-
-            <!-- Items for this producer -->
-            <table class="table table-sm mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Product</th>
-                        <th>Unit Price</th>
-                        <th>Qty</th>
-                        <th>Subtotal</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in section.items %}
-                    <tr>
-                        <td>
-                            {% if item.product %}
-                                <a href="{% url 'mainApp:products:product_detail' item.product.id %}" style="font-weight:600; color:#2d6a2d; text-decoration:none;">
-                                    {{ item.product_name }}
-                                </a>
-                                <div style="font-size:0.8rem; color:#6c757d;">{{ item.unit_price }} / {{ item.product.unit }}</div>
-                            {% else %}
-                                <span style="font-weight:600;">{{ item.product_name }}</span>
-                            {% endif %}
-                        </td>
-                        <td>£{{ item.unit_price }}</td>
-                        <td>
-                            <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="qty-form">
-                                {% csrf_token %}
-                                <input type="number"
-                                    name="quantity"
-                                    value="{{ item.quantity }}"
-                                    min="1"
-                                    {% if item.product %}max="{{ item.product.stock_quantity }}"{% endif %}
-                                    class="form-control form-control-sm qty-input"
-                                    style="width:65px;">
-                            </form>
-                        </td>
-                        <td>£{{ item.line_total }}</td>
-                        <td>
-                            <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>  <!-- Close producer-section -->
-        {% endfor %}
-
-        <!-- Total and checkout for producer sections -->
-        <div class="cart-summary">
-            <div class="cart-total">Total: <span>£{{ total }}</span></div>
-            <a href="{% url 'mainApp:orders:checkout' %}" class="btn-checkout">
-                Proceed to Checkout
-            </a>
+            {% endfor %}
         </div>
 
-    {% else %}
-        <!-- Simple cart view (fallback) -->
-        {% if items %}
-            <div class="container mt-4">
-                <h2>Your Cart</h2>
+        <!-- Right: Order summary sidebar -->
+        <aside class="cart-summary-sidebar">
+            <div class="summary-card">
+                <h3 class="summary-title"><i class="bi bi-receipt"></i> Order Summary</h3>
 
-                <table class="table table-bordered mt-3">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Product</th>
-                            <th>Unit Price</th>
-                            <th>Quantity</th>
-                            <th>Line Total</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in items %}
-                        <tr>
-                            <td>
-                                {% if item.product %}
-                                    <a href="{% url 'mainApp:products:product_detail' item.product.slug %}">{{ item.product_name }}</a>
-                                {% else %}
-                                    {{ item.product_name }}
-                                {% endif %}
-                            </td>
-                            <td>£{{ item.unit_price }}</td>
-                            <td>
-                                <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="d-flex">
-                                    {% csrf_token %}
-                                    <input type="number" 
-                                        name="quantity" 
-                                        value="{{ item.quantity }}" 
-                                        min="1" 
-                                        max="{{ item.product.stock_quantity }}"
-                                        class="form-control form-control-sm me-2"
-                                        style="width: 70px;">
-                                    <button type="submit" class="btn btn-sm btn-primary">Update</button>
-                                </form>
-                            </td>
-                            <td>£{{ item.line_total }}</td>
-                            <td>
-                                <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% for section in producer_sections %}
+                <div class="summary-producer-row">
+                    <span class="summary-producer-name">
+                        {% if section.producer %}{{ section.producer.business_name }}{% else %}Unknown{% endif %}
+                    </span>
+                    <span class="summary-producer-subtotal">
+                        £{% for item in section.items %}{% if forloop.last %}{{ item.line_total }}{% endif %}{% endfor %}
+                    </span>
+                </div>
+                {% endfor %}
 
-                <div class="text-end">
-                    <h4>Total: £{{ total }}</h4>
+                <div class="summary-divider"></div>
+
+                <div class="summary-total-row">
+                    <span>Total</span>
+                    <span class="summary-total-amount">£{{ total }}</span>
                 </div>
 
-                <div class="cart-summary">
-                    <div class="cart-total">Total: <span>£{{ total }}</span></div>
+                <a href="{% url 'mainApp:orders:checkout' %}" class="btn-checkout">
+                    <i class="bi bi-lock"></i> Proceed to Checkout
+                </a>
+
+                <a href="{% url 'mainApp:products:product_list' %}" class="continue-shopping">
+                    <i class="bi bi-arrow-left"></i> Continue Shopping
+                </a>
+            </div>
+        </aside>
+
+    </div>
+
+    {% else %}
+        <!-- Simple cart view fallback -->
+        {% if items %}
+        <div class="cart-layout">
+            <div class="cart-items-col">
+                {% for item in items %}
+                <div class="cart-item-row">
+                    <div class="cart-item-thumb">
+                        <div class="cart-item-thumb-placeholder"><i class="bi bi-image"></i></div>
+                    </div>
+                    <div class="cart-item-info">
+                        {% if item.product %}
+                            <a href="{% url 'mainApp:products:product_detail' item.product.id %}" class="cart-item-name">{{ item.product_name }}</a>
+                        {% else %}
+                            <span class="cart-item-name">{{ item.product_name }}</span>
+                        {% endif %}
+                        <div class="cart-item-unit">£{{ item.unit_price }}</div>
+                    </div>
+                    <div class="cart-item-qty">
+                        <form action="{% url 'mainApp:customers:update_cart_item' item.id %}" method="post" class="qty-form d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="number" name="quantity" value="{{ item.quantity }}" min="1"
+                                   {% if item.product %}max="{{ item.product.stock_quantity }}"{% endif %}
+                                   class="cart-qty-input qty-input">
+                            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                        </form>
+                    </div>
+                    <div class="cart-item-subtotal">£{{ item.line_total }}</div>
+                    <div class="cart-item-remove">
+                        <form action="{% url 'mainApp:customers:remove_from_cart' item.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-remove" aria-label="Remove"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <aside class="cart-summary-sidebar">
+                <div class="summary-card">
+                    <h3 class="summary-title"><i class="bi bi-receipt"></i> Order Summary</h3>
+                    <div class="summary-divider"></div>
+                    <div class="summary-total-row">
+                        <span>Total</span>
+                        <span class="summary-total-amount">£{{ total }}</span>
+                    </div>
                     <a href="{% url 'mainApp:orders:checkout' %}" class="btn-checkout">
                         <i class="bi bi-lock"></i> Proceed to Checkout
                     </a>
                 </div>
-            </div>
-
+            </aside>
+        </div>
         {% else %}
-            <div class="cart-empty">
-                <i class="bi bi-cart-x"></i>
-                <p>Your cart is empty.</p>
-                <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-success">
-                    <i class="bi bi-basket"></i> Browse the Marketplace
+            <!-- Empty cart -->
+            <div class="cart-empty-state">
+                <div class="empty-icon-wrap">
+                    <i class="bi bi-cart3"></i>
+                </div>
+                <h2>Your cart is empty</h2>
+                <p>Discover fresh local produce from farms near you</p>
+                <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary">
+                    <i class="bi bi-basket2"></i> Start Shopping
                 </a>
             </div>
         {% endif %}
     {% endif %}
 
-</div>  <!-- Close cart-wrapper -->
+</div>
 
 {% block extra_js %}
 <script>

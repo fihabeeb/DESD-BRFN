@@ -4,299 +4,388 @@
 
 {% block title %}My Orders{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Orders-specific styles */
+.orders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+.orders-header h1 { font-size: 1.75rem; font-weight: 800; margin: 0; color: var(--color-text); }
+.orders-header h1 span { color: var(--color-primary); }
+.btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.45rem 0.875rem;
+    border: 1.5px solid var(--color-primary);
+    border-radius: 7px;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-link:hover { background: var(--color-primary); color: white; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.875rem;
+    margin-bottom: 1.75rem;
+}
+.stat-card {
+    background: var(--color-surface);
+    border-radius: 10px;
+    border: 1.5px solid var(--color-border);
+    padding: 1rem;
+    text-align: center;
+}
+.stat-number { font-size: 1.5rem; font-weight: 800; color: var(--color-primary); }
+.stat-label  { font-size: 0.75rem; color: var(--color-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.filter-bar {
+    background: var(--color-surface);
+    border-radius: 10px;
+    border: 1.5px solid var(--color-border);
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.filter-bar select {
+    padding: 0.45rem 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+.clear-filter {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    text-decoration: none;
+}
+.clear-filter:hover { color: var(--color-primary); }
+
+/* Order cards */
+.order-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+}
+.order-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.order-header {
+    background: var(--color-primary-light);
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.order-info { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.order-number { font-weight: 700; font-size: 0.95rem; color: var(--color-text); display: flex; align-items: center; gap: 0.4rem; }
+.order-date { font-size: 0.82rem; color: var(--color-muted); display: flex; align-items: center; gap: 0.3rem; }
+.delivery-date { font-size: 0.82rem; color: var(--color-success); font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
+.status-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.status-confirmed { background: #d4edda; color: #155724; }
+.status-preparing  { background: #cce5ff; color: #004085; }
+.status-ready      { background: #d1ecf1; color: #0c5460; }
+.status-delivered  { background: #d4edda; color: #155724; }
+.status-pending    { background: #fff3cd; color: #856404; }
+.status-cancelled  { background: #f8d7da; color: #721c24; }
+
+.customer-info {
+    padding: 0.875rem 1.25rem;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.customer-detail { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; color: var(--color-text); }
+.customer-detail i { color: var(--color-primary); }
+
+.items-table-wrapper { padding: 0.875rem 1.25rem; overflow-x: auto; }
+.items-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.items-table th { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 2px solid var(--color-border); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted); }
+.items-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+.items-table tbody tr:last-child td { border-bottom: none; }
+.product-name { font-weight: 600; }
+.item-total { font-weight: 700; color: var(--color-primary); }
+
+.customer-note {
+    padding: 0.75rem 1.25rem;
+    background: #fff8e7;
+    border-top: 1px solid #ffe6b3;
+    font-size: 0.85rem;
+    color: #92400e;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+[data-theme="dark"] .customer-note { background: #2d2010; border-color: #4d3a10; color: #d97706; }
+
+.order-footer {
+    padding: 0.875rem 1.25rem;
+    background: var(--color-primary-light);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.status-select {
+    padding: 0.4rem 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 7px;
+    font-size: 0.875rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+.btn-update-status {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 0.45rem 1rem;
+    border-radius: 7px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-update-status:hover { background: var(--color-primary-hover); }
+
+.empty-state { text-align: center; padding: 4rem 1rem; color: var(--color-muted); }
+.empty-state i { font-size: 3rem; display: block; margin-bottom: 1rem; }
+
+.pagination-bar { display: flex; align-items: center; justify-content: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 1.5rem; }
+.pagination-bar a, .pagination-bar span { display: inline-flex; align-items: center; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500; text-decoration: none; color: var(--color-primary); border: 1.5px solid var(--color-border); background: var(--color-surface); transition: background 0.15s, color 0.15s; }
+.pagination-bar a:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.pagination-bar span { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="orders-container">
-    <!-- Header -->
-    <div class="orders-header">
-        <h1><span>{{ producer.business_name }}</span> — Orders</h1>
-        <a href="{% url 'mainApp:producers:myproduct' %}" class="btn-link">
-            <i class="bi bi-box-seam"></i> My Products
+<div class="producer-layout">
+
+    <!-- Sidebar -->
+    <nav class="producer-sidebar">
+        <a href="{% url 'mainApp:producers:myproduct' %}" class="producer-sidebar-link">
+            <i class="bi bi-box-seam"></i> Products
         </a>
-    </div>
-    
-    <!-- Stats Cards -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.total }}</div>
-            <div class="stat-label">Total Orders</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.confirmed }}</div>
-            <div class="stat-label">Confirmed</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.preparing }}</div>
-            <div class="stat-label">Preparing</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.ready }}</div>
-            <div class="stat-label">Ready</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.delivered }}</div>
-            <div class="stat-label">Delivered</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">£{{ stats.total_revenue|floatformat:2 }}</div>
-            <div class="stat-label">Total Revenue</div>
-        </div>
-    </div>
-    
-    <!-- Filter Bar -->
-    <form method="get" class="filter-bar">
-        <i class="bi bi-funnel"></i>
-        <select name="status" onchange="this.form.submit()">
-            <option value="">All Statuses</option>
-            {% for value, label in status_choices %}
-                <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
-                    {{ label }}
-                </option>
-            {% endfor %}
-        </select>
-        {% if current_status %}
-            <a href="?status=" class="clear-filter">Clear Filter</a>
-        {% endif %}
-    </form>
-    
-    <!-- Orders List -->
-    {% if page_obj %}
-        {% for order_data in page_obj %}
-        <div class="order-card">
-            <!-- Order Header -->
-            <div class="order-header">
-                <div class="order-info">
-                    <span class="order-number">
-                        <i class="bi bi-receipt"></i> Order #{{ order_data.order.id }}
-                    </span>
-                    <span class="order-date">
-                        <i class="bi bi-calendar3"></i> {{ order_data.order.created_at|date:"d M Y, H:i" }}
-                    </span>
-                    {% if order_data.delivery_date %}
-                    <span class="delivery-date">
-                        <i class="bi bi-truck"></i> Delivery: {{ order_data.delivery_date|date:"d M Y" }}
-                    </span>
+        <a href="{% url 'mainApp:producers:myorders' %}" class="producer-sidebar-link active">
+            <i class="bi bi-receipt"></i> Orders
+        </a>
+        <a href="{% url 'mainApp:producers:quality_scan' %}" class="producer-sidebar-link">
+            <i class="bi bi-stars"></i> Quality AI
+        </a>
+        <a href="{% url 'mainApp:producers:personal_info' %}" class="producer-sidebar-link">
+            <i class="bi bi-person"></i> Profile
+        </a>
+        <div style="height:1px; background:rgba(255,255,255,0.1); margin:0.5rem 1rem;"></div>
+        <a href="{% url 'mainApp:products:product_list' %}" class="producer-sidebar-link">
+            <i class="bi bi-basket2"></i> Marketplace
+        </a>
+    </nav>
+
+    <!-- Main content -->
+    <div class="producer-main">
+        <div class="orders-container" style="max-width:1100px;">
+
+            <!-- Header -->
+            <div class="orders-header">
+                <h1><span>{{ producer.business_name }}</span> — Orders</h1>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.total }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.confirmed }}</div>
+                    <div class="stat-label">Confirmed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.preparing }}</div>
+                    <div class="stat-label">Preparing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.ready }}</div>
+                    <div class="stat-label">Ready</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.delivered }}</div>
+                    <div class="stat-label">Delivered</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">£{{ stats.total_revenue|floatformat:2 }}</div>
+                    <div class="stat-label">Revenue</div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <form method="get" class="filter-bar">
+                <i class="bi bi-funnel" style="color:var(--color-muted);"></i>
+                <select name="status" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if current_status %}
+                    <a href="?status=" class="clear-filter"><i class="bi bi-x"></i> Clear Filter</a>
+                {% endif %}
+            </form>
+
+            <!-- Orders List -->
+            {% if page_obj %}
+                {% for order_data in page_obj %}
+                <div class="order-card">
+                    <!-- Order Header -->
+                    <div class="order-header">
+                        <div class="order-info">
+                            <span class="order-number">
+                                <i class="bi bi-receipt"></i> Order #{{ order_data.order.id }}
+                            </span>
+                            <span class="order-date">
+                                <i class="bi bi-calendar3"></i> {{ order_data.order.created_at|date:"d M Y, H:i" }}
+                            </span>
+                            {% if order_data.delivery_date %}
+                            <span class="delivery-date">
+                                <i class="bi bi-truck"></i> Delivery: {{ order_data.delivery_date|date:"d M Y" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <span class="status-badge status-{{ order_data.order.order_status }}">
+                            <i class="bi bi-{% if order_data.order.order_status == 'confirmed' %}check-circle{% elif order_data.order.order_status == 'delivered' %}check2-circle{% elif order_data.order.order_status == 'cancelled' %}x-circle{% elif order_data.order.order_status == 'preparing' %}arrow-repeat{% else %}clock{% endif %}"></i>
+                            {{ order_data.order.get_order_status_display }}
+                        </span>
+                    </div>
+
+                    <!-- Customer Info -->
+                    <div class="customer-info">
+                        <div class="customer-detail">
+                            <i class="bi bi-person-circle"></i>
+                            <span>{{ order_data.customer_name }}</span>
+                        </div>
+                        <div class="customer-detail">
+                            <i class="bi bi-envelope"></i>
+                            <span>{{ order_data.customer_email }}</span>
+                        </div>
+                        <div class="customer-detail">
+                            <i class="bi bi-geo-alt"></i>
+                            <span>{{ order_data.order.payment.shipping_address|truncatechars:50 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="items-table-wrapper">
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_data.items %}
+                                <tr>
+                                    <td class="product-name">{{ item.product_name }}</td>
+                                    <td>{{ item.quantity }} {{ item.unit }}</td>
+                                    <td>£{{ item.product_price }}</td>
+                                    <td class="item-total">£{{ item.line_total }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" style="text-align:right; font-weight:600; font-size:0.875rem; padding:0.5rem 0.75rem; color:var(--color-muted);">Subtotal:</td>
+                                    <td class="item-total">£{{ order_data.producer_subtotal }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" style="text-align:right; font-size:0.875rem; padding:0.3rem 0.75rem; color:var(--color-muted);">Commission (5%):</td>
+                                    <td style="padding:0.3rem 0.75rem; font-size:0.875rem; color:var(--color-muted);">£{{ order_data.order.commission }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" style="text-align:right; font-weight:700; padding:0.5rem 0.75rem;">Your Payout:</td>
+                                    <td style="font-weight:700; color:var(--color-success); padding:0.5rem 0.75rem;">£{{ order_data.order.producer_payout }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Customer Note -->
+                    {% if order_data.customer_note %}
+                    <div class="customer-note">
+                        <i class="bi bi-chat-left-quote"></i>
+                        <span><strong>Customer note:</strong> {{ order_data.customer_note }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Status Update Form -->
+                    {% if order_data.order.order_status != 'delivered' and order_data.order.order_status != 'cancelled' %}
+                    <div class="order-footer">
+                        <form method="post" action="{% url 'mainApp:producers:update_order_status' order_data.order.id %}" class="d-flex align-items-center gap-2">
+                            {% csrf_token %}
+                            <label style="font-size:0.8rem; font-weight:600; color:var(--color-muted);">Update Status:</label>
+                            <select name="status" class="status-select">
+                                <option value="pending"    {% if order_data.order.order_status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="confirmed"  {% if order_data.order.order_status == 'confirmed' %}selected{% endif %}>Confirm Order</option>
+                                <option value="preparing"  {% if order_data.order.order_status == 'preparing' %}selected{% endif %}>Preparing</option>
+                                <option value="ready"      {% if order_data.order.order_status == 'ready' %}selected{% endif %}>Ready for Delivery</option>
+                                <option value="delivered"  {% if order_data.order.order_status == 'delivered' %}selected{% endif %}>Delivered</option>
+                            </select>
+                            <button type="submit" class="btn-update-status">Update Status</button>
+                        </form>
+                    </div>
                     {% endif %}
                 </div>
-                <span class="status-badge status-{{ order_data.order.order_status }}">
-                    <i class="bi bi-{% if order_data.order.order_status == 'confirmed' %}check-circle{% elif order_data.order.order_status == 'delivered' %}check2-circle{% elif order_data.order.order_status == 'cancelled' %}x-circle{% elif order_data.order.order_status == 'preparing' %}arrow-repeat{% else %}clock{% endif %}"></i>
-                    {{ order_data.order.get_order_status_display }}
-                </span>
-            </div>
-            
-            <!-- Customer Info -->
-            <div class="customer-info">
-                <div class="customer-detail">
-                    <i class="bi bi-person-circle"></i>
-                    <span>{{ order_data.customer_name }}</span>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>No orders found{% if current_status %} with status "{{ current_status }}"{% endif %}.</p>
+                    {% if current_status %}
+                        <a href="?status=" class="btn-primary">Clear Filter</a>
+                    {% endif %}
                 </div>
-                <div class="customer-detail">
-                    <i class="bi bi-envelope"></i>
-                    <span>{{ order_data.customer_email }}</span>
-                </div>
-                <div class="customer-detail">
-                    <i class="bi bi-geo-alt"></i>
-                    <span>{{ order_data.order.payment.shipping_address|truncatechars:50 }}</span>
-                </div>
-            </div>
-            
-            <!-- Items Table -->
-            <div class="items-table-wrapper">
-                <table class="items-table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Total</th>
-                        </thead>
-                    <tbody>
-                        {% for item in order_data.items %}
-                        <tr>
-                            <td class="product-name">{{ item.product_name }}</td>
-                            <td class="item-quantity">{{ item.quantity }} {{ item.unit }}</td>
-                            <td class="item-price">£{{ item.product_price }}</td>
-                            <td class="item-total">£{{ item.line_total }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                            <td class="item-total"><strong>£{{ order_data.producer_subtotal }}</strong></td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="text-end">Commission (5%):</td>
-                            <td>£{{ order_data.order.commission }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="text-end"><strong>Your Payout:</strong></td>
-                            <td class="text-success"><strong>£{{ order_data.order.producer_payout }}</strong></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-            
-            <!-- Customer Note -->
-            {% if order_data.customer_note %}
-            <div class="customer-note">
-                <i class="bi bi-chat-left-quote"></i>
-                <strong>Customer note:</strong> {{ order_data.customer_note }}
-            </div>
             {% endif %}
-            
-            <!-- Status Update Form (if not delivered) -->
-            {% if order_data.order.order_status != 'delivered' and order_data.order.order_status != 'cancelled' %}
-            <div class="order-footer">
-                <form method="post" action="{% url 'mainApp:producers:update_order_status' order_data.order.id %}">
-                    {% csrf_token %}
-                    <select name="status" class="status-select">
-                        <option value="pending" {% if order_data.order.order_status == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="confirmed" {% if order_data.order.order_status == 'confirmed' %}selected{% endif %}>Confirm Order</option>
-                        <option value="preparing" {% if order_data.order.order_status == 'preparing' %}selected{% endif %}>Preparing</option>
-                        <option value="ready" {% if order_data.order.order_status == 'ready' %}selected{% endif %}>Ready for Delivery</option>
-                        <option value="delivered" {% if order_data.order.order_status == 'delivered' %}selected{% endif %}>Delivered</option>
-                    </select>
-                    <button type="submit" class="btn-update-status">Update Status</button>
-                </form>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    {% else %}
-        <div class="empty-state">
-            <i class="bi bi-inbox"></i>
-            <p>No orders found{% if current_status %} with status "{{ current_status }}"{% endif %}.</p>
-            {% if current_status %}
-                <a href="?status=" class="btn-filter">Clear Filter</a>
-            {% endif %}
-        </div>
-    {% endif %}
-    
-    <!-- Pagination -->
-    {% if page_obj.paginator.num_pages > 1 %}
-    <div class="pagination-bar">
-        {% if page_obj.has_previous %}
-            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}">&laquo; First</a>
-            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a>
-        {% endif %}
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}">Last &raquo;</a>
-        {% endif %}
-    </div>
-    {% endif %}
-</div>
 
-<style>
-    /* Add your CSS styles here */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    .stat-card {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1rem;
-        text-align: center;
-    }
-    .stat-number {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #28a745;
-    }
-    .stat-label {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-    .order-card {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        overflow: hidden;
-    }
-    .order-header {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-bottom: 1px solid #e0e0e0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .customer-info {
-        padding: 1rem;
-        background: #fafbfc;
-        border-bottom: 1px solid #e0e0e0;
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    .customer-detail {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-    }
-    .items-table-wrapper {
-        padding: 1rem;
-        overflow-x: auto;
-    }
-    .items-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    .items-table th, .items-table td {
-        padding: 0.5rem;
-        text-align: left;
-        border-bottom: 1px solid #e9ecef;
-    }
-    .item-total {
-        font-weight: bold;
-        color: #28a745;
-    }
-    .customer-note {
-        padding: 0.75rem 1rem;
-        background: #fff8e7;
-        border-top: 1px solid #ffe6b3;
-        font-size: 0.85rem;
-    }
-    .order-footer {
-        padding: 1rem;
-        background: #f8f9fa;
-        border-top: 1px solid #e0e0e0;
-        display: flex;
-        justify-content: flex-end;
-    }
-    .status-select {
-        padding: 0.5rem;
-        margin-right: 0.5rem;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-    }
-    .btn-update-status {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .status-confirmed { background: #d4edda; color: #155724; }
-    .status-preparing { background: #cce5ff; color: #004085; }
-    .status-ready { background: #d1ecf1; color: #0c5460; }
-    .status-delivered { background: #d4edda; color: #155724; }
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-cancelled { background: #f8d7da; color: #721c24; }
-</style>
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination-bar">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}">&laquo; First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a>
+                {% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}">Last &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
 {% endblock %}

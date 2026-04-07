@@ -2,71 +2,200 @@
 
 {% block title %}Order Confirmed{% endblock %}
 
-{% block content %}
-<div class="container py-5" style="max-width: 700px;">
+{% block extra_css %}
+<style>
+.success-wrapper { max-width: 700px; margin: 3rem auto; padding: 0 1.5rem 4rem; }
 
-    <!-- Status icon -->
+/* Status icon with animation */
+@keyframes checkPop {
+    0%   { transform: scale(0); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+}
+.status-icon-wrap {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    animation: checkPop 0.5s ease-out forwards;
+    font-size: 2.8rem;
+}
+.status-icon-wrap.success-icon { background: #d1fae5; border: 3px solid #16a34a; color: #16a34a; }
+.status-icon-wrap.pending-icon { background: #fef3c7; border: 3px solid #d97706; color: #d97706; }
+
+[data-theme="dark"] .status-icon-wrap.success-icon { background: #14532d; border-color: #16a34a; color: #86efac; }
+[data-theme="dark"] .status-icon-wrap.pending-icon { background: #78350f; border-color: #d97706; color: #fcd34d; }
+
+.payment-status-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+}
+.payment-status-pill.paid     { background: #dcfce7; color: #15803d; }
+.payment-status-pill.pending  { background: #fef9c3; color: #856404; }
+.payment-status-pill.other    { background: #f1f5f9; color: #475569; }
+[data-theme="dark"] .payment-status-pill.paid    { background: #14532d; color: #86efac; }
+[data-theme="dark"] .payment-status-pill.pending { background: #78350f; color: #fcd34d; }
+[data-theme="dark"] .payment-status-pill.other   { background: #374151; color: #9ca3af; }
+
+/* Order timeline */
+.order-timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    padding: 1.5rem 0;
+    overflow-x: auto;
+}
+.timeline-step { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; text-align: center; min-width: 85px; position: relative; flex: 1; }
+.timeline-step::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: calc(50% + 14px);
+    width: calc(100% - 28px);
+    height: 2px;
+    background: var(--color-border);
+}
+.timeline-step:last-child::after { display: none; }
+.timeline-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-muted);
+}
+.timeline-step.done .timeline-dot  { background: var(--color-success); color: white; }
+.timeline-step.active .timeline-dot { background: var(--color-primary); color: white; }
+.timeline-step.done::after { background: var(--color-success); }
+.timeline-label { font-size: 0.7rem; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.timeline-step.done .timeline-label,
+.timeline-step.active .timeline-label { color: var(--color-text); }
+
+/* Order card */
+.order-summary-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+.order-meta-bar {
+    background: var(--color-primary-light);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.order-meta-item { font-size: 0.8rem; }
+.order-meta-item .meta-label { color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.68rem; font-weight: 700; display: block; }
+.order-meta-item .meta-value { font-weight: 700; color: var(--color-text); font-size: 0.95rem; }
+.order-items-list { padding: 0.5rem 0; }
+.order-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+}
+.order-item-row:last-child { border-bottom: none; }
+.order-item-name { font-weight: 600; }
+.order-item-qty  { color: var(--color-muted); margin-left: 0.5rem; font-size: 0.82rem; }
+.order-totals { background: var(--color-primary-light); padding: 1rem 1.5rem; }
+.total-row { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.3rem; color: var(--color-muted); }
+.grand-total { font-weight: 800; font-size: 1.05rem; color: var(--color-text); border-top: 1.5px solid var(--color-border); padding-top: 0.5rem; margin-top: 0.5rem; }
+.order-address { padding: 0.875rem 1.5rem; border-top: 1px solid var(--color-border); font-size: 0.875rem; color: var(--color-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="success-wrapper">
+
     <div class="text-center mb-4">
         {% if order and order.status == 'confirmed' %}
-            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
-                <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h1 class="mt-3">Thank you for your order!</h1>
+            <div class="status-icon-wrap success-icon"><i class="bi bi-check-lg"></i></div>
+            <h1 style="font-size:1.9rem; font-weight:800; margin-bottom:0.4rem;">Thank you for your order!</h1>
             <p class="text-muted">Payment received — your order is confirmed.</p>
         {% elif order and order.status == 'pending' %}
-            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2" stroke-linecap="round"/>
-            </svg>
-            <h1 class="mt-3">Payment pending</h1>
+            <div class="status-icon-wrap pending-icon"><i class="bi bi-clock"></i></div>
+            <h1 style="font-size:1.9rem; font-weight:800; margin-bottom:0.4rem;">Payment pending</h1>
             <p class="text-muted">We're waiting for payment confirmation. Your order will appear once confirmed.</p>
         {% else %}
-            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
-                <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h1 class="mt-3">Order received!</h1>
+            <div class="status-icon-wrap success-icon"><i class="bi bi-check-lg"></i></div>
+            <h1 style="font-size:1.9rem; font-weight:800; margin-bottom:0.4rem;">Order received!</h1>
             <p class="text-muted">Your order is being processed.</p>
         {% endif %}
     </div>
 
+    <!-- Order tracking timeline -->
+    <div style="background:var(--color-surface); border:1.5px solid var(--color-border); border-radius:12px; padding:1.25rem; margin-bottom:1.5rem;">
+        <div style="font-weight:700; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-muted); margin-bottom:1rem; text-align:center;">Order Progress</div>
+        <div class="order-timeline">
+            <div class="timeline-step done">
+                <div class="timeline-dot"><i class="bi bi-check"></i></div>
+                <div class="timeline-label">Placed</div>
+            </div>
+            <div class="timeline-step {% if order and order.order_status == 'confirmed' or order and order.status == 'confirmed' %}active{% endif %}">
+                <div class="timeline-dot">2</div>
+                <div class="timeline-label">Confirmed</div>
+            </div>
+            <div class="timeline-step">
+                <div class="timeline-dot">3</div>
+                <div class="timeline-label">Preparing</div>
+            </div>
+            <div class="timeline-step">
+                <div class="timeline-dot">4</div>
+                <div class="timeline-label">Delivered</div>
+            </div>
+        </div>
+    </div>
+
     {% if order %}
     <!-- Order summary card -->
-    <div style="border:1px solid #dee2e6; border-radius:10px; overflow:hidden;">
+    <div class="order-summary-card">
 
-        <!-- Order header -->
-        <div style="background:#f8f9fa; padding:1rem 1.25rem; border-bottom:1px solid #dee2e6; display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-            <div>
-                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Order</span><br>
-                <strong>#{{ order.id }}</strong>
+        <!-- Order header meta -->
+        <div class="order-meta-bar">
+            <div class="order-meta-item">
+                <span class="meta-label">Order</span>
+                <span class="meta-value">#{{ order.id }}</span>
             </div>
-            <div>
-                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Date</span><br>
-                <strong>{{ order.created_at|date:"d M Y" }}</strong>
+            <div class="order-meta-item">
+                <span class="meta-label">Date</span>
+                <span class="meta-value">{{ order.created_at|date:"d M Y" }}</span>
             </div>
             {% if order.delivery_date %}
-            <div>
-                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Delivery</span><br>
-                <strong>{{ order.delivery_date|date:"d M Y" }}</strong>
+            <div class="order-meta-item">
+                <span class="meta-label">Delivery</span>
+                <span class="meta-value">{{ order.delivery_date|date:"d M Y" }}</span>
             </div>
             {% endif %}
-            <div>
-                <span style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.05em;">Status</span><br>
-                <span style="
-                    padding:2px 10px; border-radius:20px; font-size:0.82rem; font-weight:600;
-                    {% if order.payment_status == 'paid' %}background:#dcfce7; color:#15803d;
-                    {% elif order.payment_status == 'pending' %}background:#fef9c3; color:#ebe017;
-                    {% else %}background:#f1f5f9; color:#475569;{% endif %}
-                ">{{ order.get_payment_status_display }}</span>
+            <div class="order-meta-item">
+                <span class="meta-label">Status</span>
+                <span class="meta-value payment-status-pill {% if order.payment_status == 'paid' %}paid{% elif order.payment_status == 'pending' %}pending{% else %}other{% endif %}">{{ order.get_payment_status_display }}</span>
             </div>
         </div>
 
         <!-- Items -->
-        <div style="padding:0.25rem 0;">
+        <div class="order-items-list">
             {% for item in order.items.all %}
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1.25rem; border-bottom:1px solid #f1f3f5;">
+            <div class="order-item-row">
                 <div>
-                    <span style="font-weight:600;">{{ item.product_name }}</span>
-                    <span style="color:#6c757d; font-size:0.85rem; margin-left:0.5rem;">× {{ item.quantity }} {{ item.unit }}</span>
+                    <span class="order-item-name">{{ item.product_name }}</span>
+                    <span class="order-item-qty">× {{ item.quantity }} {{ item.unit }}</span>
                 </div>
                 <span style="font-weight:600;">£{{ item.line_total }}</span>
             </div>
@@ -74,34 +203,31 @@
         </div>
 
         <!-- Totals -->
-        <div style="padding:1rem 1.25rem; background:#f8f9fa;">
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.3rem;">
-                <span style="color:#6c757d;">Subtotal</span>
-                <span>£{{ order.subtotal }}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem;">
-                <span style="color:#6c757d;">Network commission (5%)</span>
-                <span>£{{ order.commission }}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1rem; border-top:1px solid #dee2e6; padding-top:0.5rem;">
+        <div class="order-totals">
+            <div class="total-row"><span>Subtotal</span><span>£{{ order.subtotal }}</span></div>
+            <div class="total-row"><span>Network commission (5%)</span><span>£{{ order.commission }}</span></div>
+            <div class="total-row grand-total">
                 <span>Total</span>
-                <span>£{{ order.total_amount }}</span>
+                <span style="color:var(--color-primary);">£{{ order.total_amount }}</span>
             </div>
         </div>
 
         <!-- Shipping address -->
         {% if order.shipping_address %}
-        <div style="padding:0.85rem 1.25rem; border-top:1px solid #dee2e6; font-size:0.875rem; color:#495057;">
-            <i class="bi bi-geo-alt"></i> <strong>Delivery to:</strong> {{ order.shipping_address }}
+        <div class="order-address">
+            <i class="bi bi-geo-alt me-1"></i><strong>Delivery to:</strong> {{ order.shipping_address }}
         </div>
         {% endif %}
     </div>
     {% endif %}
 
     <!-- Actions -->
-    <div class="text-center mt-4">
-        <a href="{% url 'mainApp:products:product_list' %}" class="btn btn-success">
-            <i class="bi bi-basket"></i> Continue Shopping
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a href="{% url 'mainApp:products:product_list' %}" class="btn-primary">
+            <i class="bi bi-basket2"></i> Continue Shopping
+        </a>
+        <a href="{% url 'mainApp:profile' %}" class="btn-outline">
+            <i class="bi bi-person"></i> View All Orders
         </a>
     </div>
 

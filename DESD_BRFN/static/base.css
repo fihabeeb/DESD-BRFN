@@ -1,13 +1,13 @@
 
 body {
-    background-color: #f4f4f4;
+    background-color: var(--color-bg, #f7f9f7);
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 nav {
-    background-color: #333;
-    padding: 10px;
+    background-color: #1a3c1a;
+    padding: 0;
 }
 
 a {
@@ -15,313 +15,187 @@ a {
 }
 
 nav a {
-    color: white; /* this colour changes all a in nav */
-    margin-right: 15px;
+    color: white;
     text-decoration: none;
     font-weight: 500;
 }
 
 nav a:hover {
-    text-decoration: underline;
-}
-
-nav p {
-    display: inline;
-    color: #ddd;
-    margin-right: 15px;
-}
-
-nav form {
-    display: inline;
-}
-
-nav button {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    font-weight: 500;
-    margin-right: 15px;
-}
-
-nav button:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    opacity: 0.85;
 }
 
 main {
-    padding: 20px;
+    padding: 0;
 }
 
-footer {
-    background-color: #333;
-    color: white;
-    padding: 10px;
-    text-align: center;
-    margin-top: 40px;
-}
-
-
-
-
-/* ===== DROPDOWN MENU STYLES - ADD THESE ===== */
-
-/* Target dropdown container and all its children specifically */
+/* ===== DROPDOWN MENU STYLES ===== */
 nav .absolute,
 nav [x-data] {
-    /* Ensure dropdown appears above other content */
     z-index: 9999;
 }
 
-/* Override ALL dropdown links - these are the clickable options */
-nav .absolute a,
-nav [x-show] a,
-nav .dropdown-menu a {
-    color: #374151 !important;  /* Dark gray text */
-    background-color: white;
-    display: flex !important;
-    align-items: center !important;
-    padding: 10px 16px !important;
-    margin: 0 !important;
-    font-size: 0.875rem !important;
-    text-decoration: none !important;
-    border: none !important;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Hover state for dropdown links */
-nav .absolute a:hover,
-nav [x-show] a:hover,
-nav .dropdown-menu a:hover {
-    background-color: #22c55e !important;  /* Green background */
-    color: white !important;
-    text-decoration: none !important;
-}
-
-/* Override the icons in dropdown */
-nav .absolute a i,
-nav [x-show] a i,
-nav .dropdown-menu a i {
-    color: #6b7280 !important;  /* Gray icons */
-    width: 1.25rem;
-    font-size: 1rem;
-}
-
-/* Icon color on hover */
-nav .absolute a:hover i,
-nav [x-show] a:hover i,
-nav .dropdown-menu a:hover i {
-    color: white !important;
-}
-
-/* Dropdown section headers */
-nav .absolute .bg-gray-100,
-nav .absolute .bg-gray-50,
-nav [x-show] .bg-gray-100,
-nav [x-show] .bg-gray-50 {
-    color: #374151 !important;
-    background-color: #f3f4f6 !important;
-    padding: 8px 16px !important;
-    font-weight: 600 !important;
-    font-size: 0.875rem !important;
-}
-
-/* Dropdown button - the main Account button */
-nav [x-data] > button {
-    background-color: #22c55e !important;  /* Green background */
-    color: white !important;
-    padding: 8px 16px !important;
-    border-radius: 8px !important;
-    border: none !important;
-    font-weight: 500 !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    cursor: pointer !important;
-}
-
-/* Dropdown button hover */
-nav [x-data] > button:hover {
-    background-color: #16a34a !important;  /* Darker green */
-    text-decoration: none !important;
-}
-
-/* Dropdown container background */
-nav .absolute,
-nav [x-show] {
-    background-color: white !important;
-    border-radius: 8px !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-    min-width: 16rem !important;
-}
-
-/* Dividers */
-nav .absolute .border-t,
-nav [x-show] .border-t {
-    border-color: #e5e7eb !important;
-    margin: 4px 0 !important;
-}
-
-/* Rotate chevron animation */
-.rotate-180 {
-    transform: rotate(180deg);
-}
-
-/* Ensure dropdown is visible and above other content */
 nav .relative {
     position: relative !important;
     z-index: 1000;
 }
 
-/* Remove any conflicting margins */
-nav .absolute a,
-nav [x-show] a {
-    margin-right: 0 !important;
+.rotate-180 {
+    transform: rotate(180deg);
 }
 
-
 /* ===== DARK MODE ===== */
-
-html.dark-mode body {
+[data-theme="dark"] body {
     background-color: #111827;
     color: #e5e7eb;
 }
 
 /* ── General surfaces ── */
-html.dark-mode .bg-white  { background-color: #1f2937 !important; }
-html.dark-mode .bg-gray-50  { background-color: #1a2332 !important; }
-html.dark-mode .bg-gray-100 { background-color: #1f2937 !important; }
-html.dark-mode .shadow-md,
-html.dark-mode .shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; }
-html.dark-mode .border,
-html.dark-mode .border-gray-100,
-html.dark-mode .border-gray-200,
-html.dark-mode .border-gray-300 { border-color: #374151 !important; }
-html.dark-mode .border-t { border-top-color: #374151 !important; }
+[data-theme="dark"] .bg-white  { background-color: #1f2937 !important; }
+[data-theme="dark"] .bg-gray-50  { background-color: #1a2332 !important; }
+[data-theme="dark"] .bg-gray-100 { background-color: #1f2937 !important; }
+[data-theme="dark"] .shadow-md,
+[data-theme="dark"] .shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; }
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300 { border-color: #374151 !important; }
+[data-theme="dark"] .border-t { border-top-color: #374151 !important; }
 
 /* ── Text ── */
-html.dark-mode .text-gray-800 { color: #e5e7eb !important; }
-html.dark-mode .text-gray-700 { color: #d1d5db !important; }
-html.dark-mode .text-gray-600 { color: #9ca3af !important; }
-html.dark-mode .text-gray-500 { color: #6b7280 !important; }
-html.dark-mode .text-gray-400 { color: #4b5563 !important; }
-html.dark-mode .text-1a1a1a,
-html.dark-mode .product-card-body h3 a { color: #e5e7eb !important; }
+[data-theme="dark"] .text-gray-800 { color: #e5e7eb !important; }
+[data-theme="dark"] .text-gray-700 { color: #d1d5db !important; }
+[data-theme="dark"] .text-gray-600 { color: #9ca3af !important; }
+[data-theme="dark"] .text-gray-500 { color: #6b7280 !important; }
+[data-theme="dark"] .text-gray-400 { color: #4b5563 !important; }
+[data-theme="dark"] .text-1a1a1a,
+[data-theme="dark"] .product-card-body h3 a { color: #e5e7eb !important; }
 
 /* ── Inputs & selects ── */
-html.dark-mode input[type="text"],
-html.dark-mode input[type="number"],
-html.dark-mode input[type="email"],
-html.dark-mode input[type="password"],
-html.dark-mode input[type="date"],
-html.dark-mode select,
-html.dark-mode textarea {
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
     background-color: #374151 !important;
     border-color: #4b5563 !important;
     color: #e5e7eb !important;
 }
-html.dark-mode input::placeholder,
-html.dark-mode textarea::placeholder { color: #6b7280 !important; }
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: #6b7280 !important; }
 
 /* ── Products page ── */
-html.dark-mode .product-card {
+[data-theme="dark"] .product-card {
     background: #1f2937;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
-html.dark-mode .product-card-image { background-color: #374151; }
-html.dark-mode .product-card-footer { border-top-color: #374151; }
-html.dark-mode .search-bar-area {
+[data-theme="dark"] .product-card-image { background-color: #374151; }
+[data-theme="dark"] .product-card-footer { border-top-color: #374151; }
+[data-theme="dark"] .search-bar-area {
     background-color: #1f2937;
     border-bottom-color: #374151;
 }
-html.dark-mode .search-box input {
-    background: #374151;
+[data-theme="dark"] .main-search-form {
+    background: #1f2937;
     border-color: #4b5563;
+}
+[data-theme="dark"] .main-search-form input {
     color: #e5e7eb;
 }
-html.dark-mode .search-results-info { color: #9ca3af; }
-html.dark-mode .category-filter a {
-    background-color: #374151;
-    color: #d1d5db;
-    border-color: transparent;
+[data-theme="dark"] .marketplace-results-bar { color: #9ca3af; }
+[data-theme="dark"] .marketplace-sidebar {
+    background: #1f2937;
+    border-color: #374151;
 }
-html.dark-mode .category-filter a:hover { background-color: #1a5c1a; color: #fff; }
-html.dark-mode .category-filter a.active { background-color: #2d6a2d; }
-html.dark-mode .products-empty { color: #6b7280; }
+[data-theme="dark"] .sidebar-cat-link { color: #d1d5db; }
+[data-theme="dark"] .sidebar-cat-link:hover { background: #1a3c1a; color: #6ee76e; }
+[data-theme="dark"] .sidebar-cat-link.active { background: #2d6a2d; }
 
 /* ── Producer dashboard ── */
-html.dark-mode .myproduct-header h1 { color: #e5e7eb; }
-html.dark-mode .stat-card {
+[data-theme="dark"] .myproduct-header h1 { color: #e5e7eb; }
+[data-theme="dark"] .stat-card {
     background: #1f2937;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: #374151;
 }
-html.dark-mode .stat-card .stat-label { color: #6b7280; }
-html.dark-mode .stat-card .stat-value { color: #e5e7eb; }
-html.dark-mode .filter-bar {
+[data-theme="dark"] .stat-card .stat-label { color: #6b7280; }
+[data-theme="dark"] .stat-card .stat-value { color: #e5e7eb; }
+[data-theme="dark"] .filter-bar {
     background: #1f2937;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: #374151;
 }
-html.dark-mode .filter-bar select,
-html.dark-mode .filter-bar input[type="text"] {
+[data-theme="dark"] .filter-bar select,
+[data-theme="dark"] .filter-bar input[type="text"] {
     background: #374151;
     border-color: #4b5563;
     color: #e5e7eb;
 }
-html.dark-mode .filter-checkbox { color: #d1d5db; }
-html.dark-mode .table-card {
+[data-theme="dark"] .filter-checkbox { color: #d1d5db; }
+[data-theme="dark"] .table-card {
     background: #1f2937;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: #374151;
 }
-html.dark-mode .table-card thead { background: #111827; border-bottom-color: #374151; }
-html.dark-mode .table-card th { color: #6b7280; }
-html.dark-mode .table-card th a { color: #6b7280; }
-html.dark-mode .table-card td { border-bottom-color: #374151; color: #d1d5db; }
-html.dark-mode .table-card tbody tr:hover { background: #253347; }
-html.dark-mode .table-card tbody tr.row-low-stock { background: #2d1f1f; }
-html.dark-mode .table-card tbody tr.row-low-stock:hover { background: #3a2020; }
-html.dark-mode .pagination-bar a,
-html.dark-mode .pagination-bar span { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .table-card thead { background: #111827; border-bottom-color: #374151; }
+[data-theme="dark"] .table-card th { color: #6b7280; }
+[data-theme="dark"] .table-card th a { color: #6b7280; }
+[data-theme="dark"] .table-card td { border-bottom-color: #374151; color: #d1d5db; }
+[data-theme="dark"] .table-card tbody tr:hover { background: #253347; }
+[data-theme="dark"] .table-card tbody tr.row-low-stock { background: #2d1f1f; }
+[data-theme="dark"] .table-card tbody tr.row-low-stock:hover { background: #3a2020; }
+[data-theme="dark"] .pagination-bar a,
+[data-theme="dark"] .pagination-bar span { background: #1f2937; border-color: #374151; }
 
 /* ── Add/Edit product form ── */
-html.dark-mode .rounded { background-color: #1f2937; }
-html.dark-mode label { color: #d1d5db; }
+[data-theme="dark"] .section-card { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .section-card-header { background: #1a3c1a; }
+[data-theme="dark"] label { color: #d1d5db; }
 
 /* ── Quality scan page ── */
-html.dark-mode .drop-zone { border-color: #4b5563 !important; }
-html.dark-mode .drop-zone:not(.drag-over) { background: #1f2937; }
+[data-theme="dark"] .drop-zone { border-color: #4b5563 !important; }
+[data-theme="dark"] .drop-zone:not(.drag-over) { background: #1f2937; }
 
 /* ── Bootstrap overrides ── */
-html.dark-mode .form-control,
-html.dark-mode .form-select {
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
     background-color: #374151 !important;
     border-color: #4b5563 !important;
     color: #e5e7eb !important;
 }
-html.dark-mode .card { background-color: #1f2937 !important; border-color: #374151 !important; }
+[data-theme="dark"] .card { background-color: #1f2937 !important; border-color: #374151 !important; }
+[data-theme="dark"] .card-header { background-color: #1a3c1a !important; }
+[data-theme="dark"] .alert-warning { background: #2d2010; border-color: #4d3a10; color: #d97706; }
 
-/* ── Dropdown menu (keep light for readability) ── */
-html.dark-mode nav .absolute,
-html.dark-mode nav [x-show] {
-    background-color: #1f2937 !important;
+/* ── Cart page ── */
+[data-theme="dark"] .producer-section {
+    background: #1f2937;
+    border-color: #374151;
 }
-html.dark-mode nav .absolute a,
-html.dark-mode nav [x-show] a {
-    background-color: #1f2937 !important;
-    color: #d1d5db !important;
+[data-theme="dark"] .producer-section-header {
+    background: #1a3c1a;
+    border-color: #374151;
 }
-html.dark-mode nav .absolute a:hover,
-html.dark-mode nav [x-show] a:hover {
-    background-color: #22c55e !important;
-    color: white !important;
+[data-theme="dark"] .cart-summary-sidebar .summary-card {
+    background: #1f2937;
+    border-color: #374151;
 }
-html.dark-mode nav .absolute .bg-gray-100,
-html.dark-mode nav .absolute .bg-gray-50,
-html.dark-mode nav [x-show] .bg-gray-100,
-html.dark-mode nav [x-show] .bg-gray-50 {
-    background-color: #111827 !important;
-    color: #9ca3af !important;
-}
-html.dark-mode nav .absolute a i,
-html.dark-mode nav [x-show] a i { color: #6b7280 !important; }
-html.dark-mode nav .absolute .border-t,
-html.dark-mode nav [x-show] .border-t { border-color: #374151 !important; }
+[data-theme="dark"] .cart-item-row { border-color: #374151; }
+
+/* ── Checkout ── */
+[data-theme="dark"] .address-option { border-color: #374151; background: #1f2937; }
+[data-theme="dark"] .address-option:hover { background: #1a3c1a; }
+[data-theme="dark"] .checkout-summary-card { background: #1f2937; border-color: #374151; }
+
+/* ── Order success / cancel ── */
+[data-theme="dark"] .order-summary-card { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .order-meta-bar { background: #1a3c1a; }
+[data-theme="dark"] .order-totals { background: #1a3c1a; }
+
+/* ── Profile page ── */
+[data-theme="dark"] .profile-stat-card { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .profile-card { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .info-section-card { background: #1f2937; border-color: #374151; }
+[data-theme="dark"] .info-section-header { background: #1a3c1a; }
