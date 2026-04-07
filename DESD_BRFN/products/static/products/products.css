@@ -439,6 +439,16 @@
     color: var(--color-text);
 }
 
+[data-theme="dark"] .main-search-form {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+[data-theme="dark"] .main-search-form input {
+    background: none !important;
+    color: var(--color-text);
+}
+
 [data-theme="dark"] .category-filter a {
     background: #374151;
     color: #d1d5db;
