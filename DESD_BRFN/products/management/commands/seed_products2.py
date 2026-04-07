@@ -49,7 +49,7 @@ class Command(BaseCommand):
             'fruits': ['Berries', 'Tree Fruits', 'Citrus', 'Tropical', 'Stone Fruits'],
             'vegetables': ['Leafy Greens', 'Root Vegetables', 'Cruciferous', 'Squash', 'Alliums', 'Legumes'],
             'dairy': ['Milk', 'Cheese', 'Yogurt', 'Eggs', 'Butter & Cream'],
-            'meat': ['Poultry', 'Beef', 'Pork', 'Lamb', 'Game'],
+            'meat': ['Poultry', 'Beef', 'Goat', 'Lamb', 'Game'],
             'preserves': ['Jams', 'Pickles', 'Chutneys', 'Fermented Foods'],
             'herbs_spices': ['Fresh Herbs', 'Dried Herbs', 'Spices', 'Teas'],
             'mushrooms': ['Fresh Mushrooms', 'Dried Mushrooms', 'Mushroom Products'],
@@ -173,10 +173,10 @@ class Command(BaseCommand):
             ('Minced Beef', 8.5, 'kg'), ('Beef Steak', 18.0, 'kg'), ('Beef Roast', 15.0, 'kg'),
             ('Beef Brisket', 12.0, 'kg'), ('Beef Fillet', 25.0, 'kg'), ('Ribeye Steak', 22.0, 'kg'),
             ('Sirloin Steak', 20.0, 'kg'), ('Beef Short Ribs', 14.0, 'kg'),
-            # Pork
-            ('Pork Chops', 8.0, 'kg'), ('Pork Belly', 9.0, 'kg'), ('Pork Sausages', 7.5, 'kg'),
-            ('Bacon', 10.0, 'kg'), ('Pork Shoulder', 7.0, 'kg'), ('Pork Loin', 9.0, 'kg'),
-            ('Pork Ribs', 8.0, 'kg'), ('Pork Tenderloin', 12.0, 'kg'),
+            # Goat
+            ('Goat Chops', 8.0, 'kg'), ('Goat Shoulder', 9.0, 'kg'), ('Goat Sausages', 7.5, 'kg'),
+            ('Goat Mince', 10.0, 'kg'), ('Goat Leg', 12.0, 'kg'), ('Goat Loin', 9.0, 'kg'),
+            ('Goat Ribs', 8.0, 'kg'), ('Goat Fillet', 14.0, 'kg'),
             # Lamb
             ('Lamb Chops', 14.0, 'kg'), ('Lamb Shoulder', 12.0, 'kg'), ('Lamb Leg', 13.0, 'kg'),
             ('Lamb Rack', 20.0, 'kg'), ('Minced Lamb', 10.0, 'kg'),
