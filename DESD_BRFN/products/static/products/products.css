@@ -2,7 +2,7 @@
 
 /* Page header */
 .products-header {
-    background: linear-gradient(135deg, #1a3c1a 0%, #2d6a2d 60%, #4a9e4a 100%);
+    background: linear-gradient(135deg, var(--color-nav-bg) 0%, var(--color-primary) 60%, var(--color-primary-hover) 100%);
     color: white;
     padding: 3rem 2rem;
     text-align: center;
@@ -31,6 +31,8 @@
     overflow-x: auto;
     padding-bottom: 0.5rem;
     scrollbar-width: thin;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 .rec-card {
     flex-shrink: 0;

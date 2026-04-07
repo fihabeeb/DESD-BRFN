@@ -44,6 +44,76 @@
     --space-16: 64px;
 }
 
+/* ══════════════════════════════════════════
+   COLOR PALETTES
+   Applied via data-palette attribute on <html>
+   ══════════════════════════════════════════ */
+
+/* 1. Farm Green (default — no attribute needed) */
+
+/* 2. Slate & Forest */
+[data-palette="slate-forest"] {
+    --color-primary:       #1e3a2f;
+    --color-primary-hover: #152a22;
+    --color-primary-light: #e4ede9;
+    --color-accent:        #4ade80;
+    --color-nav-bg:        #0f1f18;
+    --color-footer-bg:     #0f1f18;
+    --color-bg:            #f8fafc;
+}
+
+/* 3. Warm Olive */
+[data-palette="warm-olive"] {
+    --color-primary:       #3d5a3e;
+    --color-primary-hover: #2d4430;
+    --color-primary-light: #eef2e6;
+    --color-accent:        #c8a96e;
+    --color-nav-bg:        #2a2a2a;
+    --color-footer-bg:     #2a2a2a;
+    --color-bg:            #f5f0e8;
+    --color-surface:       #fefcf8;
+}
+
+/* 4. Dark Navy + Fresh Green */
+[data-palette="navy-green"] {
+    --color-primary:       #16a34a;
+    --color-primary-hover: #15803d;
+    --color-primary-light: #dcfce7;
+    --color-accent:        #22d3ee;
+    --color-nav-bg:        #0f172a;
+    --color-footer-bg:     #0f172a;
+    --color-bg:            #f0f4f8;
+}
+
+/* 5. Charcoal + Sage */
+[data-palette="charcoal-sage"] {
+    --color-primary:       #6b7c4d;
+    --color-primary-hover: #5a6940;
+    --color-primary-light: #f0f2e8;
+    --color-accent:        #e8c547;
+    --color-nav-bg:        #2d2d2d;
+    --color-footer-bg:     #2d2d2d;
+    --color-bg:            #fafaf8;
+}
+
+/* 6. Deep Teal + Orange */
+[data-palette="teal-orange"] {
+    --color-primary:       #0d7c66;
+    --color-primary-hover: #0a6354;
+    --color-primary-light: #e0f5f1;
+    --color-accent:        #f97316;
+    --color-nav-bg:        #0a3d30;
+    --color-footer-bg:     #0a3d30;
+    --color-bg:            #f7f7f5;
+}
+
+/* Dark mode per palette — nav/footer darken further */
+[data-palette="slate-forest"][data-theme="dark"] { --color-nav-bg: #060f0c; --color-footer-bg: #060f0c; }
+[data-palette="warm-olive"][data-theme="dark"]    { --color-nav-bg: #1a1a1a; --color-footer-bg: #1a1a1a; --color-primary-light: #1e2e1e; }
+[data-palette="navy-green"][data-theme="dark"]    { --color-nav-bg: #060b14; --color-footer-bg: #060b14; }
+[data-palette="charcoal-sage"][data-theme="dark"] { --color-nav-bg: #1a1a1a; --color-footer-bg: #1a1a1a; }
+[data-palette="teal-orange"][data-theme="dark"]   { --color-nav-bg: #052019; --color-footer-bg: #052019; --color-primary-light: #0d3028; }
+
 /* ── Dark Mode Overrides ── */
 [data-theme="dark"] {
     --color-surface: #1f2937;
