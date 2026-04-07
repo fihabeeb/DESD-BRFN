@@ -7,44 +7,64 @@
 
 <style>
 .search-bar-area {
-    padding: 0.85rem 1.5rem 0.5rem;
+    padding: 1.5rem 0;
     border-bottom: 1px solid #dee2e6;
-    margin-bottom: 0;
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
 }
 
 .search-box {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
+    max-width: 700px;
+    margin: 0 auto;  /* This centers the form */
+    position: relative;
+}
+
+.search-box .bi-search {
+    position: absolute;
+    left: 16px;
+    color: #6c757d;
+    font-size: 1rem;
+    z-index: 1;
 }
 
 .search-box input {
-    padding: 8px 12px;
+    flex: 1;
+    padding: 14px 16px 14px 42px;
     border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    width: 280px;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.search-box input:focus {
+    border-color: #2d6a4f;
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
 }
 
 .search-box button {
-    padding: 8px 16px;
+    padding: 14px 28px;
     background: #2d6a4f;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 0.9rem;
-    white-space: nowrap;
+    transition: all 0.2s;
 }
 
 .search-box button:hover {
     background: #1b4332;
+    transform: translateY(-2px);
 }
 
 .search-results-info {
-    margin: 0.4rem 0 0;
+    text-align: center;
+    margin-top: 1rem;
     color: #6c757d;
-    font-size: 0.85rem;
 }
 </style>
 
@@ -62,11 +82,11 @@
     <form method="get" action="{% url 'mainApp:products:product_list' %}" class="search-box" id="product-search-form">
         <i class="bi bi-search" style="color:#6c757d;"></i>
         <input type="text"
-               name="q"
-               id="product-search-input"
-               placeholder="Search products..."
-               value="{{ search_query }}"
-               autocomplete="off">
+            name="q"
+            id="product-search-input"
+            placeholder="Search products..."
+            value="{{ search_query }}"
+            autocomplete="off">
         {% if current_category %}
             <input type="hidden" name="category" value="{{ current_category }}">
         {% endif %}
@@ -111,14 +131,17 @@
                 <div class="product-badges">
                     {% if product.is_organic %}
                         <span class="badge-organic">
-                            <i class="bi bi-leaf"></i> Organic
+                            <i class="bi leaf"></i> Organic
+                        </span>
+                    {% endif %}
+                    {% if product.is_in_season %}
+                        <span class="badge-in-season">
+                            <i class="bi bi-flower2"></i> In Season
                         </span>
                     {% endif %}
                     <span class="badge-status
-                        {% if product.availability == 'in_season' %}in-season
-                        {% elif product.availability == 'available' %}available
-                        {% elif product.availability == 'unavailable' %}unavailable
-                        {% else %}out-season{% endif %}">
+                        {% if product.availability == 'available' %}available
+                        {% else %}unavailable{% endif %}">
                         {{ product.get_availability_display }}
                     </span>
                 </div>

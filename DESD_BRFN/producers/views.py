@@ -18,8 +18,17 @@ from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
 from orders.models import Order, OrderItem
 
-# Create your views here.
+from django.contrib.auth import logout, update_session_auth_hash
+from producers.forms_personal_info import ProducerPersonalInfoForm
+from mainApp.models import Address
 
+from mainApp.utils import geocode_postcode, haversine_miles
+import logging
+
+
+
+# Create your views here.
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 # TODO: function below to remove after testing
@@ -308,6 +317,17 @@ def myorders_view(request):
             'producer_subtotal': producer_subtotal,
         })
 
+
+    stats = {
+        'total': orders.count(),
+        'pending': orders.filter(status='pending').count(),
+        'processing': orders.filter(status='processing').count(),
+        'completed': orders.filter(status='delivered').count(),
+        # 'total_revenue': orders.filter(status='delivered').aggregate(
+        #     total=models.Sum('producer_subtotal')
+        # )['total'] or 0,
+    }
+
     # Pagination
     paginator = Paginator(orders_data, 10)
     page_number = request.GET.get('page')
@@ -317,6 +337,7 @@ def myorders_view(request):
         'page_obj': page_obj,
         'producer': producer_profile,
         'status_choices': Order.STATUS_CHOICES,
+        'stats': stats,
         'current_status': status_filter,
     }
     return render(request, 'producers/myorders.html', context)
@@ -363,3 +384,144 @@ def quality_scan_view(request):
             return JsonResponse({'success': False, 'error': f'Prediction failed: {e}'}, status=500)
 
     return render(request, 'producers/quality_scan.html')
+
+# @login_required
+# @producer_required
+# def personal_info_view(request):
+#     user = request.user
+
+#     # Ensure producer profile exists
+#     # should not be get or create
+#     ProducerProfile.objects.get(user=user)
+
+#     # Ensure farm address exists
+#     if not user.addresses.filter(address_type="farm", is_default=True).exists():
+#         Address.objects.create(
+#             user=user,
+#             address_line1="",
+#             city="",
+#             post_code="",
+#             country="UK",
+#             address_type="farm",
+#             is_default=True
+#         )
+
+#     # DELETE ACCOUNT HANDLER
+#     if request.method == "POST" and "delete_account" in request.POST:
+#         # Delete the user and all related objects
+#         user.delete()
+
+#         # Log out the session
+#         logout(request)
+
+#         # Redirect to home or login
+#         return redirect("mainApp:home")
+
+#     # UPDATE ACCOUNT HANDLER
+#     if request.method == "POST":
+#         form = ProducerPersonalInfoForm(request.POST, user=user)
+#         if form.is_valid():
+#             form.save()
+
+#             # FORCE LOGOUT after updating credentials
+#             logout(request)
+
+#             # Redirect to producer login
+#             return redirect("mainApp:producers:login")
+#     else:
+#         form = ProducerPersonalInfoForm(
+#             user=user,
+#             initial={
+#                 "username": user.username,
+#                 "email": user.email,
+#                 "first_name": user.first_name,
+#                 "last_name": user.last_name,
+#                 "phone_number": user.phone_number,
+#             }
+#         )
+
+#     return render(request, "producers/personal_info.html", {"form": form})
+
+@login_required
+@producer_required
+def personal_info_view(request):
+    """Producer personal information management"""
+    user = request.user
+
+    # DELETE ACCOUNT HANDLER
+    if request.method == "POST" and "delete_account" in request.POST:
+        user.delete()
+        logout(request)
+        messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
+        return redirect("mainApp:home")
+    
+    # GET OR CREATE PRODUCER PROFILE
+    try:
+        profile = ProducerProfile.objects.get(user=user)
+    except ProducerProfile.DoesNotExist:
+        logger.info(f"Creating missing profile for user {user.username}")
+        profile = ProducerProfile.objects.create(user=user)
+        messages.info(request, "Producer profile was created. Please complete your farm details.")
+    
+    # GET ADDRESSES
+    all_addresses = user.addresses.all().order_by('-is_default', '-created_at')
+    
+    # Get farm address (primary for producers)
+    farm_address = all_addresses.filter(address_type='farm', is_default=True).first()
+    if not farm_address:
+        # Try to get any farm address
+        farm_address = all_addresses.filter(address_type='farm').first()
+    
+    # Get other addresses (home, shipping, billing, business)
+    other_addresses = all_addresses.exclude(address_type='farm')
+    
+    # PROCESS FORM
+    if request.method == "POST":
+        form = ProducerPersonalInfoForm(request.POST, user=user)
+        
+        if form.is_valid():
+            try:
+                user = form.save()
+                
+                # Handle session after password change
+                if form.cleaned_data.get('password1'):
+                    update_session_auth_hash(request, user)
+                    messages.success(request, "Password updated successfully!")
+                
+                messages.success(request, "Your information has been updated successfully!")
+                return redirect("mainApp:producers:personal_info")
+                
+            except Exception as e:
+                logger.error(f"Error updating producer info: {e}", exc_info=True)
+                messages.error(request, "An error occurred while updating your information. Please try again.")
+        else:
+            # Display form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        field_label = field.replace('_', ' ').title()
+                        messages.error(request, f"{field_label}: {error}")
+    
+    else:
+        # GET request - populate initial data for form
+        initial_data = {
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "business_name": profile.business_name if profile else '',
+        }
+        
+        form = ProducerPersonalInfoForm(user=user, initial=initial_data)
+    
+    context = {
+        'form': form,
+        'user': user,
+        'profile': profile,
+        'all_addresses': all_addresses,
+        'farm_address': farm_address,
+        'other_addresses': other_addresses,
+    }
+    
+    return render(request, "producers/personal_info.html", context)

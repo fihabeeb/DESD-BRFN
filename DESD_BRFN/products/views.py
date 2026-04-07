@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Product, ProductCategory
 from django.db.models import Q
+from django.contrib.postgres.search import TrigramSimilarity
 
 @login_required
 def add_product(request):
@@ -42,18 +43,45 @@ def product_list(request):
     '''
     Display products for customers to browse
     '''
-    products = Product.objects.filter(availability__in=['available', 'in_season'])
+    products = Product.objects.filter(availability='available')
 
     search_query = request.GET.get('q', '')
     if search_query:
-        products = products.filter(
+        # Check if search query contains "organic"
+        search_lower = search_query.lower()
+        is_organic_search = 'organic' in search_lower
+        
+        # Build the base search
+        products = products.annotate(
+            similarity=TrigramSimilarity('name', search_query)
+        )
+        
+        # Create filter conditions
+        search_filter = Q(
             Q(name__icontains=search_query) |
             Q(description__icontains=search_query) |
-            Q(category__name__icontains=search_query)
+            Q(category__name__icontains=search_query) |
+            Q(similarity__gt=0.125)
+        )
+        
+        # If searching for organic, add organic filter
+        if is_organic_search:
+            search_filter &= Q(is_organic=True)
+            
+            # Also remove "organic" from the search term for better matching
+            clean_query = search_lower.replace('organic', '').strip()
+            if clean_query:
+                # Add search for the remaining terms
+                search_filter |= Q(
+                    Q(name__icontains=clean_query) |
+                    Q(description__icontains=clean_query) |
+                    Q(category__name__icontains=clean_query)
+                )
+        
+        products = products.filter(search_filter).order_by('-similarity')
 
             # TODO:
             ## add producer name when available
-        )
 
     category_id = request.GET.get('category')
     if category_id:

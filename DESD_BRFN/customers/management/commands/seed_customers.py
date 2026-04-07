@@ -69,11 +69,11 @@ class Command(BaseCommand):
                 phone_number=f"{random.choice(phone_prefixes)} {random.randint(100, 999)} {random.randint(100, 999)}",
             )
             
-            # Create customer profile
-            profile = CustomerProfile.objects.create(
+            # Create customer profile - properly unpack the tuple
+            profile, created = CustomerProfile.objects.get_or_create(
                 user=user,
             )
-            
+
             # Create default address
             address = Address.objects.create(
                 user=user,
@@ -88,12 +88,12 @@ class Command(BaseCommand):
                 latitude=Decimal(str(addr_data['lat'])),
                 longitude=Decimal(str(addr_data['lon'])),
             )
-            
-            # Create a cart for the customer
+
+            # Create a cart for the customer - now using the actual profile instance
             Cart.objects.create(
                 customer=profile,
             )
-            
+                        
             created_count += 1
             self.stdout.write(self.style.SUCCESS(f"  Created customer: {user.username} at {addr_data['postcode']}"))
         

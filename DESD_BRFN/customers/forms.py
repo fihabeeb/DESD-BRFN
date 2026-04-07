@@ -5,6 +5,10 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from mainApp.models import CustomerProfile, Address
 from mainApp.utils import geocode_postcode
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -195,10 +199,206 @@ class CustomerRegistrationForm(UserCreationForm):
             )
 
         return user
+    
 
-# class CustomerRegistrationForm(forms.ModelForm):
-#     password = forms.CharField(widget=forms.PasswordInput)
+
+# TODO: to remove class below after testing.
+# class CustomerPersonalInfoForm(forms.ModelForm):
+#     """
+#     Form for editing customer personal info, delivery address, and password.
+#     All fields optional so user can change only what they want.
+#     """
+
+#     # Delivery address fields (home)
+#     home_address_line1 = forms.CharField(required=False, label="Address Line 1")
+#     home_address_line2 = forms.CharField(required=False, label="Address Line 2 (optional)")
+#     home_city = forms.CharField(required=False, label="City")
+#     home_county = forms.CharField(required=False, label="County (optional)")
+#     home_post_code = forms.CharField(required=False, label="Post Code")
+
+#     # Password
+#     password = forms.CharField(
+#         required=False,
+#         widget=forms.PasswordInput(),
+#         label="New Password",
+#         help_text="Leave blank to keep your current password."
+#     )
 
 #     class Meta:
-#         model = RegularUser
-#         fields = ["username", "email", "password", "phone_number", "address", "post_code"]
+#         model = User
+#         fields = [
+#             "username",
+#             "email",
+#             "first_name",
+#             "last_name",
+#             "phone_number",
+#         ]
+
+#     def __init__(self, *args, **kwargs):
+#         self.user = kwargs.pop("user")
+#         super().__init__(*args, **kwargs)
+
+#         # Make all fields optional
+#         for field in self.fields.values():
+#             field.required = False
+
+#         # Load home address (default)
+#         home = self.user.addresses.filter(address_type="home", is_default=True).first()
+
+#         if home:
+#             self.fields["home_address_line1"].initial = home.address_line1
+#             self.fields["home_address_line2"].initial = home.address_line2
+#             self.fields["home_city"].initial = home.city
+#             self.fields["home_county"].initial = home.county
+#             self.fields["home_post_code"].initial = home.post_code
+
+#     def save(self, commit=True):
+#         user = self.user  # always update existing user
+
+#         # Update user fields
+#         for field in ["username", "email", "first_name", "last_name", "phone_number"]:
+#             if field in self.cleaned_data:
+#                 new_value = self.cleaned_data[field]
+#                 if new_value != "" and new_value != getattr(user, field):
+#                     setattr(user, field, new_value)
+
+#         # Update password if provided
+#         password = self.cleaned_data.get("password")
+#         if password:
+#             user.set_password(password)
+
+#         if commit:
+#             user.save()
+
+#             # Ensure customer profile exists
+#             CustomerProfile.objects.get_or_create(user=user)
+
+#             # Ensure home address exists
+#             home = user.addresses.filter(address_type="home", is_default=True).first()
+#             if not home:
+#                 home = Address.objects.create(
+#                     user=user,
+#                     address_line1="",
+#                     city="",
+#                     post_code="",
+#                     country="UK",
+#                     address_type="home",
+#                     is_default=True,
+#                 )
+
+#             mapping = {
+#                 "home_address_line1": "address_line1",
+#                 "home_address_line2": "address_line2",
+#                 "home_city": "city",
+#                 "home_county": "county",
+#                 "home_post_code": "post_code",
+#             }
+
+#             postcode_changed = False
+
+#             for form_field, model_field in mapping.items():
+#                 if form_field in self.cleaned_data:
+#                     new_value = self.cleaned_data[form_field]
+#                     if new_value != "" and new_value != getattr(home, model_field):
+#                         setattr(home, model_field, new_value)
+#                         if form_field == "home_post_code":
+#                             postcode_changed = True
+
+#             # Re-geocode if postcode changed
+#             if postcode_changed and home.post_code:
+#                 lat, lon = geocode_postcode(home.post_code)
+#                 home.latitude = lat
+#                 home.longitude = lon
+
+#             home.save()
+
+#         return user
+
+
+class CustomerPersonalInfoForm(forms.Form):
+    """
+    Form for editing customer personal info.
+    Addresses are managed separately in the address management section.
+    """
+    
+    # Personal fields only
+    first_name = forms.CharField(required=False)
+    last_name = forms.CharField(required=False)
+    phone_number = forms.CharField(required=False)
+
+    # Password
+    password1 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(),
+        label="New Password",
+        help_text="Leave blank to keep your current password."
+    )
+    password2 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(),
+        label="Confirm Password",
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user")
+        super().__init__(*args, **kwargs)
+
+        # Make all fields optional
+        for field in self.fields.values():
+            field.required = False
+
+        # Add placeholders
+        self.fields['first_name'].widget.attrs['placeholder'] = "First name"
+        self.fields['last_name'].widget.attrs['placeholder'] = "Last name"
+        self.fields['phone_number'].widget.attrs['placeholder'] = "Phone number"
+
+    def clean_phone_number(self):
+        """Validate phone number format"""
+        phone = self.cleaned_data.get('phone_number')
+        if phone:
+            phone_pattern = r'^[0-9\s\+\-\(\)]{10,}$'
+            if not re.match(phone_pattern, phone):
+                raise forms.ValidationError("Please enter a valid phone number.")
+        return phone
+
+    def clean(self):
+        """Validate password fields"""
+        cleaned_data = super().clean()
+        
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+        
+        if password1 or password2:
+            if not password1:
+                self.add_error('password1', "Please enter a new password.")
+            elif not password2:
+                self.add_error('password2', "Please confirm your password.")
+            elif password1 != password2:
+                self.add_error('password2', "Passwords do not match.")
+            elif len(password1) < 8:
+                self.add_error('password1', "Password must be at least 8 characters long.")
+            elif password1.isdigit():
+                self.add_error('password1', "Password cannot be entirely numeric.")
+        
+        return cleaned_data
+
+    def save(self, commit=True):
+        """Save the form data"""
+        user = self.user
+
+        # Update user fields
+        user_fields = ["first_name", "last_name", "phone_number"]
+        for field in user_fields:
+            new_value = self.cleaned_data.get(field)
+            if new_value and new_value != getattr(user, field):
+                setattr(user, field, new_value)
+
+        # Update password if provided
+        password1 = self.cleaned_data.get("password1")
+        if password1:
+            user.set_password(password1)
+
+        if commit:
+            user.save()
+
+        return user
