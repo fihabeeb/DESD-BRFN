@@ -9,10 +9,16 @@
 {% block content %}
 <div class="detail-wrapper">
 
-    <a href="{% url 'mainApp:products:product_list' %}" class="detail-back">
-        <i class="bi bi-arrow-left"></i> Back to Marketplace
-    </a>
+    <!-- Breadcrumb -->
+    <nav class="detail-breadcrumb" aria-label="breadcrumb">
+        <a href="{% url 'mainApp:home' %}"><i class="bi bi-house"></i> Home</a>
+        <span class="bc-sep"><i class="bi bi-chevron-right"></i></span>
+        <a href="{% url 'mainApp:products:product_list' %}">Marketplace</a>
+        <span class="bc-sep"><i class="bi bi-chevron-right"></i></span>
+        <span class="bc-current">{{ product.name }}</span>
+    </nav>
 
+    <!-- Two-column layout -->
     <div class="detail-card">
 
         <!-- Left: image -->
@@ -22,41 +28,21 @@
             {% else %}
                 <div class="no-image">
                     <i class="bi bi-image"></i>
+                    <span>No image available</span>
                 </div>
             {% endif %}
         </div>
 
         <!-- Right: info -->
         <div class="detail-info">
-<!-- {% if messages %}
-<div class="container mt-3">
-    {% for message in messages %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 
-             -->
-<!-- Product Detail -->
-<div class="products">
-    <p>Below are the details of the product</p>
-        <div class="product-card">
-            {% if product.image %}
-                <img src="{{ product.image.url }}" alt="{{ product.name }}">
-            {% endif %}
-
-            <!-- example of storing iamges below -->
-            {% load static %}
-            <!-- <img src="{% static 'products/example.jpeg' %}" alt="test image"> -->
-
-            <!-- Badges -->
+            <!-- Badges row -->
             <div class="detail-badges">
                 {% if product.is_organic %}
                     <span class="badge-organic"><i class="bi bi-leaf"></i> Organic</span>
+                {% endif %}
+                {% if product.is_in_season %}
+                    <span class="badge-seasonal"><i class="bi bi-flower2"></i> In Season</span>
                 {% endif %}
                 <span class="badge-availability
                     {% if product.availability == 'in_season' %}in-season
@@ -67,13 +53,12 @@
                 </span>
             </div>
 
+            <!-- Name & price -->
             <h1 class="detail-name">{{ product.name }}</h1>
 
             <div class="detail-price">
                 £{{ product.price }} <span>per {{ product.unit }}</span>
             </div>
-
-            <p class="detail-description">{{ product.description }}</p>
 
             <!-- Food miles -->
             {% if food_miles is not None %}
@@ -107,7 +92,10 @@
                 {% endif %}
             {% endif %}
 
-            <!-- Metadata -->
+            <!-- Description -->
+            <p class="detail-description">{{ product.description }}</p>
+
+            <!-- Metadata grid -->
             <ul class="detail-meta">
                 <li>
                     <i class="bi bi-box-seam"></i>
@@ -115,45 +103,56 @@
                     {% if product.is_low_stock %}
                         <span class="stock-low">Only {{ product.stock_quantity }} left!</span>
                     {% else %}
-                        {{ product.stock_quantity }} available
+                        <span>{{ product.stock_quantity }} available</span>
                     {% endif %}
                 </li>
                 {% if product.harvest_date %}
                 <li>
                     <i class="bi bi-calendar3"></i>
-                    <strong>Harvested</strong> {{ product.harvest_date }}
+                    <strong>Harvested</strong>
+                    <span>{{ product.harvest_date }}</span>
                 </li>
                 {% endif %}
                 <li>
+                    <i class="bi bi-tag"></i>
+                    <strong>Unit</strong>
+                    <span>{{ product.unit }}</span>
+                </li>
+                {% if product.producer %}
+                <li>
                     <i class="bi bi-shop"></i>
                     <strong>Producer</strong>
-                    {% if product.producer %}{{ product.producer.business_name }}{% else %}—{% endif %}
+                    <span>{{ product.producer.business_name }}</span>
                 </li>
+                {% endif %}
+                {% if product.allergen_display %}
                 <li>
                     <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Allergens</strong> {{ product.allergen_display }}
+                    <strong>Allergens</strong>
+                    <span>{{ product.allergen_display }}</span>
                 </li>
-                <li>
-                    <i class="bi bi-clock"></i>
-                    <strong>Updated</strong> {{ product.updated_at|date:"d M Y" }}
-                </li>
+                {% endif %}
             </ul>
 
-            <!-- Add to cart / login -->
+            <!-- Add to cart form -->
             <div class="detail-cart-form">
                 {% if user.is_authenticated %}
                     <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post"
                           style="display:contents;">
                         {% csrf_token %}
-                        <label>
-                            <i class="bi bi-hash"></i> Qty
-                            <input class="qty-input" type="number" name="quantity"
+                        <div class="qty-wrapper">
+                            <label for="qty-detail"><i class="bi bi-hash"></i> Qty</label>
+                            <input class="qty-input" type="number" id="qty-detail" name="quantity"
                                    value="1" min="1" max="{{ product.stock_quantity }}">
-                        </label>
+                        </div>
                         <button type="submit" class="btn-add-cart">
                             <i class="bi bi-cart-plus"></i> Add to Cart
                         </button>
                     </form>
+                    <!-- Wishlist (UI only) -->
+                    <button class="btn-wishlist" type="button" aria-label="Save to wishlist">
+                        <i class="bi bi-heart"></i>
+                    </button>
                 {% else %}
                     <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}"
                        class="btn-login-prompt">
@@ -164,5 +163,34 @@
 
         </div>
     </div>
+
+    <!-- About the Producer -->
+    {% if product.producer %}
+    <div class="detail-producer-card">
+        <div class="producer-card-header">
+            <i class="bi bi-shop-window"></i>
+            <h3>About the Producer</h3>
+        </div>
+        <div class="producer-card-body">
+            <div class="producer-avatar"><i class="bi bi-person-badge"></i></div>
+            <div>
+                <div class="producer-card-name">{{ product.producer.business_name }}</div>
+                {% if product.producer.farm_city or product.producer.farm_county %}
+                <div class="producer-card-location">
+                    <i class="bi bi-geo-alt"></i>
+                    {{ product.producer.farm_city }}{% if product.producer.farm_city and product.producer.farm_county %}, {% endif %}{{ product.producer.farm_county }}
+                </div>
+                {% endif %}
+                {% if food_miles is not None %}
+                <div class="producer-card-miles">
+                    <i class="bi bi-arrow-left-right"></i>
+                    {{ food_miles }} miles from Bristol
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}
