@@ -97,7 +97,7 @@ def product_list(request):
     user_purchase_history = []
     if request.user.is_authenticated:
         try:
-            from ml.recommendation.service import RecommendationService
+            from ml.recommendation.service_enhanced import EnhancedRecommendationService
             
             # Get user's purchase history
             from orders.models import OrderItem, OrderPayment
@@ -113,18 +113,25 @@ def product_list(request):
                 producer_order__payment__in=user_orders
             ).select_related('product').order_by('producer_order__payment__created_at')
             
-            # Build purchase history list
+            user_purchase_history = []  # List of (product_id, timestamp) tuples
+
             for item in order_items:
-                # Repeat product ID based on quantity
+                # Get the timestamp from the payment
+                timestamp = item.producer_order.payment.created_at
+                
+                # Repeat product ID based on quantity, each with the same timestamp
                 for _ in range(item.quantity):
-                    user_purchase_history.append(item.product.id)
+                    user_purchase_history.append((item.product.id, timestamp))
+
+            # Sort by timestamp to ensure chronological order
+            user_purchase_history.sort(key=lambda x: x[1])
             
             # Get recommendations if user has purchase history
             if user_purchase_history:
-                recommendation_service = RecommendationService()
+                recommendation_service = EnhancedRecommendationService()
                 recommended_products = recommendation_service.get_recommendations(
                     user_id=request.user.id,
-                    purchase_history=user_purchase_history,
+                    purchase_history_with_timestamps=user_purchase_history,
                     top_k=6  # Get top 6 recommendations
                 )
                 

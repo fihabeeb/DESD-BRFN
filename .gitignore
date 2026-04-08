@@ -17,3 +17,4 @@ DESD_BRFN/.claude
 .idea/
 .idea
 DESD_BRFN/ml/recommendation/old.py
+DESD_BRFN/ml/recommendation/final/recommendation_model(syn_orders2).keras
