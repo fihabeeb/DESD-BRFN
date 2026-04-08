@@ -53,24 +53,10 @@ def register_customer(request):
     }
     return render(request, 'customers/register.html', context)
 
-    # if request.method == "POST":
-    #     form = CustomerRegistrationForm(request.POST)
-    #     if form.is_valid():
-    #         user = form.save(commit=False)
-    #         user.role = RegularUser.Role.CUSTOMER
-    #         user.set_password(form.cleaned_data["password"])
-    #         user.save()
 
-    #         customer = Customer.objects.create(user=user)
-    #         Cart.objects.create(customer=customer)
-
-    #         login(request, user)
-    #         return redirect("home")
-    # else:
-    #     form = CustomerRegistrationForm()
-
-    # return render(request, "customers/register.html", {"form": form})
-
+# =================
+# cart functionality
+# =================
 
 @login_required
 @require_POST
@@ -224,6 +210,10 @@ def update_cart_item(request, item_id):
     messages.success(request, f"Updated quantity for {item.product_name}.")
     return redirect("mainApp:customers:view_cart")
 
+
+# =================
+# profile management
+# =================
 
 @login_required
 def customer_profile_view(request):

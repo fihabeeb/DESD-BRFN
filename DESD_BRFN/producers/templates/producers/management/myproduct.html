@@ -7,30 +7,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="producer-layout">
-
-    <!-- Sidebar -->
-    <nav class="producer-sidebar">
-        <a href="{% url 'mainApp:producers:myproduct' %}" class="producer-sidebar-link active">
-            <i class="bi bi-box-seam"></i> Products
-        </a>
-        <a href="{% url 'mainApp:producers:incoming_orders' %}" class="producer-sidebar-link">
-            <i class="bi bi-receipt"></i> Orders
-        </a>
-        <a href="{% url 'mainApp:producers:quality_scan' %}" class="producer-sidebar-link">
-            <i class="bi bi-stars"></i> Quality AI
-        </a>
-        <a href="{% url 'mainApp:producers:personal_info' %}" class="producer-sidebar-link">
-            <i class="bi bi-person"></i> Profile
-        </a>
-        <div style="height:1px; background:rgba(255,255,255,0.1); margin:0.5rem 1rem;"></div>
-        <a href="{% url 'mainApp:products:product_list' %}" class="producer-sidebar-link">
-            <i class="bi bi-basket2"></i> Marketplace
-        </a>
-    </nav>
+<div class="producer-layout" style="display: flex; justify-content: center;">
 
     <!-- Main content -->
-    <div class="producer-main">
+    <div class="producer-main" style="width: 100%;">
         <div class="myproduct-wrapper">
 
             <!-- Header -->

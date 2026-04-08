@@ -183,7 +183,7 @@
         </button>
         {% endif %}
         <button class="profile-tab-btn" data-tab="addresses">
-            <i class="bi bi-geo-alt"></i> Addresses
+            <i class="bi bi-geo-alt"></i> Address Book
         </button>
         <button class="profile-tab-btn" data-tab="settings">
             <i class="bi bi-gear"></i> Settings
@@ -251,7 +251,8 @@
             </div>
         </div>
 
-        <div class="profile-card">
+        <!-- redundant -->
+        <!-- <div class="profile-card">
             <div class="profile-card-title"><i class="bi bi-person"></i> Personal Information</div>
             <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Keep your profile up to date for accurate deliveries.</p>
 
@@ -264,7 +265,7 @@
                 <i class="bi bi-pencil"></i> Edit Profile
             </a>
             {% endif %}
-        </div>
+        </div> -->
     </div>
 
     <!-- my order tab -->
@@ -274,7 +275,7 @@
                 Order History
             </div>
 
-            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Latest order made from you</p>
+            <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Latest order made by you</p>
 
 
             {% if order_data %}
@@ -377,7 +378,7 @@
 
     <div id="tab-addresses" class="tab-panel">
         <div class="profile-card">
-            <div class="profile-card-title"><i class="bi bi-geo-alt"></i>Addresses</div>
+            <div class="profile-card-title"><i class="bi bi-geo-alt"></i>Address Book</div>
             <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Manage your saved delivery addresses, business address or others.</p>
             <a href="{% url 'mainApp:manage_addresses' %}" class="btn-primary">
                 <i class="bi bi-geo-alt-fill"></i> Manage Addresses

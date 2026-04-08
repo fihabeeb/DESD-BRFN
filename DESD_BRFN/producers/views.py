@@ -30,37 +30,6 @@ import logging
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-# TODO: function below to remove after testing
-# def login_view(request):
-#     if request.method == 'POST':
-#         username = request.POST['username']
-#         password = request.POST['password']
-#         user = authenticate(request, username=username, password=password)
-#         if user:
-#             login(request, user)
-#             return redirect('home')
-#         else:
-#             return render(request, 'producer_login.html', {'error': 'Invalid credentials'})
-#     return render(request, 'producer_login.html')
-
-
-# def register_view(request):
-#     if request.method == 'POST':
-#         username = request.POST['username']
-#         email = request.POST['email']
-#         password1 = request.POST['password1']
-#         password2 = request.POST['password2']
-#         if password1 != password2:
-#             return render(request, 'producer_register.html', {'error': 'Passwords do not match'})
-#         if User.objects.filter(username=username).exists():
-#             return render(request, 'producer_register.html', {'error': 'Username already taken'})
-#         user = User.objects.create_user(username=username, email=email, password=password1)
-#         user.role = 'producer'
-#         user.save()
-#         ProducerProfile.objects.create(user=user)
-#         return redirect('producer_login')
-#     return render(request, 'producer_register.html')
-
 def register_view(request):
     """
     Producer registration view using the form
@@ -95,6 +64,11 @@ def register_view(request):
         'title': 'Producer Registration'
     }
     return render(request, 'producers/register.html', context)
+
+
+# =================
+# product managment
+# =================
 
 @login_required
 @producer_required
@@ -295,6 +269,30 @@ def product_edit_view(request, product_id):
 
 @login_required
 @producer_required
+def delete_product(request, product_id):
+    if request.method == 'POST':
+
+        product = get_object_or_404(Product, id=product_id)
+
+        if product.producer != request.user.producer_profile:
+            messages.error(request, "Permission denied.")
+            return redirect('mainApp:producers:myproduct')
+
+        product_name = product.name
+        product.delete()
+        messages.success(request, f'"{product_name}" deleted.')
+        return redirect('mainApp:producers:myproduct')
+
+    # return redirect('mainApp:producers:myproduct')
+    return redirect('mainApp:producers:edit_product', product_id=product_id)
+
+
+# =================
+# order management
+# =================
+
+@login_required
+@producer_required
 def incoming_orders_view(request):
     """
     Display all orders that contain items assigned to this producer.
@@ -446,25 +444,9 @@ def order_detail(request, order_id):
     return render(request, 'producers/order_detail.html', context)
 
 
-@login_required
-@producer_required
-def delete_product(request, product_id):
-    if request.method == 'POST':
-
-        product = get_object_or_404(Product, id=product_id)
-
-        if product.producer != request.user.producer_profile:
-            messages.error(request, "Permission denied.")
-            return redirect('mainApp:producers:myproduct')
-
-        product_name = product.name
-        product.delete()
-        messages.success(request, f'"{product_name}" deleted.')
-        return redirect('mainApp:producers:myproduct')
-
-    # return redirect('mainApp:producers:myproduct')
-    return redirect('mainApp:producers:edit_product', product_id=product_id)
-
+# =================
+# quality scan (adv_ai/task2)
+# =================
 
 @login_required
 @producer_required
@@ -491,13 +473,17 @@ def quality_scan_view(request):
     return render(request, 'producers/quality_scan.html')
 
 
+# =================
+# account management
+# =================
+
 @login_required
 @producer_required
 def personal_info_view(request):
     """Producer personal information management"""
     user = request.user
 
-    # DELETE ACCOUNT HANDLER
+    # ====== DELETE ACCOUNT HANDLER ============
     if request.method == "POST" and "delete_account" in request.POST:
         user.delete()
         logout(request)
@@ -508,6 +494,8 @@ def personal_info_view(request):
     try:
         profile = ProducerProfile.objects.get(user=user)
     except ProducerProfile.DoesNotExist:
+        # this should never happen
+        print('profile does not exist')
         logger.info(f"Creating missing profile for user {user.username}")
         profile = ProducerProfile.objects.create(user=user)
         messages.info(request, "Producer profile was created. Please complete your farm details.")
@@ -515,14 +503,14 @@ def personal_info_view(request):
     # GET ADDRESSES
     all_addresses = user.addresses.all().order_by('-is_default', '-created_at')
     
-    # Get farm address (primary for producers)
-    farm_address = all_addresses.filter(address_type='farm', is_default=True).first()
-    if not farm_address:
-        # Try to get any farm address
-        farm_address = all_addresses.filter(address_type='farm').first()
+    # default address for producer is always farm type.
+    default_address = all_addresses.filter(is_default=True).first()
+    if not default_address:
+        # Try to get any address
+        default_address = all_addresses.first()
     
-    # Get other addresses (home, shipping, billing, business)
-    other_addresses = all_addresses.exclude(address_type='farm')
+    # Get other addresses
+    other_addresses = all_addresses.exclude(id=default_address.id)
     
     # PROCESS FORM
     if request.method == "POST":
@@ -568,12 +556,12 @@ def personal_info_view(request):
         'form': form,
         'user': user,
         'profile': profile,
-        'all_addresses': all_addresses,
-        'farm_address': farm_address,
+        # 'all_addresses': all_addresses,
+        'default_address': default_address,
         'other_addresses': other_addresses,
     }
     
-    return render(request, "producers/account/personal_info.html", context)
+    return render(request, "profile/manage/personal_info.html", context)
 
 
 
@@ -659,72 +647,3 @@ def producer_profile_view(request):
 
     return render(request, "profile/profile_page.html", context)
 
-
-@producer_required
-def producer_personal_info_view(request):
-    """Customer personal information management"""
-    user = request.user
-
-    # DELETE ACCOUNT HANDLER
-    if request.method == "POST" and "delete_account" in request.POST:
-        user.delete()
-        logout(request)
-        messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
-        return redirect("mainApp:home")
-    
-    # GET OR CREATE CUSTOMER PROFILE
-    try:
-        profile = ProducerProfile.objects.get(user=user)
-    except ProducerProfile.DoesNotExist:
-        print('profile does not exist')
-        # logger.info(f"Creating missing profile for user {user.username}")
-        # profile = ProducerProfile.objects.create(user=user)
-        # messages.info(request, "Customer profile was created.")
-    
-    # GET ADDRESSES
-    all_addresses = user.addresses.all()
-    default_address = all_addresses.filter(is_default=True).first()
-    other_addresses = all_addresses.exclude(id=default_address.id) if default_address else all_addresses
-    
-    # PROCESS FORM
-    if request.method == "POST":
-        form = ProducerPersonalInfoForm(request.POST, user=user)
-        
-        if form.is_valid():
-            try:
-                user = form.save()
-                
-                # Handle session after password change
-                if form.cleaned_data.get('password1'):
-                    update_session_auth_hash(request, user)
-                    messages.success(request, "Password updated successfully!")
-                
-                messages.success(request, "Your information has been updated successfully!")
-                return redirect("mainApp:customers:personal_info")
-                
-            except Exception as e:
-                logger.error(f"Error updating customer info: {e}", exc_info=True)
-                messages.error(request, "An error occurred while updating your information. Please try again.")
-        else:
-            # Display form errors
-            for field, errors in form.errors.items():
-                for error in errors:
-                    if field == '__all__':
-                        messages.error(request, error)
-                    else:
-                        field_label = field.replace('_', ' ').title()
-                        messages.error(request, f"{field_label}: {error}")
-    
-    else:
-        form = ProducerPersonalInfoForm(user=user)
-    
-    context = {
-        'form': form,
-        'user': user,
-        'profile': profile,
-        'all_addresses': all_addresses,
-        'default_address': default_address,
-        'other_addresses': other_addresses,
-    }
-    
-    return render(request, "profile/manage/personal_info.html", context)
