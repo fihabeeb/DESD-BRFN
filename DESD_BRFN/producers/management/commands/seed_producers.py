@@ -30,7 +30,7 @@ class Command(BaseCommand):
         
         # Real Bristol area addresses with coordinates
         farm_addresses = [
-            {'line1': 'Long Ashton Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS41 9AF', 'lat': 51.4345, 'lon': -2.6560},
+            {'line1': 'Long Ashton Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS41 9AA', 'lat': 51.4345, 'lon': -2.6560},
             {'line1': 'Wrington Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS40 5NB', 'lat': 51.3675, 'lon': -2.7630},
             {'line1': 'Chew Valley Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS40 8XB', 'lat': 51.3470, 'lon': -2.6170},
             {'line1': 'Keynsham Farm', 'city': 'Bristol', 'county': 'Somerset', 'postcode': 'BS31 1AB', 'lat': 51.4130, 'lon': -2.4960},

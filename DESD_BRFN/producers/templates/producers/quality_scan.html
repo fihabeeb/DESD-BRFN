@@ -235,25 +235,6 @@
 {% block content %}
 <div class="producer-layout">
 
-    <!-- Sidebar -->
-    <aside class="producer-sidebar">
-        <a href="{% url 'mainApp:producers:myproduct' %}" class="producer-sidebar-link">
-            <i class="bi bi-box-seam"></i> Products
-        </a>
-        <a href="{% url 'mainApp:producers:myorders' %}" class="producer-sidebar-link">
-            <i class="bi bi-receipt"></i> Orders
-        </a>
-        <a href="{% url 'mainApp:producers:quality_scan' %}" class="producer-sidebar-link active">
-            <i class="bi bi-stars"></i> Quality AI
-        </a>
-        <a href="{% url 'mainApp:producers:personal_info' %}" class="producer-sidebar-link">
-            <i class="bi bi-person-gear"></i> Profile
-        </a>
-        <hr style="border-color: rgba(255,255,255,0.15); margin: 0.5rem 0;">
-        <a href="{% url 'mainApp:products:product_list' %}" class="producer-sidebar-link">
-            <i class="bi bi-shop"></i> Marketplace
-        </a>
-    </aside>
 
     <!-- Main content -->
     <main class="producer-main">

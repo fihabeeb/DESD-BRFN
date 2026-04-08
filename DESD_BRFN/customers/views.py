@@ -17,6 +17,8 @@ from mainApp.decorators import customer_required
 import re
 import logging
 from django.http import JsonResponse
+from orders.models import OrderItem, OrderPayment
+from django.db import models
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +29,21 @@ def register_customer(request):
         return redirect('mainApp:home')
     
     if request.method == "POST":
-        form = CustomerRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
+        try:
+            form = CustomerRegistrationForm(request.POST)
+            if form.is_valid():
+                user = form.save()
 
-            # login(request,user)
+                # login(request,user)
 
-            messages.success(request, f"Welcome {user.username}! Your customer account has been created successfully.")
-            messages.info(request, 'Please log in to continue.')
-            return redirect('mainApp:customers:login')
-        else:
-            messages.error(request, 'Please correct the errors below.')
+                messages.success(request, f"Welcome {user.username}! Your customer account has been created successfully.")
+                messages.info(request, 'Please log in to continue.')
+                return redirect('mainApp:customers:login')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            print (e)
+            messages.error(request, 'db error')
     else:
         form = CustomerRegistrationForm()
 
@@ -47,24 +53,10 @@ def register_customer(request):
     }
     return render(request, 'customers/register.html', context)
 
-    # if request.method == "POST":
-    #     form = CustomerRegistrationForm(request.POST)
-    #     if form.is_valid():
-    #         user = form.save(commit=False)
-    #         user.role = RegularUser.Role.CUSTOMER
-    #         user.set_password(form.cleaned_data["password"])
-    #         user.save()
 
-    #         customer = Customer.objects.create(user=user)
-    #         Cart.objects.create(customer=customer)
-
-    #         login(request, user)
-    #         return redirect("home")
-    # else:
-    #     form = CustomerRegistrationForm()
-
-    # return render(request, "customers/register.html", {"form": form})
-
+# =================
+# cart functionality
+# =================
 
 @login_required
 @require_POST
@@ -219,13 +211,85 @@ def update_cart_item(request, item_id):
     return redirect("mainApp:customers:view_cart")
 
 
+# =================
+# profile management
+# =================
+
 @login_required
 def customer_profile_view(request):
     """
-    Customer dashboard: future order history + button to view personal info.
+    Customer dashboard: order history + stats
     """
-    return render(request, "customers/profile_page.html", {})
+    latest_order = OrderPayment.objects.filter(
+        user=request.user,
+        payment_status='paid'
+    ).order_by('-created_at').first()
+    
+    # stats card
+    total_orders_count = OrderPayment.objects.filter(user=request.user, payment_status='paid').count()
+    farms_supported = OrderPayment.objects.filter(
+        user=request.user, 
+        payment_status='paid'
+    ).values('producer_orders__producer').distinct().count()
+    stats_card = {
+        'totalOrders': total_orders_count,
+        'farmSupported': farms_supported,
+    }
 
+    order_data = None
+
+    if latest_order:
+        # Build comprehensive order data
+        order_data = {
+            'order': latest_order,
+            'total_amount': latest_order.total_amount,
+            'created_at': latest_order.created_at,
+            'payment_status': latest_order.payment_status,
+            'shipping_address': latest_order.shipping_address,
+            'global_notes': latest_order.global_delivery_notes,
+            'producers': []
+        }
+        
+        # Get all producer orders for this payment
+        producer_orders = latest_order.producer_orders.select_related(
+            'producer'
+        ).prefetch_related(
+            'order_items__product'
+        ).all()
+
+        for producer_order in producer_orders:
+            producer_data = {
+                'producer': producer_order.producer,
+                'business_name': producer_order.producer.business_name if producer_order.producer else 'Unknown',
+                'status': producer_order.get_order_status_display(),  
+                'subtotal': producer_order.producer_subtotal,
+                'delivery_date': producer_order.delivered_by,
+                'customer_note': producer_order.customer_note,
+                'items': []
+            }
+            
+            # Get items for this producer order
+            for item in producer_order.order_items.all():
+                producer_data['items'].append({
+                    'id': item.id,
+                    'product_id': item.product.id if item.product else None,
+                    'name': item.product_name,
+                    'quantity': item.quantity,
+                    'price': item.product_price,
+                    'line_total': item.line_total,
+                    'unit': item.unit
+                })
+            
+            order_data['producers'].append(producer_data)
+    
+    context = {
+        'stats': stats_card,
+        'latest_order': latest_order,
+        'order_data': order_data,
+        'user_role': 'customer'
+    }
+
+    return render(request, "profile/profile_page.html", context)
 
 @login_required
 @customer_required
@@ -301,4 +365,4 @@ def customer_personal_info_view(request):
         'other_addresses': other_addresses,
     }
     
-    return render(request, "customers/personal_info.html", context)
+    return render(request, "profile/manage/personal_info.html", context)

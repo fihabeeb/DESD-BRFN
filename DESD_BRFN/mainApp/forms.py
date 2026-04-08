@@ -139,6 +139,9 @@ class AddressForm(forms.ModelForm):
         This is the key fix for the IntegrityError.
         """
         address = super().save(commit=False)
+
+        if self.user:
+            address.user = self.user
         
         # If this address is being set as default, unset any existing default of the same type
         if address.is_default and address.address_type:

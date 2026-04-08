@@ -21,12 +21,14 @@ class OrderPayment(models.Model):
     ]
     
     # Relationships
-    customer = models.ForeignKey(
-        CustomerProfile, 
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='orders'
-    )
+    # ref customer profile is redundant
+    # customer = models.ForeignKey(
+    #     CustomerProfile, 
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     related_name='orders'
+    # )
+
     user = models.ForeignKey(
         RegularUser,
         on_delete=models.SET_NULL,
@@ -49,7 +51,7 @@ class OrderPayment(models.Model):
     # Shipping info (snapshot from address at time of order)
     shipping_address_id = models.ForeignKey(
         Address,
-        on_delete=models.PROTECT, #idk for this
+        on_delete=models.SET_NULL, #idk for this
         null=True,
         related_name='addresses'
     )
@@ -68,33 +70,10 @@ class OrderPayment(models.Model):
         return f"Order #{self.id} - {self.user.email} - £{self.total_amount} - Status: {self.payment_status}"
     
     def save(self, *args, **kwargs):
-        # is_new = self.pk is None
-
-        # if not is_new:
-        #     old = OrderPayment.objects.get(pk=self.pk)
-        #     old_status = old.payment_status
-        # else:
-        #     old_status = None
-
         if self.shipping_address_id and not self.shipping_address:
             self.shipping_address = self.shipping_address_id.full_address()
 
         super().save(*args, **kwargs)
-
-    #     if (old_status != 'paid' and self.payment_status == 'paid') or is_new:
-    #         print('im working')
-    #         self._confirm_producer_orders()
-
-    # def _confirm_producer_orders(self):
-    #     """
-    #     When payment is successful, confirm all producer orders
-    #     """
-    #     if self.payment_status == 'paid':
-    #         order_producer = OrderProducer.objects.filter(payment=self.id)
-    #         if order_producer:
-    #             for order in order_producer:
-    #                 order.order_status='confirmed'
-    #                 order.save()
 
     @property
     def is_expired(self):
@@ -145,6 +124,7 @@ class OrderProducer(models.Model):
         on_delete=models.CASCADE,
         related_name='producer_orders'
         )
+    
     producer = models.ForeignKey(
         'mainApp.ProducerProfile',
         on_delete=models.PROTECT,
@@ -181,8 +161,6 @@ class OrderProducer(models.Model):
     def __str__(self):
         name = self.producer.business_name if self.producer else 'unknown'
         return f"Payment #{self.payment_id} — {name}"
-
-
 
 
 class OrderItem(models.Model):

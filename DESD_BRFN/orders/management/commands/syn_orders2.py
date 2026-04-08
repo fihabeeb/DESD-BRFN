@@ -47,7 +47,7 @@ class Command(BaseCommand):
                 created_at = timezone.now() - timedelta(days=days_ago)
                 
                 order = OrderPayment.objects.create(
-                    customer=customer,
+                    # customer=customer,
                     user=user,
                     payment_status='paid',
                     total_amount=Decimal("0.00"),

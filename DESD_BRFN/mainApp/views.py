@@ -24,7 +24,7 @@ def profile_redirect(request):
     user = request.user
 
     if user.role == RegularUser.Role.PRODUCER:
-        return redirect('mainApp:producers:myproduct')  #TODO: maybe profiles to be implemented
+        return redirect('mainApp:producers:profile')  #TODO: maybe profiles to be implemented
     elif user.role == RegularUser.Role.CUSTOMER:
         return redirect('mainApp:customers:profile')  # Customer sees their profile/order history
     elif user.role == RegularUser.Role.COMMUNITY_MEMBER:
@@ -69,7 +69,6 @@ def add_address(request):
         form = AddressForm(request.POST, user = request.user)
         if form.is_valid():
             address = form.save(commit=False)
-            address.user = request.user
             address.save()
             
             messages.success(request, f'Address "{address.label or address.address_type}" added successfully!')
@@ -96,7 +95,9 @@ def edit_address(request, address_id):
     if request.method == 'POST':
         form = AddressForm(request.POST, instance=address, user=request.user)
         if form.is_valid():
-            form.save()
+            form.save(commit=False)
+            address.save()
+            
             messages.success(request, f'Address "{address.label or address.address_type}" updated successfully!')
             return redirect('mainApp:manage_addresses')
         # else:

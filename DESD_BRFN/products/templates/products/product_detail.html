@@ -136,28 +136,51 @@
 
             <!-- Add to cart form -->
             <div class="detail-cart-form">
-                {% if user.is_authenticated %}
-                    <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post"
-                          style="display:contents;">
-                        {% csrf_token %}
-                        <div class="qty-wrapper">
-                            <label for="qty-detail"><i class="bi bi-hash"></i> Qty</label>
-                            <input class="qty-input" type="number" id="qty-detail" name="quantity"
-                                   value="1" min="1" max="{{ product.stock_quantity }}">
-                        </div>
-                        <button type="submit" class="btn-add-cart">
-                            <i class="bi bi-cart-plus"></i> Add to Cart
-                        </button>
-                    </form>
-                    <!-- Wishlist (UI only) -->
-                    <button class="btn-wishlist" type="button" aria-label="Save to wishlist">
-                        <i class="bi bi-heart"></i>
-                    </button>
-                {% else %}
+                {% if product.is_active %}
+                    <!-- {# Product is active and available #} -->
+                    {% if user.is_authenticated %}
+                        <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post"
+                            style="display:contents;">
+                            {% csrf_token %}
+                            <div class="qty-wrapper">
+                                <label for="qty-detail"><i class="bi bi-hash"></i> Qty</label>
+                                <input class="qty-input" type="number" id="qty-detail" name="quantity"
+                                    value="1" min="1" max="{{ product.stock_quantity }}" 
+                                    {% if product.stock_quantity == 0 %}disabled{% endif %}>
+                            </div>
+                            <button type="submit" class="btn-add-cart"
+                                    {% if product.stock_quantity == 0 %}disabled{% endif %}>
+                                <i class="bi bi-cart-plus"></i> 
+                                {% if product.stock_quantity == 0 %}Out of Stock{% else %}Add to Cart{% endif %}
+                            </button>
+                        </form>
+                            <!-- Wishlist (UI only) -->
+                            <button class="btn-wishlist" type="button" aria-label="Save to wishlist">
+                                <i class="bi bi-heart"></i>
+                            </button>
+                    {% else %}
                     <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}"
-                       class="btn-login-prompt">
+                    class="btn-login-prompt">
                         <i class="bi bi-box-arrow-in-right"></i> Log in to add to cart
                     </a>
+                    {% endif %}
+
+                {% else %}
+                    <!-- {# Product is soft-deleted #} -->
+                    <div class="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center">
+                        <div class="text-gray-500 mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-2xl"></i>
+                        </div>
+                        <p class="text-gray-700 font-semibold">This product is no longer available</p>
+                        {% if product.deleted_at %}
+                            <p class="text-gray-500 text-sm mt-1">
+                                Removed on: {{ product.deleted_at|date:"F j, Y" }}
+                            </p>
+                        {% endif %}
+                        <p class="text-gray-400 text-xs mt-2">
+                            This product has been discontinued by the producer
+                        </p>
+                    </div>
                 {% endif %}
             </div>
 

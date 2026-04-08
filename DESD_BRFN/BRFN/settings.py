@@ -156,7 +156,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/London'
 
 USE_I18N = True
 
@@ -196,7 +196,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Optional (recommended)
-CELERY_TIMEZONE = 'UTC'
+CELERY_TIMEZONE = 'Europe/London'
 CELERY_ENABLE_UTC = True
 
 

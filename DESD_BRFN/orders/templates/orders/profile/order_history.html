@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Order History{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    
+    .status-paid {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-refunded {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-confirmed {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-preparing {
+        background-color: #fed7aa;
+        color: #92400e;
+    }
+    
+    .status-ready {
+        background-color: #bfdbfe;
+        color: #1e3a8a;
+    }
+    
+    .status-delivered {
+        background-color: #e0e7ff;
+        color: #3730a3;
+    }
+    
+    .status-cancelled {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .producer-section {
+        border-left: 3px solid #e5e7eb;
+        transition: border-color 0.2s;
+    }
+    
+    .producer-section:hover {
+        border-left-color: #4f46e5;
+    }
+    
+    .order-item-link {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+    
+    .order-item-link:hover {
+        color: #4338ca;
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Order History</h1>
+        <p class="text-gray-600">View all your past orders and their details.</p>
+    </div>
+    
+    <!-- Order Statistics -->
+    {% if orders %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-100">
+                <div class="text-sm text-indigo-600 font-medium mb-1">Total Orders</div>
+                <div class="text-2xl font-bold text-indigo-900">{{ total_orders }}</div>
+            </div>
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-100">
+                <div class="text-sm text-green-600 font-medium mb-1">Total Spent</div>
+                <div class="text-2xl font-bold text-green-900">£{{ total_spent|floatformat:2 }}</div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Orders List -->
+    {% if orders_data %}
+        <div class="space-y-6">
+            {% for order_info in orders_data %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden order-card">
+                    <!-- Order Header -->
+                    <div class="bg-gray-800 text-white p-4">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                            <div>
+                                <h3 class="text-lg font-bold">Order #{{ order_info.order.id }}</h3>
+                                <p class="text-gray-300 text-sm mt-1">
+                                    Placed on {{ order_info.created_at|date:"F j, Y" }}
+                                </p>
+                            </div>
+                            <div class="flex flex-col items-start md:items-end gap-2">
+                                <span class="status-badge status-{{ order_info.payment_status }}">
+                                    {{ order_info.payment_status_display }}
+                                </span>
+                                <span class="text-gray-300 text-sm">
+                                    Total: £{{ order_info.total_amount }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Shipping Info -->
+                    <div class="bg-gray-50 p-4 border-b border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase font-medium">Shipping Address</span>
+                                <p class="text-gray-800 text-sm mt-1">{{ order_info.shipping_address }}</p>
+                            </div>
+                            {% if order_info.global_delivery_notes %}
+                                <div>
+                                    <span class="text-xs text-gray-500 uppercase font-medium">Delivery Notes</span>
+                                    <p class="text-gray-800 text-sm mt-1">{{ order_info.global_delivery_notes }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Producer Orders -->
+                    {% for producer in order_info.producers %}
+                        <div class="producer-section p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <!-- Producer Header -->
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+                                <h4 class="text-md font-semibold text-gray-800">
+                                    {{ producer.business_name }}
+                                </h4>
+                                <span class="status-badge status-{{ producer.status }}">
+                                    {{ producer.status_display }}
+                                </span>
+                            </div>
+                            
+                            <!-- Delivery Info -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 text-sm">
+                                <div>
+                                    <span class="text-gray-500">Delivery by:</span>
+                                    <span class="text-gray-700 font-medium ml-2">
+                                        {{ producer.delivery_date|date:"F j, Y"|default:"Not scheduled" }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Subtotal:</span>
+                                    <span class="text-gray-700 font-medium ml-2">£{{ producer.subtotal }}</span>
+                                </div>
+                            </div>
+                            
+                            {% if producer.customer_note %}
+                                <div class="bg-yellow-50 p-3 rounded mb-3 text-sm border border-yellow-200">
+                                    <strong class="text-yellow-800">Note to producer:</strong>
+                                    <p class="text-yellow-700 mt-1">{{ producer.customer_note }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Items Table -->
+                            <div class="overflow-x-auto mt-3">
+                                <table class="min-w-full text-sm">
+                                    <thead class="bg-gray-100">
+                                        <tr class="border-b border-gray-200">
+                                            <th class="text-left py-2 px-3 font-semibold text-gray-700">Product</th>
+                                            <th class="text-center py-2 px-3 font-semibold text-gray-700">Quantity</th>
+                                            <th class="text-right py-2 px-3 font-semibold text-gray-700">Price</th>
+                                            <th class="text-right py-2 px-3 font-semibold text-gray-700">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in producer.items %}
+                                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                                <td class="py-2 px-3">
+                                                    {% if item.product_id %}
+                                                        <a href="{% url 'mainApp:products:product_detail' item.product_id %}"
+                                                           class="order-item-link">
+                                                            {{ item.name }}
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-gray-600">{{ item.name }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="py-2 px-3 text-center text-gray-600">
+                                                    {{ item.quantity }} {% if item.unit %}{{ item.unit }}{% endif %}
+                                                </td>
+                                                <td class="py-2 px-3 text-right text-gray-600">£{{ item.price }}</td>
+                                                <td class="py-2 px-3 text-right font-medium text-gray-800">£{{ item.line_total }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="bg-gray-50">
+                                        <tr>
+                                            <td colspan="3" class="py-2 px-3 text-right font-semibold text-gray-800">
+                                                Subtotal:
+                                            </td>
+                                            <td class="py-2 px-3 text-right font-semibold text-gray-800">
+                                                £{{ producer.subtotal }}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="text-center py-16 px-4">
+                <div class="text-gray-300 text-6xl mb-4">
+                    <i class="bi bi-inbox-fill"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">No orders yet</h3>
+                <p class="text-gray-600 mb-6">You haven't placed any orders yet.</p>
+                <a href="{% url 'mainApp:home' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+                    Start Shopping
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -48,31 +48,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="producer-layout">
+<div class="producer-layout" style="display: flex; justify-content: center;">
 
-    <!-- Sidebar -->
-    <nav class="producer-sidebar">
-        <a href="{% url 'mainApp:producers:myproduct' %}" class="producer-sidebar-link">
-            <i class="bi bi-box-seam"></i> Products
-        </a>
-        <a href="{% url 'mainApp:producers:myorders' %}" class="producer-sidebar-link">
-            <i class="bi bi-receipt"></i> Orders
-        </a>
-        <a href="{% url 'mainApp:producers:quality_scan' %}" class="producer-sidebar-link">
-            <i class="bi bi-stars"></i> Quality AI
-        </a>
-        <a href="{% url 'mainApp:producers:personal_info' %}" class="producer-sidebar-link active">
-            <i class="bi bi-person"></i> Profile
-        </a>
-        <div style="height:1px; background:rgba(255,255,255,0.1); margin:0.5rem 1rem;"></div>
-        <a href="{% url 'mainApp:products:product_list' %}" class="producer-sidebar-link">
-            <i class="bi bi-basket2"></i> Marketplace
-        </a>
-    </nav>
 
     <!-- Main content -->
     <div class="producer-main">
-        <div style="max-width:700px;">
+        <div style="max-width:700px; margin: 0 auto;">
 
             <div style="margin-bottom:1.5rem;">
                 <h2 style="font-weight:800; font-size:1.75rem; color:var(--color-text);">Personal Information</h2>
@@ -116,6 +97,7 @@
                     </div>
                 </div>
 
+                {% if user.role == 'producer' %}
                 <!-- Business Info -->
                 <div class="info-section-card">
                     <div class="info-section-header"><i class="bi bi-shop"></i> Business Information</div>
@@ -125,8 +107,23 @@
                         {% if form.business_name.errors %}<div class="text-danger small">{{ form.business_name.errors.0 }}</div>{% endif %}
                         <small class="text-muted">This is how customers will see your farm/business</small>
                     </div>
+            
+                    <div class="info-section-body">
+                        <label for="{{ form.lead_time_hours.id_for_label }}" class="form-label fw-semibold">Lead Time for Orders</label>
+                        {{ form.lead_time_hours }}
+                        {% if form.lead_time_hours.errors %}<div class="text-danger small">{{ form.lead_time_hours.errors.0 }}</div>{% endif %}
+                        <small class="text-muted">{{ form.lead_time_hours.help_text }}</small>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Current: {% if form.lead_time_hours.value %}{{ form.lead_time_hours.value }}{% else %}48{% endif %} hours 
+                                ({% widthratio form.lead_time_hours.value|default:48 24 1 %} days)
+                            </small>
+                        </div>
+                    </div>
                 </div>
 
+                {% endif %}
+            
                 <!-- Addresses -->
                 <div class="info-section-card">
                     <div class="info-section-header">
@@ -136,25 +133,32 @@
                         </a>
                     </div>
                     <div class="info-section-body">
-                        <p class="text-muted small mb-3">Manage your farm and other addresses</p>
+                        <!-- <p class="text-muted small mb-3">Manage your addresses</p> -->
 
-                        {% if farm_address %}
+                        {% if user.role == 'producer' %}
+                        <p class="text-muted small mb-3">
+                            Producer default address is always a farm type. Create additional address here to see them during checkout.
+                        </p>
+                        {% endif %}
+
+
+                        {% if default_address %}
                         <div class="address-card default">
                             <div class="d-flex align-items-center gap-1 mb-1">
                                 <i class="bi bi-star-fill text-warning"></i>
-                                <span style="font-weight:700; font-size:0.875rem;">Farm Address</span>
-                                {% if farm_address.label %}<span class="address-label">{{ farm_address.label }}</span>{% endif %}
-                                {% if farm_address.is_default %}<span class="address-label">Default</span>{% endif %}
+                                <span style="font-weight:700; font-size:0.875rem;">Default Address</span>
+                                {% if default_address.label %}<span class="address-label">{{ default_address.label }}</span>{% endif %}
+                                {% if default_address.is_default %}<span class="address-label">Default</span>{% endif %}
                             </div>
-                            <div class="address-content">{{ farm_address.full_address|linebreaksbr }}</div>
-                            <a href="{% url 'mainApp:edit_address' farm_address.id %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-pencil"></i> Edit Farm Address
+                            <div class="address-content">{{ default_address.full_address|linebreaksbr }}</div>
+                            <a href="{% url 'mainApp:edit_address' default_address.id %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i> Edit Address
                             </a>
                         </div>
                         {% else %}
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle"></i>
-                            No farm address set. This is used to calculate food miles to customers.
+                            No address set yet. This is used to calculate food miles interaction between customers and producers.
                             <a href="{% url 'mainApp:add_address' %}" class="alert-link">Add your farm address</a>
                         </div>
                         {% endif %}
