@@ -85,8 +85,7 @@ class Address(models.Model):
         """Check if the user associated with this address is a producer"""
         return hasattr(self.user, 'role') and self.user.role == 'producer'
     
-
-    def get_cordinates(self):
+    def get_coordinates(self):
         '''
         retunr latitude and longitude
         '''
@@ -260,7 +259,7 @@ class RegularUser(AbstractUser):
         address = self.addresses.filter(is_default=True).first()
         if not address:
             return None, None
-        return address.get_cordinates()
+        return address.get_coordinates()
     
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
