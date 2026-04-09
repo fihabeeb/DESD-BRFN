@@ -8,7 +8,7 @@ import numpy as np
 from decimal import Decimal
 from collections import defaultdict
 
-from mainApp.models import CustomerProfile
+from mainApp.models import CustomerProfile, Address
 from products.models import Product
 from orders.models import OrderPayment, OrderProducer, OrderItem
 
@@ -19,6 +19,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         customers = list(CustomerProfile.objects.all())
         products = list(Product.objects.filter(availability='available'))
+        home_addresses = list(Address.objects.filter(
+            address_type='home'
+        ))
         
         if len(products) < 100:
             self.stdout.write(self.style.ERROR(f'Need at least 100 products, found {len(products)}. Run enhanced seed first.'))
@@ -36,6 +39,8 @@ class Command(BaseCommand):
         
         for customer in customers:
             user = customer.user
+
+            # customer_addresses = list(user.addresses.filter(address_type='home'))
             
             # Each customer has natural preferences (but NOT predefined patterns)
             # These emerge from their purchase history, not forced patterns
@@ -45,12 +50,15 @@ class Command(BaseCommand):
                 # Random timing (no artificial recency bias)
                 days_ago = random.randint(0, 90)
                 created_at = timezone.now() - timedelta(days=days_ago)
+
+                # selected_address = random.choice(customer_addresses) # probably only 1 address associated tho
                 
                 order = OrderPayment.objects.create(
                     # customer=customer,
                     user=user,
                     payment_status='paid',
                     total_amount=Decimal("0.00"),
+                    shipping_address_id = user.default_address,
                     created_at=created_at
                 )
                 
