@@ -15,5 +15,5 @@ def create_profiles(sender, instance, created, **kwargs):
         else:
             print("PLS UPDATE mainApp SIGNALS.py ")
 
-    print("mainApp: Profile signal ran!")
+        print("mainApp__create_profiles: Signal ran!")
     
