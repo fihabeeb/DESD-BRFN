@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment History{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Settlements</h2>
+    </div>
+
+    <div class="alert alert-info">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <strong>Current tax year {{ current_tax_year }}</strong>
+                <br>
+                <small class="text-muted">The UK Tax Year runs from 6 April to 5 April</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- YTD Total Card -->
+    <div class="alert alert-info mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <strong>Year-to-Date Earnings of Completed Settlements</strong>
+            </div>
+            <div class="col-md-4 text-end">
+                <h3 class="mb-0 text-success">£{{ ytd_total|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Filter by Tax Year</label>
+                    <select name="tax_year" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Tax Years</option>
+                        {% for year in available_tax_years %}
+                            <option value="{{ year }}" {% if selected_tax_year == year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Filter by Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Processed</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>Processing</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    {% if selected_tax_year or request.GET.status %}
+                        <a href="{% url 'mainApp:payments:settlement_history' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Clear Filters
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <h3>{{ selected_tax_year }} Year Statistics</h3>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Total Orders</h6>
+                            <h2 class="mb-0">{{ stats.total_orders|default:0 }}</h2>
+                        </div>
+                        <i class="bi bi-cart3 fs-1 opacity-50"></i>
+                    </div>
+                    <!-- <small class="text-white-50 mt-2 d-block">
+                        {% if selected_tax_year %}For {{ selected_tax_year }}{% else %}All time{% endif %}
+                    </small> -->
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Total Subtotal</h6>
+                            <h2 class="mb-0">£{{ stats.total_subtotal|floatformat:2 }}</h2>
+                        </div>
+                        <i class="bi bi-receipt fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-white-50 mt-2 d-block">
+                        Gross sales before commission
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Commission(5%)</h6>
+                            <h2 class="mb-0">£{{ stats.total_commission|floatformat:2 }}</h2>
+                        </div>
+                        <i class="bi bi-percent fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-dark-50 mt-2 d-block">
+                        The platform takes 5% from all orders made
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Payout</h6>
+                            <h2 class="mb-0">£{{ stats.total_payout|floatformat:2 }}</h2>
+                        </div>
+                        <i class="bi bi-cash-stack fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-white-50 mt-2 d-block">
+                        Earnings to receive
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settlements Table -->
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Week Ending</th>
+                    <th>Tax Year</th>
+                    <th>Orders</th>
+                    <th>Subtotal</th>
+                    <th>Commission</th>
+                    <th>Your Payout</th>
+                    <th>Running Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for settlement in page_obj %}
+                <tr>
+                    <td>
+                        <strong>{{ settlement.week_end|date:"d M Y" }}</strong>
+                        <br>
+                        <small class="text-muted">{{ settlement.week_start|date:"d M" }} - {{ settlement.week_end|date:"d M Y" }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ settlement.tax_year }}</span>
+                    </td>
+                    <td class="text-center">{{ settlement.total_orders }}</td>
+                    <td>£{{ settlement.total_subtotal|floatformat:2 }}</td>
+                    <td>£{{ settlement.total_commission|floatformat:2 }}</td>
+                    <td class="text-success">
+                        <strong>£{{ settlement.total_payout|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        <strong>£{{ settlement.running_total|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        {% if settlement.settlement_status == 'completed' %}
+                            <span class="badge bg-success">Processed</span>
+                        {% elif settlement.settlement_status == 'processing' %}
+                            <span class="badge bg-info">Processing</span>
+                        {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'mainApp:payments:settlement_detail' settlement.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="mt-2 mb-0">No payment settlements found.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if selected_tax_year %}&tax_year={{ selected_tax_year }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                    <i class="bi bi-chevron-double-left"></i> First
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_tax_year %}&tax_year={{ selected_tax_year }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item disabled">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_tax_year %}&tax_year={{ selected_tax_year }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_tax_year %}&tax_year={{ selected_tax_year }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                    Last <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

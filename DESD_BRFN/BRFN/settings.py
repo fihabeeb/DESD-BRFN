@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'customers',
     'producers',
     'orders',
+    'payments',
+
     'storages',
     'django_celery_beat',
 ]
@@ -197,7 +199,7 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Optional (recommended)
 CELERY_TIMEZONE = 'Europe/London'
-CELERY_ENABLE_UTC = True
+CELERY_ENABLE_UTC = False
 
 
 # logout redirect for admin
