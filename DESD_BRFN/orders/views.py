@@ -243,7 +243,7 @@ def success(request):
 
     return render(request, 'orders/success.html', {'order': order})
     
-
+@login_required
 def cancel(request):
     """Handle cancelled payment"""
     return render(request, 'orders/cancel.html')
@@ -326,6 +326,7 @@ def stripe_webhook(request):
 # profile
 # =========
 
+@login_required
 def order_history(request):
     '''
     Universal order history page
