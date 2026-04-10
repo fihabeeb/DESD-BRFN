@@ -179,6 +179,7 @@ def create_checkout_session(request):
                 stripe_session_id=checkout_session.id,
                 total_amount=cart.total_amount(),  # Just product total
                 shipping_address=address,
+                shipping_address_id=address,
                 global_delivery_notes=global_delivery_notes,
                 payment_status='pending'
             )
