@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mark as Surplus — {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-8">
+  <a href="{% url 'mainApp:producers:myproduct' %}" class="text-sm text-green-600 hover:underline">&larr; Back to products</a>
+
+  <div class="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">Mark as Surplus / Last-Minute Deal</h1>
+    <p class="text-sm text-gray-400 mb-5">Product: <strong>{{ product.name }}</strong> (current price: £{{ product.price }})</p>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for message in messages %}
+      <div class="p-3 rounded-lg text-sm
+        {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Discount Percentage <span class="text-gray-400">(min 10%)</span>
+        </label>
+        <input type="number" name="discount_percent" min="10" max="100" required
+               value="{% if existing %}{{ existing.discount_percent }}{% else %}20{% endif %}"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        {% if existing %}
+        <p class="text-xs text-gray-400 mt-1">
+          Current discounted price: £{{ existing.discounted_price }}
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Deal expires in (hours)</label>
+        <input type="number" name="expires_hours" min="1" required
+               value="48"
+               placeholder="e.g. 48"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        <p class="text-xs text-gray-400 mt-1">Enter any number of hours (e.g. 6, 24, 72, 168 for a week)</p>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Best Before Date (optional)</label>
+        <input type="date" name="best_before_date"
+               value="{% if existing and existing.best_before_date %}{{ existing.best_before_date|date:'Y-m-d' }}{% endif %}"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
+        <textarea name="note" rows="2"
+                  placeholder="e.g. 'Perfect condition, must sell quickly'"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+        >{% if existing %}{{ existing.note }}{% endif %}</textarea>
+      </div>
+
+      <button type="submit"
+        class="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg text-sm transition-colors">
+        {% if existing %}Update Surplus Deal{% else %}Create Surplus Deal{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

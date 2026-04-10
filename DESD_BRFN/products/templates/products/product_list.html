@@ -145,6 +145,11 @@
                         {% if product.is_in_season %}
                             <span class="badge-in-season"><i class="bi bi-flower2"></i> In Season</span>
                         {% endif %}
+                        {% with deal=product.surplus_deal %}
+                        {% if deal and deal.is_active and deal.expires_at > now %}
+                            <span class="badge-organic" style="background:#ff6b00;color:#fff;"><i class="bi bi-tag-fill"></i> {{ deal.discount_percent }}% OFF</span>
+                        {% endif %}
+                        {% endwith %}
                     </div>
 
                     <!-- Availability status -->
@@ -169,9 +174,19 @@
                         <div class="product-producer"><i class="bi bi-shop"></i> {{ product.producer.business_name }}</div>
                     {% endif %}
 
+                    {% with deal=product.surplus_deal %}
+                    {% if deal and deal.is_active and deal.expires_at > now %}
+                    <div class="product-price">
+                        <span style="text-decoration:line-through;color:#9ca3af;font-size:0.85em;">£{{ product.price }}</span>
+                        <strong style="color:#dc2626;">£{{ deal.discounted_price }}</strong>
+                        <span>per {{ product.unit }}</span>
+                    </div>
+                    {% else %}
                     <div class="product-price">
                         £{{ product.price }} <span>per {{ product.unit }}</span>
                     </div>
+                    {% endif %}
+                    {% endwith %}
 
                     <div class="product-stock {% if product.is_low_stock %}low{% endif %}">
                         <i class="bi bi-box-seam"></i>
@@ -186,11 +201,12 @@
                 <!-- Action -->
                 <div class="product-card-footer">
                     {% if user.is_authenticated %}
-                        <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post">
+                        <form action="{% url 'mainApp:customers:add_to_cart' product.id %}" method="post" style="display:flex;gap:0.5rem;align-items:center;">
                             {% csrf_token %}
-                            <input type="hidden" name="quantity" value="1">
-                            <button type="submit" class="btn-add-cart">
-                                <i class="bi bi-cart-plus"></i> Add to Cart
+                            <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}"
+                                   style="width:60px;padding:0.4rem 0.5rem;border:1.5px solid var(--color-border);border-radius:6px;font-size:0.875rem;text-align:center;">
+                            <button type="submit" class="btn-add-cart" style="flex:1;">
+                                <i class="bi bi-cart-plus"></i> Add
                             </button>
                         </form>
                     {% else %}

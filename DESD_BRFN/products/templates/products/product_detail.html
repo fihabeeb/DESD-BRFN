@@ -56,9 +56,21 @@
             <!-- Name & price -->
             <h1 class="detail-name">{{ product.name }}</h1>
 
+            {% if active_deal %}
+            <div class="detail-price">
+                <span style="text-decoration:line-through;color:#9ca3af;font-size:0.9em;">£{{ product.price }}</span>
+                <strong style="color:#dc2626;font-size:1.3em;">£{{ active_deal.discounted_price }}</strong>
+                <span>per {{ product.unit }}</span>
+                <span style="background:#ff6b00;color:#fff;font-size:0.75em;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;margin-left:4px;">{{ active_deal.discount_percent }}% OFF</span>
+            </div>
+            {% if active_deal.note %}
+            <p style="color:#6b7280;font-size:0.85em;margin-top:0.25rem;">{{ active_deal.note }}</p>
+            {% endif %}
+            {% else %}
             <div class="detail-price">
                 £{{ product.price }} <span>per {{ product.unit }}</span>
             </div>
+            {% endif %}
 
             <!-- Food miles -->
             {% if food_miles is not None %}
@@ -186,6 +198,36 @@
 
         </div>
     </div>
+
+    <!-- TC-020: Recipe Suggestions -->
+    {% if linked_recipes %}
+    <div style="max-width:900px;margin:1.5rem auto;padding:0 1.5rem;">
+        <h2 style="font-size:1.1rem;font-weight:700;color:#1f2937;margin-bottom:1rem;">
+            <svg style="width:1.1em;height:1.1em;vertical-align:-0.2em;margin-right:0.4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Recipe Suggestions
+        </h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;">
+            {% for recipe in linked_recipes %}
+            <a href="{% url 'mainApp:products:recipe_detail' recipe.id %}"
+               style="display:block;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow 0.15s;">
+                {% if recipe.image %}
+                <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}"
+                     style="width:100%;height:140px;object-fit:cover;">
+                {% else %}
+                <div style="width:100%;height:140px;background:linear-gradient(135deg,#ecfdf5,#fef9c3);display:flex;align-items:center;justify-content:center;font-size:2rem;">🍽️</div>
+                {% endif %}
+                <div style="padding:0.75rem;">
+                    <p style="font-weight:600;color:#1f2937;font-size:0.875rem;margin:0 0 0.25rem;">{{ recipe.title }}</p>
+                    <p style="color:#9ca3af;font-size:0.75rem;margin:0;">by {{ recipe.producer.business_name }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- About the Producer -->
     {% if product.producer %}

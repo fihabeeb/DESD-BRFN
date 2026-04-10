@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Farm Story — FarmDirect{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <a href="{% url 'mainApp:producers:content' %}" class="text-sm text-green-600 hover:underline">&larr; Back to content</a>
+
+  <div class="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h1 class="text-xl font-bold text-gray-900 mb-5">Share a Farm Story</h1>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for message in messages %}
+      <div class="p-3 rounded-lg text-sm
+        {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <input type="text" name="title" required
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+               placeholder="e.g. Our harvest season begins!">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Story *</label>
+        <textarea name="body" rows="10" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Tell your story..."></textarea>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Photos (optional, multiple)</label>
+        <input type="file" name="images" accept="image/*" multiple
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+
+      <button type="submit"
+        class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm transition-colors">
+        Submit for Review
+      </button>
+    </form>
+
+    <p class="text-xs text-gray-400 text-center mt-3">
+      Your story will be reviewed before appearing publicly.
+    </p>
+  </div>
+</div>
+{% endblock %}

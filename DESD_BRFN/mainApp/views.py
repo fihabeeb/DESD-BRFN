@@ -29,11 +29,12 @@ def profile_redirect(request):
         return redirect('mainApp:customers:profile')  # Customer sees their profile/order history
     elif user.role == RegularUser.Role.COMMUNITY_MEMBER:
         return redirect('mainApp:customers:profile')
+    elif user.role == RegularUser.Role.RESTAURANT:
+        return redirect('mainApp:customers:profile')
     elif user.role == RegularUser.Role.SYSTEM_ADMIN:
         return redirect('admin:index')
     else:
-    # messages.warning(request, 'Please complete your profile setup.')
-        return redirect('home')
+        return redirect('mainApp:home')
     
 
 # --------

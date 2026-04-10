@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from mainApp.models import ProducerProfile, Address
+from mainApp.models import ProducerProfile, Address, RestaurantProfile
 from mainApp.utils import geocode_postcode
 from django.db import transaction
 
@@ -136,6 +136,7 @@ class ProducerRegistrationForm(UserCreationForm):
     farm_city = forms.CharField(
         required=True,
         label="City/Town",
+        initial='Bristol',
         widget=forms.TextInput(attrs={
             'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
             'placeholder': 'City'
@@ -227,6 +228,92 @@ class ProducerRegistrationForm(UserCreationForm):
         except Exception as e:
             raise e
     
+
+
+class RestaurantRegistrationForm(UserCreationForm):
+    """TC-018: Registration form for restaurant / business accounts."""
+
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
+    phone_number = forms.CharField(required=True)
+    business_name = forms.CharField(required=True, label="Restaurant / Business Name")
+    business_registration_number = forms.CharField(
+        required=False,
+        label="VAT / Company Registration Number (optional)"
+    )
+
+    address_line1 = forms.CharField(required=True, label="Address Line 1")
+    address_line2 = forms.CharField(required=False, label="Address Line 2 (optional)")
+    city = forms.CharField(required=True, initial='Bristol')
+    county = forms.CharField(required=False)
+    post_code = forms.CharField(required=True, label="Post Code")
+
+    class Meta:
+        model = User
+        fields = [
+            'username', 'email', 'first_name', 'last_name',
+            'password1', 'password2', 'phone_number',
+            'business_name', 'business_registration_number',
+            'address_line1', 'address_line2', 'city', 'county', 'post_code'
+        ]
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("This email is already registered.")
+        return email
+
+    def clean_post_code(self):
+        import re
+        post_code = self.cleaned_data.get('post_code')
+        if not re.match(r'^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$', post_code.upper()):
+            raise ValidationError("Please enter a valid UK postcode.")
+        return post_code.upper()
+
+    def save(self, commit=True):
+        with transaction.atomic():
+            user = super().save(commit=False)
+            user.email = self.cleaned_data['email']
+            user.first_name = self.cleaned_data['first_name']
+            user.last_name = self.cleaned_data['last_name']
+            user.phone_number = self.cleaned_data['phone_number']
+            user.role = User.Role.RESTAURANT
+            user.save()
+
+            # Update restaurant profile created by signal
+            profile = user.restaurant_profile
+            profile.business_name = self.cleaned_data['business_name']
+            profile.business_registration_number = self.cleaned_data.get('business_registration_number', '')
+            profile.save()
+
+            lat, lon = geocode_postcode(self.cleaned_data['post_code'])
+            Address.objects.create(
+                user=user,
+                address_line1=self.cleaned_data['address_line1'],
+                address_line2=self.cleaned_data.get('address_line2', ''),
+                city=self.cleaned_data['city'],
+                county=self.cleaned_data.get('county', ''),
+                post_code=self.cleaned_data['post_code'],
+                country='UK',
+                address_type='business',
+                is_default=True,
+                latitude=lat,
+                longitude=lon,
+            )
+            return user
+
+
+class RestaurantLoginForm(AuthenticationForm):
+    """Login form for restaurant accounts."""
+
+    def confirm_login_allowed(self, user):
+        if user.role != User.Role.RESTAURANT:
+            raise ValidationError(
+                "This account is not registered as a restaurant.",
+                code='invalid_role',
+            )
+        super().confirm_login_allowed(user)
 
 
 from django import forms

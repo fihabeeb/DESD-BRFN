@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ producer.business_name }} — Stories & Recipes{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ producer.business_name }}</h1>
+  <p class="text-sm text-gray-400 mb-6">Farm stories and recipes</p>
+
+  <!-- Farm Stories -->
+  {% if stories %}
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">From the Farm</h2>
+    <div class="space-y-4">
+      {% for story in stories %}
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <h3 class="font-semibold text-gray-900 mb-1">{{ story.title }}</h3>
+        <p class="text-xs text-gray-400 mb-3">{{ story.published_at|date:"d M Y" }}</p>
+        {% if story.images.all %}
+        <div class="flex gap-2 mb-3 overflow-x-auto">
+          {% for img in story.images.all %}
+          <img src="{{ img.image.url }}" alt="{{ img.caption }}"
+               class="h-32 w-48 object-cover rounded-lg flex-shrink-0">
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="text-sm text-gray-600 line-clamp-4">{{ story.body }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Recipes -->
+  {% if recipes %}
+  <section>
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Recipes</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for recipe in recipes %}
+      <a href="{% url 'mainApp:products:recipe_detail' recipe.id %}"
+         class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow block">
+        {% if recipe.image %}
+        <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}" class="w-full h-36 object-cover">
+        {% else %}
+        <div class="w-full h-36 bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+          <span class="text-3xl">🍽️</span>
+        </div>
+        {% endif %}
+        <div class="p-3">
+          <h3 class="font-medium text-gray-900 text-sm">{{ recipe.title }}</h3>
+          {% if recipe.seasonal_tags %}
+          <p class="text-xs text-gray-400 mt-0.5">{{ recipe.seasonal_tags }}</p>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not stories and not recipes %}
+  <div class="text-center py-16 bg-white rounded-2xl border border-gray-100">
+    <p class="text-gray-400">No stories or recipes published yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

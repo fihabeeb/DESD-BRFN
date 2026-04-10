@@ -240,7 +240,7 @@ a { text-decoration: none; }
                             class="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none">
                         Cancel
                     </button>
-                    <form method="post" action="{% url 'mainApp:producers:delete_product' product.id %}" class="inline">
+                    <form method="post" action="{% if product %}{% url 'mainApp:producers:delete_product' product.id %}{% endif %}" class="inline">
                         {% csrf_token %}
                         <button type="submit" 
                                 class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none">

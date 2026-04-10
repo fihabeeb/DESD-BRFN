@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ recipe.title }} — FarmDirect{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <a href="{% url 'mainApp:products:recipe_list' %}" class="text-sm text-green-600 hover:underline">&larr; All Recipes</a>
+
+  <div class="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    {% if recipe.image %}
+    <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}" class="w-full h-64 object-cover">
+    {% endif %}
+    <div class="p-6">
+      <div class="flex items-start justify-between mb-2">
+        <h1 class="text-2xl font-bold text-gray-900">{{ recipe.title }}</h1>
+        {% if request.user.is_authenticated %}
+        <form method="post" action="{% url 'mainApp:products:toggle_saved_recipe' recipe.id %}">
+          {% csrf_token %}
+          <button type="submit"
+            class="text-sm px-3 py-1.5 rounded-lg border transition-colors
+              {% if is_saved %}border-green-600 text-green-600 hover:bg-green-50
+              {% else %}border-gray-300 text-gray-500 hover:bg-gray-50{% endif %}">
+            {% if is_saved %}Saved ✓{% else %}Save Recipe{% endif %}
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <p class="text-sm text-gray-400 mb-3">
+        by <strong>{{ recipe.producer.business_name }}</strong>
+        {% if recipe.published_at %}— {{ recipe.published_at|date:"d M Y" }}{% endif %}
+      </p>
+
+      {% if recipe.seasonal_tags %}
+      <div class="flex flex-wrap gap-1 mb-4">
+        {% for tag in recipe.seasonal_tags.split(',') %}
+        <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{{ tag|title }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if recipe.description %}
+      <p class="text-gray-600 mb-5">{{ recipe.description }}</p>
+      {% endif %}
+
+      <!-- Linked products -->
+      {% if recipe.linked_products.all %}
+      <div class="mb-5 p-4 bg-green-50 rounded-xl">
+        <h2 class="text-sm font-semibold text-green-800 mb-2">Products Used</h2>
+        <div class="flex flex-wrap gap-2">
+          {% for product in recipe.linked_products.all %}
+          <a href="{% url 'mainApp:products:product_detail' product.id %}"
+             class="text-xs bg-white border border-green-200 text-green-700 px-2 py-1 rounded-lg hover:bg-green-100">
+            {{ product.name }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <h2 class="font-semibold text-gray-800 mb-2">Ingredients</h2>
+          <div class="text-sm text-gray-600 whitespace-pre-line">{{ recipe.ingredients }}</div>
+        </div>
+        <div>
+          <h2 class="font-semibold text-gray-800 mb-2">Instructions</h2>
+          <div class="text-sm text-gray-600 whitespace-pre-line">{{ recipe.instructions }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

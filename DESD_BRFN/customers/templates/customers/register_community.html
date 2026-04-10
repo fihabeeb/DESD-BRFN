@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Community Group Registration — FarmDirect{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-10">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+
+    <div class="mb-6 text-center">
+      <div class="inline-flex items-center justify-center w-14 h-14 bg-green-100 rounded-full mb-3">
+        <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">Community Group Registration</h1>
+      <p class="text-sm text-gray-500 mt-1">Schools, charities, and community organisations</p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for message in messages %}
+      <div class="p-3 rounded-lg text-sm
+        {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+        {% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+        {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Account Details -->
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Account Details</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.first_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.last_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          {{ form.username }}
+          {% if form.username.errors %}<p class="text-xs text-red-600 mt-1">{{ form.username.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          {{ form.email }}
+          {% if form.email.errors %}<p class="text-xs text-red-600 mt-1">{{ form.email.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+          {{ form.phone_number }}
+          {% if form.phone_number.errors %}<p class="text-xs text-red-600 mt-1">{{ form.phone_number.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<p class="text-xs text-red-600 mt-1">{{ form.password1.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<p class="text-xs text-red-600 mt-1">{{ form.password2.errors|join:", " }}</p>{% endif %}
+        </div>
+      </div>
+
+      <!-- Organisation Details -->
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 pt-2 border-t border-gray-100">Organisation Details</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Organisation Name</label>
+          {{ form.organisation_name }}
+          {% if form.organisation_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.organisation_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Organisation Type</label>
+          {{ form.charity_or_education_status }}
+          {% if form.charity_or_education_status.errors %}<p class="text-xs text-red-600 mt-1">{{ form.charity_or_education_status.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Institutional Email (optional)</label>
+          {{ form.institutional_email }}
+          <p class="text-xs text-gray-400 mt-1">Your official organisation email for verification</p>
+          {% if form.institutional_email.errors %}<p class="text-xs text-red-600 mt-1">{{ form.institutional_email.errors|join:", " }}</p>{% endif %}
+        </div>
+      </div>
+
+      <!-- Delivery Address -->
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 pt-2 border-t border-gray-100">Delivery Address</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+          {{ form.address_line1 }}
+          {% if form.address_line1.errors %}<p class="text-xs text-red-600 mt-1">{{ form.address_line1.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (optional)</label>
+          {{ form.address_line2 }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+          {{ form.city }}
+          {% if form.city.errors %}<p class="text-xs text-red-600 mt-1">{{ form.city.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">County (optional)</label>
+          {{ form.county }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Post Code</label>
+          {{ form.post_code }}
+          {% if form.post_code.errors %}<p class="text-xs text-red-600 mt-1">{{ form.post_code.errors|join:", " }}</p>{% endif %}
+        </div>
+      </div>
+
+      <button type="submit"
+        class="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
+        Create Community Group Account
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-4">
+      Already have an account?
+      <a href="{% url 'mainApp:customers:login' %}" class="text-green-600 hover:underline font-medium">Log in here</a>
+    </p>
+    <p class="text-center text-sm text-gray-500 mt-2">
+      Individual shopper?
+      <a href="{% url 'mainApp:customers:register' %}" class="text-green-600 hover:underline font-medium">Register as customer</a>
+    </p>
+  </div>
+</div>
+
+<style>
+  input[type=text], input[type=email], input[type=password], select, textarea {
+    display: block; width: 100%; padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.875rem;
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: #16a34a; box-shadow: 0 0 0 2px rgba(22,163,74,0.15); }
+</style>
+{% endblock %}

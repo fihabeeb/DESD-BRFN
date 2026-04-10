@@ -218,6 +218,7 @@ class RegularUser(AbstractUser):
         CUSTOMER = 'customer'
         PRODUCER = 'producer'
         COMMUNITY_MEMBER = 'community_member'
+        RESTAURANT = 'restaurant'
         SYSTEM_ADMIN = 'system_admin'
 
     role = models.CharField(max_length=20, choices=Role.choices)
@@ -369,10 +370,55 @@ class ProducerProfile(models.Model):
         pass
 
 class CommunityMemberProfile(models.Model):
+    """TC-017: Community group / organisation profile (schools, charities, etc.)"""
+
+    CHARITY_EDUCATION_CHOICES = [
+        ('charity', 'Charity'),
+        ('education', 'Educational Institution'),
+        ('other', 'Other Community Organisation'),
+    ]
+
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='community_member_profile')
     # community member-specific fields
     bio = models.TextField(blank=True)
-    # ...
+
+    # TC-017 organisation fields
+    organisation_name = models.CharField(max_length=255, blank=True, help_text="Name of school, charity, or organisation")
+    charity_or_education_status = models.CharField(
+        max_length=20,
+        choices=CHARITY_EDUCATION_CHOICES,
+        blank=True,
+        help_text="Type of community organisation"
+    )
+    institutional_email = models.EmailField(
+        blank=True,
+        help_text="Official institutional email address for verification"
+    )
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Admin-verified community group account"
+    )
+
+    def __str__(self):
+        return self.organisation_name or self.user.username
+
+
+class RestaurantProfile(models.Model):
+    """TC-018: Restaurant / business account profile"""
+
+    user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='restaurant_profile')
+    business_name = models.CharField(max_length=255)
+    business_registration_number = models.CharField(max_length=100, blank=True, help_text="VAT or company registration number")
+    is_verified = models.BooleanField(default=False, help_text="Admin-approved business account")
+    default_payment_method = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Stripe payment method ID for automated charges"
+    )
+
+    def __str__(self):
+        return self.business_name
+
 
 class SystemAdminProfile(models.Model):
     user = models.OneToOneField(RegularUser, on_delete=models.CASCADE, related_name='system_admin_profile')
