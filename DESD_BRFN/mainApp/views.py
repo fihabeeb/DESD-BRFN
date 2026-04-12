@@ -20,6 +20,7 @@ def logout_view(request):
     return redirect('mainApp:home')
 
 
+@login_required
 def profile_redirect(request):
     user = request.user
 

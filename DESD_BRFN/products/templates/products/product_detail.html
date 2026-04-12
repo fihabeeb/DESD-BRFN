@@ -201,30 +201,29 @@
 
     <!-- TC-020: Recipe Suggestions -->
     {% if linked_recipes %}
-    <div style="max-width:900px;margin:1.5rem auto;padding:0 1.5rem;">
-        <h2 style="font-size:1.1rem;font-weight:700;color:#1f2937;margin-bottom:1rem;">
-            <svg style="width:1.1em;height:1.1em;vertical-align:-0.2em;margin-right:0.4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            Recipe Suggestions
-        </h2>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;">
-            {% for recipe in linked_recipes %}
-            <a href="{% url 'mainApp:products:recipe_detail' recipe.id %}"
-               style="display:block;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow 0.15s;">
-                {% if recipe.image %}
-                <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}"
-                     style="width:100%;height:140px;object-fit:cover;">
-                {% else %}
-                <div style="width:100%;height:140px;background:linear-gradient(135deg,#ecfdf5,#fef9c3);display:flex;align-items:center;justify-content:center;font-size:2rem;">🍽️</div>
-                {% endif %}
-                <div style="padding:0.75rem;">
-                    <p style="font-weight:600;color:#1f2937;font-size:0.875rem;margin:0 0 0.25rem;">{{ recipe.title }}</p>
-                    <p style="color:#9ca3af;font-size:0.75rem;margin:0;">by {{ recipe.producer.business_name }}</p>
-                </div>
-            </a>
-            {% endfor %}
+    <div class="detail-wrapper" style="padding-top:0;padding-bottom:0;margin-top:1.5rem;">
+        <div class="profile-card" style="padding:1.25rem;">
+            <div class="profile-card-title"><i class="bi bi-journal-richtext"></i> Recipe Suggestions</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-top:0.75rem;">
+                {% for recipe in linked_recipes %}
+                <a href="{% url 'mainApp:products:recipe_detail' recipe.id %}"
+                   class="product-card" style="text-decoration:none;display:block;">
+                    {% if recipe.image %}
+                    <div class="product-card-image">
+                        <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}" style="height:130px;object-fit:cover;width:100%;">
+                    </div>
+                    {% else %}
+                    <div class="product-card-image">
+                        <div class="no-image" style="height:130px;">🍽️</div>
+                    </div>
+                    {% endif %}
+                    <div class="product-card-body">
+                        <h3 style="font-size:0.875rem;margin-bottom:0.2rem;">{{ recipe.title }}</h3>
+                        <div class="product-producer"><i class="bi bi-shop"></i> {{ recipe.producer.business_name }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
         </div>
     </div>
     {% endif %}
@@ -238,20 +237,26 @@
         </div>
         <div class="producer-card-body">
             <div class="producer-avatar"><i class="bi bi-person-badge"></i></div>
-            <div>
+            <div style="flex:1;">
                 <div class="producer-card-name">{{ product.producer.business_name }}</div>
-                {% if product.producer.farm_city or product.producer.farm_county %}
+                {% with addr=product.producer.farm_address %}
+                {% if addr and addr.city %}
                 <div class="producer-card-location">
                     <i class="bi bi-geo-alt"></i>
-                    {{ product.producer.farm_city }}{% if product.producer.farm_city and product.producer.farm_county %}, {% endif %}{{ product.producer.farm_county }}
+                    {{ addr.city }}{% if addr.county %}, {{ addr.county }}{% endif %}
                 </div>
                 {% endif %}
+                {% endwith %}
                 {% if food_miles is not None %}
                 <div class="producer-card-miles">
                     <i class="bi bi-arrow-left-right"></i>
                     {{ food_miles }} miles from Bristol
                 </div>
                 {% endif %}
+                <a href="{% url 'mainApp:products:producer_stories' product.producer.id %}"
+                   class="btn-outline" style="display:inline-flex;margin-top:0.75rem;font-size:0.8rem;">
+                    <i class="bi bi-journal-richtext"></i> View Stories & Recipes
+                </a>
             </div>
         </div>
     </div>

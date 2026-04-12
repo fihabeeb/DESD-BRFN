@@ -101,6 +101,7 @@ class FarmStory(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name_plural = 'Farm stories'
 
     def __str__(self):
         return self.title

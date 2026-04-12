@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load product_extras %}
 
 {% block title %}{{ recipe.title }} — FarmDirect{% endblock %}
 
@@ -34,7 +35,7 @@
 
       {% if recipe.seasonal_tags %}
       <div class="flex flex-wrap gap-1 mb-4">
-        {% for tag in recipe.seasonal_tags.split(',') %}
+        {% for tag in recipe.seasonal_tags|split:',' %}
         <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{{ tag|title }}</span>
         {% endfor %}
       </div>

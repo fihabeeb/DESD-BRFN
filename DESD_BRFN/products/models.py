@@ -127,9 +127,13 @@ class Product(models.Model):
         ]
 
     def deduct_stock(self, quantity):
-        if self.stock_quantity >= quantity:
-            self.stock_quantity -= quantity
-            self.save(update_fields=['stock_quantity'])
+        from django.db.models import F
+        updated = Product.objects.filter(
+            pk=self.pk,
+            stock_quantity__gte=quantity
+        ).update(stock_quantity=F('stock_quantity') - quantity)
+        if updated:
+            self.refresh_from_db(fields=['stock_quantity'])
             return True
         return False
 

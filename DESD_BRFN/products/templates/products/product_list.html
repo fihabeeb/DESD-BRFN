@@ -171,7 +171,10 @@
                     <h3><a href="{% url 'mainApp:products:product_detail' product.id %}">{{ product.name }}</a></h3>
 
                     {% if product.producer %}
-                        <div class="product-producer"><i class="bi bi-shop"></i> {{ product.producer.business_name }}</div>
+                        <a href="{% url 'mainApp:products:producer_stories' product.producer.id %}"
+                           class="product-producer" style="text-decoration:none;" onclick="event.stopPropagation();">
+                            <i class="bi bi-shop"></i> {{ product.producer.business_name }}
+                        </a>
                     {% endif %}
 
                     {% with deal=product.surplus_deal %}

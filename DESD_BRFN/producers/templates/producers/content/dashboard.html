@@ -6,7 +6,7 @@
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-8">
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Farm Stories & Recipes</h1>
+    <h1 class="text-2xl font-bold" style="color:var(--color-text)">Farm Stories & Recipes</h1>
     <div class="flex gap-2">
       <a href="{% url 'mainApp:producers:add_farm_story' %}"
          class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
@@ -32,13 +32,13 @@
 
   <!-- Recipes -->
   <section class="mb-8">
-    <h2 class="text-base font-semibold text-gray-700 mb-3">Recipes ({{ recipes.count }})</h2>
+    <h2 class="text-base font-semibold mb-3" style="color:var(--color-text)">Recipes ({{ recipes.count }})</h2>
     {% if recipes %}
     <div class="space-y-3">
       {% for recipe in recipes %}
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between">
         <div>
-          <p class="font-medium text-gray-900">{{ recipe.title }}</p>
+          <p class="font-medium" style="color:var(--color-text)">{{ recipe.title }}</p>
           <div class="flex gap-2 mt-1">
             <span class="text-xs px-2 py-0.5 rounded-full
               {% if recipe.moderation_status == 'approved' %}bg-green-100 text-green-700
@@ -65,19 +65,24 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm text-gray-400 py-4">No recipes yet. <a href="{% url 'mainApp:producers:add_recipe' %}" class="text-green-600 hover:underline">Add your first recipe.</a></p>
+    <div class="py-6 text-center">
+      <p class="text-sm mb-3" style="color:var(--color-muted)">No recipes yet.</p>
+      <a href="{% url 'mainApp:producers:add_recipe' %}" class="btn-primary" style="display:inline-flex;">
+        + Add your first recipe
+      </a>
+    </div>
     {% endif %}
   </section>
 
   <!-- Farm Stories -->
   <section>
-    <h2 class="text-base font-semibold text-gray-700 mb-3">Farm Stories ({{ stories.count }})</h2>
+    <h2 class="text-base font-semibold mb-3" style="color:var(--color-text)">Farm Stories ({{ stories.count }})</h2>
     {% if stories %}
     <div class="space-y-3">
       {% for story in stories %}
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between">
         <div>
-          <p class="font-medium text-gray-900">{{ story.title }}</p>
+          <p class="font-medium" style="color:var(--color-text)">{{ story.title }}</p>
           <div class="flex gap-2 mt-1">
             <span class="text-xs px-2 py-0.5 rounded-full
               {% if story.moderation_status == 'approved' %}bg-green-100 text-green-700
@@ -100,7 +105,12 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm text-gray-400 py-4">No stories yet. <a href="{% url 'mainApp:producers:add_farm_story' %}" class="text-green-600 hover:underline">Share your first farm story.</a></p>
+    <div class="py-6 text-center">
+      <p class="text-sm mb-3" style="color:var(--color-muted)">No stories yet.</p>
+      <a href="{% url 'mainApp:producers:add_farm_story' %}" class="btn-primary" style="display:inline-flex;">
+        + Share your first farm story
+      </a>
+    </div>
     {% endif %}
   </section>
 </div>
