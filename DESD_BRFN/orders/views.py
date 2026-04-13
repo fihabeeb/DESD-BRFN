@@ -336,7 +336,7 @@ def order_history(request):
         user=request.user,
     ).exclude(
         payment_status__in=['pending', 'failed']
-    ).order_by('-created_at')
+    ).order_by('-id')
     
     orders_data = []
     
