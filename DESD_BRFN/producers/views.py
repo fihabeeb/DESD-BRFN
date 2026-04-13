@@ -416,14 +416,17 @@ def update_order_status(request, order_id):
 def order_detail(request, order_id):
     """
     View detailed information for a specific producer order
+    not in use
     """
     producer_profile = request.user.producer_profile
-    
+    print(producer_profile)
+
     producer_order = get_object_or_404(
         OrderProducer, 
         id=order_id, 
         producer=producer_profile
     )
+    print(producer_order)
     
     # Get all items for this order
     order_items = OrderItem.objects.filter(
@@ -441,7 +444,7 @@ def order_detail(request, order_id):
         'status_choices': OrderProducer.ORDER_STATUS_CHOICES,
     }
     
-    return render(request, 'producers/order_detail.html', context)
+    return render(request, 'producers/orders/details/order_details.html', context)
 
 
 # =================

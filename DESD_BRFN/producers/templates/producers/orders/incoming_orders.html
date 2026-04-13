@@ -7,6 +7,10 @@
 {% block extra_css %}
 <style>
 /* Orders-specific styles */
+
+a {
+    text-decoration: none;
+}
 .orders-header {
     display: flex;
     align-items: center;
@@ -241,7 +245,9 @@
                     <div class="order-header">
                         <div class="order-info">
                             <span class="order-number">
-                                <i class="bi bi-receipt"></i> Order #{{ order_data.order.id }}
+                                <a href="{% url 'mainApp:producers:order_detail' order_data.order.id %}">
+                                    <i class="bi bi-receipt"></i> Order #{{ order_data.order.id }}
+                                </a>
                             </span>
                             <span class="order-date">
                                 <i class="bi bi-calendar3"></i> {{ order_data.order.created_at|date:"d M Y, H:i" }}

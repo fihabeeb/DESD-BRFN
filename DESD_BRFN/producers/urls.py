@@ -26,7 +26,7 @@ urlpatterns = [
 
     path('producer/orders/', views.incoming_orders_view, name='incoming_orders'),
     path('producer/orders/update/<int:order_id>/', views.update_order_status, name='update_order_status'),
-    # path('producer/orders/<int:')
+    path('producer/orders/<int:order_id>/', views.order_detail, name='order_detail'),
 
     path('producer/quality-scan', views.quality_scan_view, name='quality_scan'),
 
