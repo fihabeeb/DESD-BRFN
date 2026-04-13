@@ -1,6 +1,4 @@
 # ml/recommendation/service.py
-
-
 import pickle
 
 from ml.recommendation.model_enhanced import recommend_next_products_enhanced
@@ -14,41 +12,53 @@ logger = logging.getLogger(__name__)
 class EnhancedRecommendationService:
     """Service for generating recommendations with temporal awareness"""
     
+    _instance = None
+    _model = None
+    user_to_idx = None
+    _product_to_idx = None
+    _idx_to_product = None
+    _sequence_length = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        self.model = None
-        self.user_to_idx = None
-        self.product_to_idx = None
-        self.idx_to_product = None
-        self.sequence_length = None
-        self.load_model()
+        pass
+
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton instance"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
     
     def load_model(self):
         """Load the enhanced model and mappings"""
         try:
             from tensorflow.keras.models import load_model
             
-            self.model = load_model("ml/recommendation/final/recommendation_model_enhanced.keras")
+            self._model = load_model("ml/recommendation/final/recommendation_model_enhanced.keras")
             
             with open("ml/recommendation/product_mappings_enhanced.pkl", "rb") as f:
                 mappings = pickle.load(f)
             
-            self.product_to_idx = mappings["product_to_idx"]
-            self.idx_to_product = mappings["idx_to_product"]
-            self.sequence_length = mappings.get("sequence_length", 3)
+            self._product_to_idx = mappings["product_to_idx"]
+            self._idx_to_product = mappings["idx_to_product"]
+            self._sequence_length = mappings.get("sequence_length", 3)
             
             logger.info("Enhanced recommendation model loaded successfully")
             
         except Exception as e:
             logger.error(f"Failed to load enhanced recommendation model: {e}")
-            self.model = None
-    
-   # ml/recommendation/service.py
+            self._model = None
 
     def get_recommendations(self, user_id, purchase_history_with_timestamps, top_k=5):
         """
         Get recommendations using both product history and timestamps
         """
-        if not self.model:
+        if not self._model:
             logger.warning("Model not loaded")
             return []
         
@@ -75,9 +85,9 @@ class EnhancedRecommendationService:
             logger.info("Calling recommend_next_products_enhanced...")
             
             recommendations = recommend_next_products_enhanced(
-                self.model,
-                self.product_to_idx,
-                self.idx_to_product,
+                self._model,
+                self._product_to_idx,
+                self._idx_to_product,
                 product_ids,
                 timestamps,
                 user_id=user_id,
