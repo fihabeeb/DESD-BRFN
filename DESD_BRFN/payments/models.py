@@ -125,12 +125,50 @@ class PaymentSettlement(models.Model):
         self.paid_at = timezone.now()
         self.save()
 
+    '''
+    Admin-function
+    '''
+    def get_orders_queryset(self):
+        """Get all orders in this settlement"""
+        return self.orders.select_related('order_producer').all()
+
+    def get_filtered_orders(self, start_date=None, end_date=None, status=None):
+        """Get filtered orders based on criteria"""
+        queryset = self.get_orders_queryset()
+        
+        if start_date:
+            queryset = queryset.filter(order_completed_at__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(order_completed_at__date__lte=end_date)
+        if status:
+            queryset = queryset.filter(order_producer__order__status=status)
+        
+        return queryset
+
+    def get_running_totals(self):
+        """Calculate running totals for orders in settlement"""
+        orders = self.get_orders_queryset().order_by('order_completed_at')
+        running_totals = []
+        running_total = Decimal('0.00')
+        
+        for order in orders:
+            running_total += order.order_payout
+            running_totals.append({
+                'order_id': order.order_id,
+                'date': order.order_completed_at,
+                'payout': order.order_payout,
+                'running_total': running_total
+            })
+        
+        return running_totals
+
     
     
     def generate_csv_report(self):
         """
         generate CSV report
         could potentially store csv data in db but idk
+        (not in use)
         """
         import csv
         import io
@@ -188,7 +226,7 @@ class SettlementOrder(models.Model):
     )
 
     # snapshot order details / analytical details
-    order_id = models.IntegerField()
+    order_id = models.IntegerField() # unattach ref to OrderProducer table
     order_created_at = models.DateTimeField()
     order_completed_at = models.DateTimeField()
     customer_name = models.CharField(max_length=255, blank=True)
@@ -204,3 +242,26 @@ class SettlementOrder(models.Model):
 
     class Meta:
         unique_together = ['settlement', 'order_producer']
+
+    @property
+    def order(self):
+        try:
+            from orders.models import OrderProducer  # Adjust import as needed
+            return OrderProducer.objects.get(id=self.order_id)#.select_related("order_items")
+        except OrderProducer.DoesNotExist:
+            return None
+        
+    @property
+    def order_items(self):
+        try:
+            from orders.models import OrderProducer,OrderItem  # Adjust import as needed
+            order_producer = OrderProducer.objects.get(id=self.order_id)
+            return order_producer.order_items.all()
+        except OrderProducer.DoesNotExist:
+            return None
+        
+    @property
+    def get_product_names(self):
+        product_names = self.order_items
+        return ", ".join([item.product_name for item in product_names])
+        

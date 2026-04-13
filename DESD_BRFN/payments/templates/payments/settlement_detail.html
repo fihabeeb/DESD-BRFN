@@ -78,7 +78,9 @@
                         <td>#{{ order.order_id }}</td>
                         <td>{{ order.order_created_at|date:"d M Y" }}</td>
                         <td>{{ order.customer_name|default:"Anonymous" }}</td>
-                        <td>{{ order.order_producer.order_items.count }} items</td>
+                        <td>{{ order.get_product_names }} items</td>
+                        
+                        <!-- <td>{{ order.order_producer.order_items.count }} items</td> -->
                         <td>£{{ order.order_subtotal|floatformat:2 }}</td>
                         <td>£{{ order.order_commission|floatformat:2 }}</td>
                         <td><strong>£{{ order.order_payout|floatformat:2 }}</strong></td>
