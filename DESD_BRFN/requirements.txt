@@ -38,3 +38,4 @@ numpy
 scikit-learn
 redis==7.4.0
 django-celery-beat==2.9.0
+opencv-python-headless==4.10.0.84

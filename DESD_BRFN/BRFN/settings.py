@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'orders',
     'storages',
     'django_celery_beat',
+    'insights.apps.InsightsConfig',
 ]
 
 AUTH_USER_MODEL = 'mainApp.RegularUser'
