@@ -25,30 +25,71 @@ def process_weekly_settlements():
     running this task in the middle week still contrains it to the current period 
     (Monday 00:00 to Sunday 11:59)
     '''
-
-    now = timezone.now()
-    day_since_monday = now.weekday()
-
-    week_start = (now - timedelta(days=day_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
-    week_end = (now+ timedelta(days=6)).replace(
-        hour=23, minute=59, second=59, microsecond=999999
-    )
-
-    producers_with_orders = OrderProducer.objects.filter(
+    # Get all unsettled delivered orders
+    unsettled_orders = OrderProducer.objects.filter(
         order_status='delivered',
-        completed_at__range=[week_start,week_end],
         is_settled=False
-    ).values_list('producer', flat=True).distinct()
-
+    ).select_related('producer').order_by('completed_at')
+    
+    if not unsettled_orders.exists():
+        logger.info("No unsettled orders found")
+        return {'status': 'no_orders'}
+    
+    # Group orders by their completion week
+    orders_by_week = {}
+    for order in unsettled_orders:
+        if not order.completed_at:
+            continue
+            
+        # Calculate which week this order belongs to (Monday to Sunday)
+        order_date = order.completed_at
+        days_since_monday = order_date.weekday()
+        week_start = (order_date - timedelta(days=days_since_monday)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        week_end = (week_start + timedelta(days=6)).replace(
+            hour=23, minute=59, second=59, microsecond=999999
+        )
+        
+        week_key = (week_start.date(), week_end.date())
+        
+        if week_key not in orders_by_week:
+            orders_by_week[week_key] = {
+                'week_start': week_start,
+                'week_end': week_end,
+                'orders': []
+            }
+        orders_by_week[week_key]['orders'].append(order)
+    
+    # Process each week's orders
     results = []
-    for producer_id in producers_with_orders:
-        try:
-            result = process_producer_settlement.delay(producer_id, week_start, week_end)
-            result.append({'producer_id': producer_id, 'task_id': result.id})
-        except Exception as e:
-            logger.error(f'error occur in process_weekly_settlements: {e}')
-
-        return results
+    for week_key, week_data in orders_by_week.items():
+        # Group orders by producer within this week
+        producers_in_week = {}
+        for order in week_data['orders']:
+            if order.producer_id not in producers_in_week:
+                producers_in_week[order.producer_id] = []
+            producers_in_week[order.producer_id].append(order)
+        
+        # Process each producer's orders for this week
+        for producer_id, orders in producers_in_week.items():
+            try:
+                result = process_producer_settlement.delay(
+                    producer_id, 
+                    week_data['week_start'], 
+                    week_data['week_end']
+                )
+                results.append({
+                    'producer_id': producer_id, 
+                    'week_start': week_data['week_start'].date(),
+                    'week_end': week_data['week_end'].date(),
+                    'task_id': result.id
+                })
+            except Exception as e:
+                logger.error(f'Error processing settlement for producer {producer_id}: {e}')
+    
+    logger.info(f"Started {len(results)} settlement tasks")
+    return {'status': 'started', 'tasks': results}
 
 @shared_task
 def process_producer_settlement(producer_id, week_start, week_end):
