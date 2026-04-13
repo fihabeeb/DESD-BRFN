@@ -137,6 +137,10 @@
             </div>
         </div>
     </div>
+
+    <a href="{% url 'mainApp:payments:download_all_settlements' %}{% if selected_tax_year %}?tax_year={{ selected_tax_year }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="btn btn-outline-secondary">
+    <i class="bi bi-download"></i> Export All
+    </a>
     
     <!-- Settlements Table -->
     <div class="table-responsive">
