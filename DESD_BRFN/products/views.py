@@ -1,9 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Product, ProductCategory
-from django.db.models import Q
+from django.db.models import Case, When, Value, BooleanField, Q, F
 from django.contrib.postgres.search import TrigramSimilarity
 from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
+from django.utils import timezone
 
 
 @login_required
@@ -49,6 +50,40 @@ def product_list(request):
         availability='available',
         is_active=True,
         )
+    
+    current_month = timezone.now().month
+    
+    products = products.annotate(
+        is_in_season_annotated=Case(
+            When(
+                Q(season_start__isnull=True) | Q(season_end__isnull=True),
+                then=Value(True)
+            ),
+            When(
+                Q(season_start__lte=current_month) & 
+                Q(season_end__gte=current_month) &
+                Q(season_start__lte=F('season_end')),
+                then=Value(True)
+            ),
+            When(
+                Q(season_start__gt=F('season_end')) & 
+                (Q(season_start__lte=current_month) | Q(season_end__gte=current_month)),
+                then=Value(True)
+            ),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    )
+
+    # get and apply filters
+    organic_filter = request.GET.get('organic') == 'true'
+    season_filter = request.GET.get('in_season') == 'true'
+
+    if organic_filter:
+        products = products.filter(is_organic=True)
+    if season_filter:
+        products = products.filter(is_in_season_annotated=True)
+
 
     search_query = request.GET.get('q', '')
     if search_query:
@@ -69,20 +104,6 @@ def product_list(request):
             Q(similarity__gt=0.125)
         )
         
-        # If searching for organic, add organic filter
-        if is_organic_search:
-            search_filter &= Q(is_organic=True)
-            
-            # Also remove "organic" from the search term for better matching
-            clean_query = search_lower.replace('organic', '').strip()
-            if clean_query:
-                # Add search for the remaining terms
-                search_filter |= Q(
-                    Q(name__icontains=clean_query) |
-                    Q(description__icontains=clean_query) |
-                    Q(category__name__icontains=clean_query)
-                )
-        
         products = products.filter(search_filter).order_by('-similarity')
 
             # TODO:
@@ -93,6 +114,7 @@ def product_list(request):
         products = products.filter(category_id=category_id)
     categories = ProductCategory.objects.filter(is_active=True)
 
+    # recommend system
     recommended_products = []
     user_purchase_history = []
     if request.user.is_authenticated:
@@ -101,7 +123,6 @@ def product_list(request):
             
             # Get user's purchase history
             from orders.models import OrderItem, OrderPayment
-            
             # Fetch user's purchase history ordered by time
             user_orders = OrderPayment.objects.filter(
                 user=request.user,
