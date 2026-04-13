@@ -343,6 +343,9 @@ class ProducerProfile(models.Model):
         help_text="Minimum hours notice required before delivery"
     )
 
+    def __str__(self):
+        return f"{self.business_name} ({self.user.get_full_name()})"
+
     # TC-013 food miles — set automatically from user.post_code via postcodes.io on registration
     # ALIFF: use the address table 
     # latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
