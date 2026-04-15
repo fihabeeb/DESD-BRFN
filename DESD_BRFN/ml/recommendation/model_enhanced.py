@@ -26,6 +26,9 @@ def get_user_sequences_with_timestamps():
     # Filter only paid orders with all necessary relations
     order_items = OrderItem.objects.filter(
         producer_order__payment__payment_status='paid'
+    ).exclude(
+        # producer_order__payment__user__customer_profile__id=1
+        # producer_order__payment__created_at__range=
     ).select_related(
         'product', 
         'producer_order__payment__user',
@@ -52,7 +55,7 @@ def get_user_sequences_with_timestamps():
     return dict(sequences)
 
 
-def build_training_data_with_features(sequence_length=3, min_user_sequences=2):
+def build_training_data_with_features(sequence_length=7, min_user_sequences=3):
     """
     Create sequences with both product IDs and temporal features for training.
     
@@ -128,9 +131,6 @@ def build_training_data_with_features(sequence_length=3, min_user_sequences=2):
     
     return X_products, X_time_features, y_products, metadata
 
-
-# ml/recommendation/model.py
-
 def extract_temporal_features(timestamp, hours_since_last_purchase, order_id):
     """
     Extract rich temporal features from a timestamp.
@@ -157,36 +157,36 @@ def extract_temporal_features(timestamp, hours_since_last_purchase, order_id):
         is_weekend = 1.0 if timestamp.weekday() >= 5 else 0.0
         features.append(float(is_weekend))
         
-        # 3. Hour of day (0-23, normalized)
-        hour_of_day = timestamp.hour / 23.0
-        features.append(float(hour_of_day))
+        # # 3. Hour of day (0-23, normalized)
+        # hour_of_day = timestamp.hour / 23.0
+        # features.append(float(hour_of_day))
         
-        # 4. Time of day category (morning, afternoon, evening, night)
-        hour = timestamp.hour
-        time_categories = [
-            1.0 if 5 <= hour < 12 else 0.0,   # Morning (5-11)
-            1.0 if 12 <= hour < 17 else 0.0,  # Afternoon (12-16)
-            1.0 if 17 <= hour < 22 else 0.0,  # Evening (17-21)
-            1.0 if hour >= 22 or hour < 5 else 0.0  # Night (22-4)
-        ]
-        features.extend([float(x) for x in time_categories])
+        # # 4. Time of day category (morning, afternoon, evening, night)
+        # hour = timestamp.hour
+        # time_categories = [
+        #     1.0 if 5 <= hour < 12 else 0.0,   # Morning (5-11)
+        #     1.0 if 12 <= hour < 17 else 0.0,  # Afternoon (12-16)
+        #     1.0 if 17 <= hour < 22 else 0.0,  # Evening (17-21)
+        #     1.0 if hour >= 22 or hour < 5 else 0.0  # Night (22-4)
+        # ]
+        # features.extend([float(x) for x in time_categories])
         
         # 5. Day of month (1-31, normalized)
-        day_of_month = timestamp.day / 31.0
-        features.append(float(day_of_month))
+        # day_of_month = timestamp.day / 31.0
+        # features.append(float(day_of_month))
         
         # 6. Month of year (1-12, normalized)
         month_of_year = timestamp.month / 12.0
         features.append(float(month_of_year))
         
-        # 7. Is beginning of month? (first week)
-        is_month_start = 1.0 if timestamp.day <= 7 else 0.0
-        features.append(float(is_month_start))
+        # # 7. Is beginning of month? (first week)
+        # is_month_start = 1.0 if timestamp.day <= 7 else 0.0
+        # features.append(float(is_month_start))
         
         # 8. Is end of month? (last week)
-        days_in_month = calendar.monthrange(timestamp.year, timestamp.month)[1]
-        is_month_end = 1.0 if timestamp.day >= days_in_month - 7 else 0.0
-        features.append(float(is_month_end))
+        # days_in_month = calendar.monthrange(timestamp.year, timestamp.month)[1]
+        # is_month_end = 1.0 if timestamp.day >= days_in_month - 7 else 0.0
+        # features.append(float(is_month_end))
         
         # 9. Time since last purchase (hours, log-normalized)
         if hours_since_last_purchase > 0:
@@ -196,12 +196,12 @@ def extract_temporal_features(timestamp, hours_since_last_purchase, order_id):
             features.append(0.0)
         
         # 10. Same day as previous? (binary)
-        same_day = 1.0 if hours_since_last_purchase < 24 else 0.0
-        features.append(float(same_day))
+        # same_day = 1.0 if hours_since_last_purchase < 24 else 0.0
+        # features.append(float(same_day))
         
         # 11. Same hour as previous? (binary)
-        same_hour = 1.0 if hours_since_last_purchase < 1 else 0.0
-        features.append(float(same_hour))
+        # same_hour = 1.0 if hours_since_last_purchase < 1 else 0.0
+        # features.append(float(same_hour))
         
         # 12. Season (normalized)
         month = timestamp.month
@@ -220,15 +220,14 @@ def extract_temporal_features(timestamp, hours_since_last_purchase, order_id):
         features.append(float(min(week_of_month, 1.0)))
         
         # Verify we have exactly 13 features
-        assert len(features) == 13, f"Expected 13 features, got {len(features)}"
-        
+        # assert len(features) == 7, f"Expected 13 features, got {len(features)}"
+        # print("YOOooooooo",len(features))
         return features
         
     except Exception as e:
         # Return zeros if anything fails
+        print({e})
         return [0.0] * 13
-
-# ml/recommendation/model.py
 
 def build_enhanced_lstm_model(num_products, sequence_length, num_time_features, 
                              num_users=None, embedding_dim=64, lstm_units=128):
@@ -256,72 +255,98 @@ def build_enhanced_lstm_model(num_products, sequence_length, num_time_features,
     time_input = Input(shape=(sequence_length, num_time_features), name='time_input')
     
     # Optional: User ID input for user embedding
+    user_embedding_layer = None
+    user_input = None
     if num_users:
         user_input = Input(shape=(1,), name='user_input')
-        user_embedding = Embedding(num_users + 1, 32, name='user_embedding')(user_input)
+        user_embedding = Embedding(num_users + 1, num_users // 2, name='user_embedding')(user_input)
         user_embedding = tf.keras.layers.Flatten()(user_embedding)
+        user_embedding_layer = user_embedding
     
     # Product embedding
+    from tensorflow.keras.regularizers import l2
     product_embedding = Embedding(
         input_dim=num_products + 1,
         output_dim=embedding_dim,
         mask_zero=True,
         name='product_embedding'
     )(product_input)
+
+    from tensorflow.keras.layers import Conv1D
+    from tensorflow.keras.layers import MaxPooling1D
+
+    # cnn_out = Conv1D(filters=64, kernel_size=3, activation='relu')(product_embedding)
+    # cnn_out = MaxPooling1D(pool_size=2)(cnn_out)
     
     # Concatenate product embeddings with temporal features
     combined_input = Concatenate(axis=-1, name='combined_input')(
         [product_embedding, time_input]
     )
-    
-    # LSTM layers
-    lstm_out = LSTM(lstm_units, return_sequences=True, dropout=0.2, 
-                    recurrent_dropout=0.2, name='lstm_1')(combined_input)
-    lstm_out = BatchNormalization(name='bn_1')(lstm_out)
-    lstm_out = Dropout(0.3, name='dropout_1')(lstm_out)
-    
-    lstm_out = LSTM(lstm_units // 2, return_sequences=False, dropout=0.2,
-                    recurrent_dropout=0.2, name='lstm_2')(lstm_out)
-    lstm_out = BatchNormalization(name='bn_2')(lstm_out)
-    lstm_out = Dropout(0.3, name='dropout_2')(lstm_out)
+
+    cnn_out = Conv1D(filters=64, kernel_size=3, activation='relu')(combined_input)
+    cnn_out = MaxPooling1D(pool_size=2)(cnn_out)
+    from tensorflow.keras.layers import Bidirectional
+    lstm_out = Bidirectional(LSTM(lstm_units, return_sequences=True, dropout=0.3, 
+                                recurrent_dropout=0.2,))(cnn_out)
+
+    from tensorflow.keras.layers import Attention, GlobalAveragePooling1D,GlobalMaxPooling1D
+    # attention = Attention(use_scale=True,score_mode='dot', dropout=0.3,name='attention')([lstm_out, lstm_out])
+    # pooled_out = tf.keras.layers.GlobalAveragePooling1D(name='pooling')(lstm_out)
+    # pooled_out = tf.keras.layers.Flatten()(lstm_out)
+    # pooled_out = tf.keras.layers.GlobalMaxPooling1D()(lstm_out)
+
+    pooled_out = GlobalAveragePooling1D()(lstm_out)  # (batch, 256)
+    # max_pool = GlobalMaxPooling1D()(lstm_out)      # (batch, 256)
+    # pooled_out = Concatenate()([avg_pool, max_pool])  # (batch, 512)
+
     
     # Dense layers
-    dense_out = Dense(128, activation='relu', name='dense_1')(lstm_out)
+    # dense_out = Dense(128, activation='relu', name='dense_1')(lstm_out)
+    # dense_out = BatchNormalization(name='bn_3')(dense_out)
+    # dense_out = Dropout(0.2, name='dropout_3')(dense_out)
+
+    dense_out = Dense(128, activation='relu', name='dense_1')(pooled_out)
     dense_out = BatchNormalization(name='bn_3')(dense_out)
-    dense_out = Dropout(0.3, name='dropout_3')(dense_out)
+    # dense_out = Dropout(0.3, name='dropout_3')(dense_out)
     
-    dense_out = Dense(64, activation='relu', name='dense_2')(dense_out)
-    dense_out = Dropout(0.2, name='dropout_4')(dense_out)
+    # dense_out = Dense(64, activation='relu', name='dense_2')(dense_out)
+    dense_out = Dropout(0.3, name='dropout_4')(dense_out)
     
     # Combine with user embedding if available
-    if num_users:
-        combined_features = Concatenate(name='final_features')([dense_out, user_embedding])
+    if num_users and user_embedding_layer is not None:
+        combined_features = Concatenate(name='final_features')([dense_out, user_embedding_layer])
+        # combined_features = Concatenate(name='final_features')([dense_out, user_embedding])
     else:
         combined_features = dense_out
     
     # Output layer
     output = Dense(num_products + 1, activation='softmax', name='output')(combined_features)
-    
+
     # Create model
     if num_users:
         model = Model(inputs=[product_input, time_input, user_input], outputs=output)
     else:
         model = Model(inputs=[product_input, time_input], outputs=output)
+
+    
     
     # Compile
+    from tensorflow.keras.losses import SparseCategoricalCrossentropy, CategoricalCrossentropy
+    from tensorflow.keras.metrics import SparseTopKCategoricalAccuracy, TopKCategoricalAccuracy
     model.compile(
         loss='sparse_categorical_crossentropy',
+        # loss=SparseCategoricalCrossentropy(),
+        # loss=CategoricalCrossentropy(label_smoothing=0.1),
         optimizer=Adam(learning_rate=0.0005),
-        metrics=['accuracy']
+        metrics=['accuracy', 
+                SparseTopKCategoricalAccuracy(k=6, name='top6_acc'),
+                # TopKCategoricalAccuracy(k=6, name='top5_acc'),
+            ]
     )
-    
+
     return model
 
-# ml/recommendation/model.py
-
-# ml/recommendation/model.py
-
-def train_enhanced_model(sequence_length=3, epochs=50, batch_size=64, validation_split=0.2):
+def train_enhanced_model(sequence_length=7, epochs=50, batch_size=64, validation_split=0.2):
     """
     Complete training pipeline with temporal features.
     """
@@ -461,10 +486,6 @@ def train_enhanced_model(sequence_length=3, epochs=50, batch_size=64, validation
     
     return model, mappings, history
 
-# ml/recommendation/model.py
-
-# ml/recommendation/model.py
-
 def recommend_next_products_enhanced(model, product_to_idx, idx_to_product,
                                     purchase_history, purchase_timestamps,
                                     user_id=None, user_to_idx=None,
@@ -512,7 +533,7 @@ def recommend_next_products_enhanced(model, product_to_idx, idx_to_product,
     
     # Extract temporal features for each position
     time_features_seq = []
-    num_features = 13  # Number of features from extract_temporal_features
+    num_features = 6  # Number of features from extract_temporal_features
     
     for i, ts in enumerate(timestamps):
         if ts is None:
@@ -616,3 +637,108 @@ def encode_products(X, y):
     encoded_y = [product_to_idx[p] for p in y]
     
     return encoded_X, encoded_y, product_to_idx, idx_to_product
+
+
+
+
+
+def time_based_split_for_users(user_ids, timestamps, train_ratio=0.8):
+    """
+    Split by time instead of randomly - more realistic for recommendation
+    """
+    # Group sequences by user and sort by time
+    from collections import defaultdict
+    
+    user_sequences = defaultdict(list)
+    for user_id, timestamp in zip(user_ids, timestamps):
+        user_sequences[user_id].append(timestamp)
+    
+    train_idx = []
+    test_idx = []
+    
+    for i, (user_id, seq_times) in enumerate(user_sequences.items()):
+        if len(seq_times) > 1:
+            split_point = int(len(seq_times) * train_ratio)
+            # Get indices where this user appears
+            user_indices = [j for j, uid in enumerate(user_ids) if uid == user_id]
+            train_idx.extend(user_indices[:split_point])
+            test_idx.extend(user_indices[split_point:])
+    
+    return np.array(train_idx), np.array(test_idx)
+
+def augment_sequences(X_products, X_time_features, y_products, user_ids):
+    """
+    Add noise and variations to prevent overfitting
+    """
+    # Add small noise to time features
+    noise = np.random.normal(0, 0.01, X_time_features.shape)
+    X_time_features_aug = X_time_features + noise
+    
+    # Randomly drop some items (masking)
+    mask = np.random.binomial(1, 0.9, X_products.shape)
+    X_products_aug = X_products * mask
+    
+    return X_products_aug, X_time_features_aug, y_products, user_ids
+
+def evaluate_model(model, test_inputs, test_targets, idx_to_product, k_values=[1, 5, 10]):
+    """
+    Calculate recommendation-specific metrics
+    """
+    from sklearn.metrics import precision_recall_fscore_support
+    
+    results = {}
+    
+    for k in k_values:
+        # Get top-k predictions
+        predictions = model.predict(test_inputs, verbose=0)
+        top_k_indices = np.argsort(predictions, axis=1)[:, -k:][:, ::-1]
+        
+        # Calculate Hit Rate @ k
+        hits = 0
+        for i, true_label in enumerate(test_targets):
+            if true_label in top_k_indices[i]:
+                hits += 1
+        
+        results[f'hit_rate@{k}'] = hits / len(test_targets)
+        
+        # Calculate Mean Reciprocal Rank (MRR)
+        mrr = 0
+        for i, true_label in enumerate(test_targets):
+            rank = np.where(top_k_indices[i] == true_label)[0]
+            if len(rank) > 0:
+                mrr += 1.0 / (rank[0] + 1)
+        results[f'mrr@{k}'] = mrr / len(test_targets)
+    
+    return results
+
+
+def create_sequences_with_timeseries_api(user_sequences, sequence_length=7):
+    """
+    Use Keras timeseries_dataset_from_array for better performance
+    """
+    # Prepare data in the right format
+    all_sequences = []
+    all_targets = []
+    
+    for user_id, seq in user_sequences.items():
+        if len(seq) < sequence_length + 1:
+            continue
+            
+        # Extract product IDs and timestamps
+        products = [item[0] for item in seq]
+        
+        # Create dataset for this user
+        dataset = tf.keras.utils.timeseries_dataset_from_array(
+            products[:-1],  # All but last
+            sequence_length=sequence_length,
+            targets=products[sequence_length:],  # Predict next product
+            batch_size=32,
+            shuffle=False  # CRITICAL: don't shuffle time series!
+        )
+        
+        # Collect batches
+        for X_batch, y_batch in dataset:
+            all_sequences.extend(X_batch.numpy())
+            all_targets.extend(y_batch.numpy())
+    
+    return np.array(all_sequences), np.array(all_targets)

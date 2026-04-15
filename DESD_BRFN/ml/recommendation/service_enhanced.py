@@ -107,6 +107,7 @@ class EnhancedRecommendationService:
                         'score': probability,
                         'confidence': f"{probability:.1%}"
                     })
+                    print(f'Recommend {product.name} with {probability:.1%} confidence')
                 except Product.DoesNotExist:
                     logger.warning(f"Product {product_id} not found")
                     continue
