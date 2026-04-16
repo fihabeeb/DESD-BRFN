@@ -23,5 +23,5 @@ def create_profiles(sender, instance, created, **kwargs):
                 defaults={'business_name': instance.get_full_name() or instance.username}
             )
 
-    print("mainApp: Profile signal ran!")
+        print("mainApp__create_profiles: Signal ran!")
     

@@ -1,0 +1,513 @@
+<!-- producers/templates/producers/orders/details/order_details.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order #{{ producer_order.id }} Details{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Order details styles */
+.order-details-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    transition: gap 0.2s;
+}
+.back-link:hover {
+    gap: 0.75rem;
+    color: var(--color-primary-hover);
+}
+
+.order-header-section {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.order-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.order-title h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-text);
+}
+.order-title h1 span {
+    color: var(--color-primary);
+}
+
+.status-badge-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.order-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+}
+.meta-item i {
+    color: var(--color-primary);
+    font-size: 1.1rem;
+}
+.meta-item strong {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.info-card-header {
+    background: var(--color-primary-light);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+}
+.info-card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text);
+}
+.info-card-header h3 i {
+    color: var(--color-primary);
+}
+
+.info-card-body {
+    padding: 1.25rem;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+}
+.info-label {
+    width: 100px;
+    font-weight: 600;
+    color: var(--color-muted);
+}
+.info-value {
+    flex: 1;
+    color: var(--color-text);
+    word-break: break-word;
+}
+
+.items-section {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.items-header {
+    background: var(--color-primary-light);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+}
+.items-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.items-table-wrapper {
+    padding: 1.25rem;
+    overflow-x: auto;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+.items-table th {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 2px solid var(--color-border);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+}
+.items-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+.items-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.product-name {
+    font-weight: 600;
+}
+.item-total {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.totals-section {
+    padding: 1rem 1.25rem;
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+}
+.totals-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.5rem 0;
+}
+.totals-label {
+    width: 150px;
+    font-weight: 600;
+    color: var(--color-muted);
+}
+.totals-value {
+    width: 120px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--color-text);
+}
+.totals-value-grand {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-success);
+}
+
+.status-update-section {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.status-update-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-update-form {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.status-update-form select {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.6rem 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+.btn-update {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-update:hover {
+    background: var(--color-primary-hover);
+}
+
+.customer-note-box {
+    background: #fff8e7;
+    border: 1.5px solid #ffe6b3;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+[data-theme="dark"] .customer-note-box {
+    background: #2d2010;
+    border-color: #4d3a10;
+}
+.customer-note-box i {
+    color: #d97706;
+    font-size: 1.2rem;
+    margin-top: 0.1rem;
+}
+.customer-note-box .note-content {
+    flex: 1;
+    color: #92400e;
+    font-size: 0.875rem;
+}
+[data-theme="dark"] .customer-note-box .note-content {
+    color: #d97706;
+}
+.customer-note-box .note-label {
+    font-weight: 700;
+    margin-right: 0.5rem;
+}
+
+.status-confirmed { background: #d4edda; color: #155724; }
+.status-preparing  { background: #cce5ff; color: #004085; }
+.status-ready      { background: #d1ecf1; color: #0c5460; }
+.status-delivered  { background: #d4edda; color: #155724; }
+.status-pending    { background: #fff3cd; color: #856404; }
+.status-cancelled  { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="producer-layout" style="display: flex; justify-content: center;">
+    <div class="producer-main" style="width: 100%;">
+        <div class="order-details-container">
+
+            <!-- Back Link -->
+            <a href="{% url 'mainApp:producers:incoming_orders' %}" class="back-link">
+                <i class="bi bi-arrow-left"></i> Back to Orders
+            </a>
+
+            <!-- Order Header -->
+            <div class="order-header-section">
+                <div class="order-title">
+                    <h1>Order <span>#{{ producer_order.id }}</span></h1>
+                    <span class="status-badge-large status-{{ producer_order.order_status }}">
+                        <i class="bi bi-{% if producer_order.order_status == 'confirmed' %}check-circle{% elif producer_order.order_status == 'delivered' %}check2-circle{% elif producer_order.order_status == 'cancelled' %}x-circle{% elif producer_order.order_status == 'preparing' %}arrow-repeat{% else %}clock{% endif %}"></i>
+                        {{ producer_order.get_order_status_display }}
+                    </span>
+                </div>
+                <div class="order-meta">
+                    <div class="meta-item">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Order Date: <strong>{{ producer_order.created_at|date:"d M Y, H:i" }}</strong></span>
+                    </div>
+                    {% if producer_order.delivered_by %}
+                    <div class="meta-item">
+                        <i class="bi bi-truck"></i>
+                        <span>Delivery Date: <strong>{{ producer_order.delivered_by|date:"d M Y" }}</strong></span>
+                    </div>
+                    {% endif %}
+                    {% if producer_order.updated_at %}
+                    <div class="meta-item">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Last Updated: <strong>{{ producer_order.updated_at|date:"d M Y, H:i" }}</strong></span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Customer & Payment Information Grid -->
+            <div class="info-grid">
+                <!-- Customer Information -->
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <h3><i class="bi bi-person-circle"></i> Customer Information</h3>
+                    </div>
+                    <div class="info-card-body">
+                        <div class="info-row">
+                            <div class="info-label">Name:</div>
+                            <div class="info-value">{{ order_payment.user.get_full_name|default:order_payment.user.username }}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Email:</div>
+                            <div class="info-value">{{ order_payment.user.email }}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Phone:</div>
+                            <div class="info-value">{{ order_payment.user.phone_number|default:"Not provided" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Information -->
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <h3><i class="bi bi-geo-alt"></i> Shipping Address</h3>
+                    </div>
+                    <div class="info-card-body">
+                        <div class="info-row">
+                            <div class="info-label">Address:</div>
+                            <div class="info-value">{{ order_payment.shipping_address|linebreaksbr|default:"Not provided" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- not necessary for producer to know -->
+                <!-- Payment Information
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <h3><i class="bi bi-credit-card"></i> Payment Information</h3>
+                    </div>
+                    <div class="info-card-body">
+                        <div class="info-row">
+                            <div class="info-label">Payment ID:</div>
+                            <div class="info-value">#{{ order_payment.id }}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Payment Status:</div>
+                            <div class="info-value">
+                                <span class="status-badge status-{{ order_payment.payment_status }}">
+                                    {{ order_payment.get_payment_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div> -->
+            </div>
+
+            <!-- Order Items -->
+            <div class="items-section">
+                <div class="items-header">
+                    <h3><i class="bi bi-box-seam"></i> Order Items</h3>
+                </div>
+                <div class="items-table-wrapper">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <!-- use snapshot of item -->
+                                <td class="product-name">{{ item.product_name }}</td>
+                                <td>{{ item.quantity }} {{ item.unit }}</td>
+                                <td>£{{ item.product_price|floatformat:2 }}</td>
+                                <td class="item-total">£{{ item.line_total|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 2rem;">
+                                    No items found for this order.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Totals -->
+                <div class="totals-section">
+                    <div class="totals-row">
+                        <div class="totals-label">Subtotal:</div>
+                        <div class="totals-value">£{{ producer_subtotal|floatformat:2 }}</div>
+                    </div>
+                    <div class="totals-row">
+                        <div class="totals-label">Commission (5%):</div>
+                        <div class="totals-value">£{{ producer_order.commission|floatformat:2 }}</div>
+                    </div>
+                    <div class="totals-row" style="border-top: 2px solid var(--color-border); margin-top: 0.5rem; padding-top: 0.75rem;">
+                        <div class="totals-label">Your Payout:</div>
+                        <div class="totals-value totals-value-grand">£{{ producer_order.producer_payout|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Note -->
+            {% if producer_order.customer_note %}
+            <div class="customer-note-box">
+                <i class="bi bi-chat-left-quote"></i>
+                <div class="note-content">
+                    <span class="note-label">Customer Note:</span>
+                    {{ producer_order.customer_note }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Status Update Form (only if not delivered or cancelled) -->
+            {% if producer_order.order_status != 'delivered' and producer_order.order_status != 'cancelled' %}
+            <div class="status-update-section">
+                <h3><i class="bi bi-arrow-repeat"></i> Update Order Status</h3>
+                <form method="post" action="{% url 'mainApp:producers:update_order_status' producer_order.id %}" class="status-update-form">
+                    {% csrf_token %}
+                    <select name="status">
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if producer_order.order_status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn-update">
+                        <i class="bi bi-check-lg"></i> Update Status
+                    </button>
+                </form>
+            </div>
+            {% elif producer_order.order_status == 'delivered' %}
+            <div class="status-update-section">
+                <div style="background: #d4edda; padding: 1rem; border-radius: 8px; text-align: center; color: #155724;">
+                    <i class="bi bi-check-circle-fill"></i> This order has been delivered and cannot be modified.
+                </div>
+            </div>
+            {% elif producer_order.order_status == 'cancelled' %}
+            <div class="status-update-section">
+                <div style="background: #f8d7da; padding: 1rem; border-radius: 8px; text-align: center; color: #721c24;">
+                    <i class="bi bi-x-circle-fill"></i> This order has been cancelled and cannot be modified.
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

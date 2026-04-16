@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Weekly Settlement</h2>
+            <p class="text-muted">{{ settlement.week_display }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <small>Settlement Status</small>
+                    <h3 class="mb-0">{{ settlement.get_settlement_status_display }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settlement Summary Card -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Total Orders</h5>
+                    <h2>{{ settlement.total_orders }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Subtotal</h5>
+                    <h3>£{{ settlement.total_subtotal|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Commission</h5>
+                    <h3>£{{ settlement.total_commission|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Your Payout (95%)</h5>
+                    <h2 class="text-success">£{{ settlement.total_payout|floatformat:2 }}</h2>
+                    <small class="text-muted">Commission: £{{ settlement.total_commission|floatformat:2 }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Breakdown Table -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h4>Order Breakdown</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Products</th>
+                        <th>Subtotal</th>
+                        <th>Commission</th>
+                        <th>Payout</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>#{{ order.order_id }}</td>
+                        <td>{{ order.order_created_at|date:"d M Y" }}</td>
+                        <td>{{ order.customer_name|default:"Anonymous" }}</td>
+                        <td>{{ order.get_product_names }} items</td>
+                        
+                        <!-- <td>{{ order.order_producer.order_items.count }} items</td> -->
+                        <td>£{{ order.order_subtotal|floatformat:2 }}</td>
+                        <td>£{{ order.order_commission|floatformat:2 }}</td>
+                        <td><strong>£{{ order.order_payout|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Totals:</strong></td>
+                        <td><strong>£{{ settlement.total_subtotal|floatformat:2 }}</strong></td>
+                        <td><strong>£{{ settlement.total_commission|floatformat:2 }}</strong></td>
+                        <td><strong>£{{ settlement.total_payout|floatformat:2 }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Download Buttons -->
+    <div class="mt-4">
+        <a href="{% url 'mainApp:payments:download_settlement_csv' settlement.id %}" class="btn btn-primary">
+            <i class="bi bi-file-spreadsheet"></i> Download CSV Report
+        </a>
+        <a href="{% url 'mainApp:payments:download_settlement_pdf' settlement.id %}" class="btn btn-secondary">
+            <i class="bi bi-file-pdf"></i> Download PDF Report
+        </a>
+    </div>
+</div>
+{% endblock %}

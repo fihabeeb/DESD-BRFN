@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Product, ProductCategory
-from django.db.models import Q
+from django.db.models import Case, When, Value, BooleanField, Q, F
 from django.contrib.postgres.search import TrigramSimilarity
 from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
 from django.utils import timezone
@@ -53,6 +53,41 @@ def product_list(request):
     products = Product.objects.filter(
         availability='available',
         is_active=True,
+        )
+    
+    current_month = timezone.now().month
+    
+    products = products.annotate(
+        is_in_season_annotated=Case(
+            When(
+                Q(season_start__isnull=True) | Q(season_end__isnull=True),
+                then=Value(True)
+            ),
+            When(
+                Q(season_start__lte=current_month) & 
+                Q(season_end__gte=current_month) &
+                Q(season_start__lte=F('season_end')),
+                then=Value(True)
+            ),
+            When(
+                Q(season_start__gt=F('season_end')) & 
+                (Q(season_start__lte=current_month) | Q(season_end__gte=current_month)),
+                then=Value(True)
+            ),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    )
+
+    # get and apply filters
+    organic_filter = request.GET.get('organic') == 'true'
+    season_filter = request.GET.get('in_season') == 'true'
+
+    if organic_filter:
+        products = products.filter(is_organic=True)
+    if season_filter:
+        products = products.filter(is_in_season_annotated=True)
+
         ).prefetch_related('surplus_deal')
 
     search_query = request.GET.get('q', '')
@@ -74,20 +109,6 @@ def product_list(request):
             Q(similarity__gt=0.125)
         )
         
-        # If searching for organic, add organic filter
-        if is_organic_search:
-            search_filter &= Q(is_organic=True)
-            
-            # Also remove "organic" from the search term for better matching
-            clean_query = search_lower.replace('organic', '').strip()
-            if clean_query:
-                # Add search for the remaining terms
-                search_filter |= Q(
-                    Q(name__icontains=clean_query) |
-                    Q(description__icontains=clean_query) |
-                    Q(category__name__icontains=clean_query)
-                )
-        
         products = products.filter(search_filter).order_by('-similarity')
 
             # TODO:
@@ -98,15 +119,15 @@ def product_list(request):
         products = products.filter(category_id=category_id)
     categories = ProductCategory.objects.filter(is_active=True)
 
+    # recommend system
     recommended_products = []
     user_purchase_history = []
     if request.user.is_authenticated:
         try:
-            from ml.recommendation.service import RecommendationService
+            from ml.recommendation.service_enhanced import EnhancedRecommendationService
             
             # Get user's purchase history
             from orders.models import OrderItem, OrderPayment
-            
             # Fetch user's purchase history ordered by time
             user_orders = OrderPayment.objects.filter(
                 user=request.user,
@@ -118,18 +139,25 @@ def product_list(request):
                 producer_order__payment__in=user_orders
             ).select_related('product').order_by('producer_order__payment__created_at')
             
-            # Build purchase history list
+            user_purchase_history = []  # List of (product_id, timestamp) tuples
+
             for item in order_items:
-                # Repeat product ID based on quantity
+                # Get the timestamp from the payment
+                timestamp = item.producer_order.payment.created_at
+                
+                # Repeat product ID based on quantity, each with the same timestamp
                 for _ in range(item.quantity):
-                    user_purchase_history.append(item.product.id)
+                    user_purchase_history.append((item.product.id, timestamp))
+
+            # Sort by timestamp to ensure chronological order
+            user_purchase_history.sort(key=lambda x: x[1])
             
             # Get recommendations if user has purchase history
             if user_purchase_history:
-                recommendation_service = RecommendationService()
+                recommendation_service = EnhancedRecommendationService()
                 recommended_products = recommendation_service.get_recommendations(
                     user_id=request.user.id,
-                    purchase_history=user_purchase_history,
+                    purchase_history_with_timestamps=user_purchase_history,
                     top_k=6  # Get top 6 recommendations
                 )
                 

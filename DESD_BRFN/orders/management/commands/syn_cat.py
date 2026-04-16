@@ -112,7 +112,7 @@ class Command(BaseCommand):
                     # Use different strategies for product selection
                     if i == 0 and purchase_history:
                         # First item: sometimes repeat last purchase
-                        if random.random() < 0.4:
+                        if random.random() < 0.1:
                             last_product = purchase_history[-1]
                             if last_product in products:
                                 selected_products.append(last_product)

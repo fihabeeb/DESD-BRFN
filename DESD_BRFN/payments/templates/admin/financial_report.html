@@ -1,0 +1,432 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<style>
+    .financial-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .summary-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #79aec8;
+    }
+    .summary-card h3 {
+        margin: 0 0 10px 0;
+        color: #666;
+        font-size: 14px;
+    }
+    .summary-card .value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #333;
+    }
+    .filter-bar {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .filter-form {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+    .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+    .filter-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #666;
+    }
+    .filter-group input, .filter-group select {
+        height: 35px;  /* Explicit height */
+        line-height: 35px;  /* Vertical alignment */
+        padding: 0 8px;  /* Horizontal padding only */
+        box-sizing: border-box;  /* Include padding in height calculation */
+    }
+    .export-buttons {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-primary {
+        background: #79aec8;
+        color: white;
+    }
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    .verification-status {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    .status-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    .status-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+    }
+    .status-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    .running-totals-table {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .module {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .module h2 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #333;
+    }
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .table th, .table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    .table th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+    }
+    .table tr:hover {
+        background-color: #f9f9f9;
+    }
+    a {
+        text-decoration: none !important;
+        color: inherit !important;
+    }
+    a:hover {
+        text-decoration: none !important;
+        color: inherit !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="financial-report">
+    
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <form method="GET" class="filter-form" id="filter-form">
+            <div class="filter-group">
+                <label>Date Range:</label>
+                <select name="date_range" id="date_range">
+                    <option value="">All Time</option>
+                    <option value="week" {% if selected_date_range == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="month" {% if selected_date_range == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="quarter" {% if selected_date_range == 'quarter' %}selected{% endif %}>This Quarter</option>
+                    <option value="year" {% if selected_date_range == 'year' %}selected{% endif %}>This Year</option>
+                    <option value="custom" {% if selected_date_range == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+            
+            {% if selected_date_range == 'custom' %}
+            <div class="filter-group" id="custom_date_range" style="display: flex; gap: 10px;">
+            {% else %}
+            <div class="filter-group" id="custom_date_range" style="display:none; gap: 10px;">
+            {% endif %}
+                <div style="flex: 1;">
+                    <label>Date From:</label>
+                    <input type="date" name="date_from" value="{{ date_from }}">
+                </div>
+                <div style="flex: 1;">
+                    <label>Date To:</label>
+                    <input type="date" name="date_to" value="{{ date_to }}">
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label>Producer:</label>
+                <select name="producer">
+                    <option value="">All Producers</option>
+                    {% for producer in producers %}
+                    <option value="{{ producer.id }}" {% if selected_producer == producer.id|stringformat:"s" %}selected{% endif %}>
+                        {{ producer.business_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <div>
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="." class="btn">Clear Filters</a>
+                </div>
+            </div>
+        </form>
+        
+        <!-- Export Buttons -->
+        <div class="export-buttons">
+            <a href="?{% if current_filters %}{{ current_filters }}&{% endif %}format=csv" class="btn btn-info">Export CSV</a>
+            <a href="?{% if current_filters %}{{ current_filters }}&{% endif %}format=pdf" class="btn btn-info">Export PDF</a>
+        </div>
+    </div>
+    
+    <!-- Verification Status -->
+    {% if verification %}
+    <div class="verification-status {% if verification|length == 0 %}status-success{% else %}status-warning{% endif %}">
+        <strong>Commission Verification:</strong>
+        {% if verification|length == 0 %}
+        ✓ All commission calculations verified successfully (5% rate, 2 decimal places)
+        {% else %}
+        ⚠ Found {{ verification|length }} verification issues that need review
+        <details>
+            <summary>View details</summary>
+            <ul>
+                {% for issue in verification %}
+                    <li>Settlement #{{ issue.settlement_id }}: 
+                        {% if issue.type == 'MISMATCH' %}
+                            Order #{{ issue.order_id }} - Expected: £{{ issue.expected_commission|floatformat:2 }}, Actual: £{{ issue.actual_commission|floatformat:2 }}
+                        {% elif issue.type == 'SETTLEMENT_TOTAL_MISMATCH' %}
+                            Settlement total mismatch - Expected: £{{ issue.expected_commission|floatformat:2 }}, Actual: £{{ issue.actual_commission|floatformat:2 }}
+                        {% else %}
+                            Error: {{ issue.error_message }}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Financial Summary Cards -->
+    <div class="financial-summary">
+        <div class="summary-card">
+            <h3>Total Orders</h3>
+            <div class="value">{{ summary.total_orders|default:"0" }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Total Subtotal</h3>
+            <div class="value">£{{ summary.total_subtotal|default:"0.00"|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Accumulated Commission (5%)</h3>
+            <div class="value">£{{ summary.total_commission|default:"0.00"|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Total Producer Payout (95%)</h3>
+            <div class="value">£{{ summary.total_payout|default:"0.00"|floatformat:2 }}</div>
+        </div>
+    </div>
+    
+    <!-- Settlements Table -->
+    <div class="module">
+        <h2>Settlement Details</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Producer</th>
+                    <th>Period</th>
+                    <th>Orders</th>
+                    <th>Subtotal</th>
+                    <th>Commission (5%)</th>
+                    <th>Producer Payout (95%)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for settlement in settlements %}
+                <tr>
+                    <td>{{ settlement.id }}</td>
+                    <td>{{ settlement.producer.business_name }}</a></td>
+                    <td>{{ settlement.week_start|date:"M d, Y" }} - {{ settlement.week_end|date:"M d, Y" }}</a></td>
+                    <td>{{ settlement.total_orders }}</a></td>
+                    <td>£{{ settlement.total_subtotal|floatformat:2 }}</a></td>
+                    <td>£{{ settlement.total_commission|floatformat:2 }}</a></td>
+                    <td>£{{ settlement.total_payout|floatformat:2 }}</a></td>
+                    <td>
+                        <span class="status-{{ settlement.settlement_status }}">
+                            {{ settlement.get_settlement_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'admin:settlement-orders-view' settlement.id %}" class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;">View Details</a>
+                        <button onclick="auditOrder('{{ settlement.id }}')" class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;">Audit</button>
+                        <a href="{% url 'admin:payments_paymentsettlement_change' settlement.id %}" class="btn btn-info" style="font-size: 12px; padding: 4px 8px;">Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center;">No settlements found matching the criteria.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Running Totals -->
+    {% if running_totals %}
+    <div class="module">
+        <h2>Running Totals (Cumulative Payout)</h2>
+        <div class="running-totals-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Producer</th>
+                        <th>Period Payout</th>
+                        <th>Running Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for total in running_totals %}
+                    <tr>
+                        <td>{{ total.period }}</a></td>
+                        <td>{{ total.producer }}</a></td>
+                        <td>£{{ total.payout|floatformat:2 }}</a></td>
+                        <td><strong>£{{ total.running_total|floatformat:2 }}</strong></a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Period Summaries -->
+    {% if period_summaries %}
+    <div class="module">
+        <h2>Monthly Summaries</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Orders</th>
+                    <th>Total Commission</th>
+                    <th>Total Payout</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for month, data in period_summaries.monthly.items %}
+                <tr>
+                    <td>{{ month }}</a></td>
+                    <td>{{ data.total_orders }}</a></td>
+                    <td>£{{ data.total_commission|floatformat:2 }}</a></td>
+                    <td>£{{ data.total_payout|floatformat:2 }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Show/hide custom date range inputs
+    document.getElementById('date_range').addEventListener('change', function() {
+        const customDiv = document.getElementById('custom_date_range');
+        const dateFrom = document.querySelector('input[name="date_from"]');
+        const dateTo = document.querySelector('input[name="date_to"]');
+        
+        if (this.value === 'custom') {
+            customDiv.style.display = 'flex';
+        } else {
+            customDiv.style.display = 'none';
+            // Clear custom date inputs when not in custom mode
+            if (this.value !== 'custom') {
+                dateFrom.value = '';
+                dateTo.value = '';
+            }
+        }
+    });
+    
+    // Audit order function
+    function auditOrder(settlementId) {
+        // This would need to be implemented to fetch order details
+        // For now, just show an alert or redirect
+        window.open(`order-audit/${settlementId}/`, '_blank');
+    }
+    
+    // Add status colors
+    document.querySelectorAll('.status-pending, .status-processing, .status-completed, .status-failed').forEach(el => {
+        if (el.classList.contains('status-pending')) {
+            el.style.color = '#ffc107';
+            el.style.fontWeight = 'bold';
+        } else if (el.classList.contains('status-processing')) {
+            el.style.color = '#17a2b8';
+            el.style.fontWeight = 'bold';
+        } else if (el.classList.contains('status-completed')) {
+            el.style.color = '#28a745';
+            el.style.fontWeight = 'bold';
+        } else if (el.classList.contains('status-failed')) {
+            el.style.color = '#dc3545';
+            el.style.fontWeight = 'bold';
+        }
+    });
+</script>
+
+<style>
+    .status-pending { color: #ffc107; font-weight: bold; }
+    .status-processing { color: #17a2b8; font-weight: bold; }
+    .status-completed { color: #28a745; font-weight: bold; }
+    .status-failed { color: #dc3545; font-weight: bold; }
+    
+    details {
+        margin-top: 10px;
+    }
+    
+    details summary {
+        cursor: pointer;
+        color: #856404;
+        font-weight: bold;
+    }
+    
+    details ul {
+        margin-top: 10px;
+        margin-left: 20px;
+    }
+    
+    details li {
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}

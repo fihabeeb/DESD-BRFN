@@ -210,6 +210,7 @@ def create_checkout_session(request):
                 stripe_session_id=checkout_session.id,
                 total_amount=cart.total_amount(),  # Just product total
                 shipping_address=address,
+                shipping_address_id=address,
                 global_delivery_notes=global_delivery_notes,
                 special_instructions=special_instructions,  # TC-017
                 payment_status='pending'
@@ -274,7 +275,7 @@ def success(request):
 
     return render(request, 'orders/success.html', {'order': order})
     
-
+@login_required
 def cancel(request):
     """Handle cancelled payment"""
     return render(request, 'orders/cancel.html')
@@ -357,6 +358,7 @@ def stripe_webhook(request):
 # profile
 # =========
 
+@login_required
 def order_history(request):
     '''
     Universal order history page
@@ -365,7 +367,7 @@ def order_history(request):
         user=request.user,
     ).exclude(
         payment_status__in=['pending', 'failed']
-    ).order_by('-created_at')
+    ).order_by('-id')
     
     orders_data = []
     

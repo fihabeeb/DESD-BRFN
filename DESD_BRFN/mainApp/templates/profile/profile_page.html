@@ -220,7 +220,7 @@
         {% elif user_role == "customer" %}
             <div class="profile-stats">
             <div class="profile-stat-card">
-                <div class="profile-stat-num">{{ stats.totalOrders|default:"3" }}</div>
+                <div class="profile-stat-num">{{ stats.totalOrders|default:"0" }}</div>
                 <div class="profile-stat-label">Total Orders Made</div>
             </div>
             <div class="profile-stat-card">
@@ -252,6 +252,13 @@
                 <a href="{% url 'mainApp:manage_addresses' %}" class="btn-outline">
                     <i class="bi bi-geo-alt"></i> Manage Addresses
                 </a>
+
+                {% if user_role == 'producer' %}
+                <a href="{% url 'mainApp:payments:settlement_history' %}" class="btn-outline">
+                    <i class="bi bi-cash-stack"></i> Payment Settlements
+                </a>
+                {% endif %}
+
             </div>
         </div>
 
@@ -292,7 +299,7 @@
                 </div>
                 {% if order_data.shipping_address %}
                 <div class="order-meta">
-                    <span>Shipping: {{ order_data.shipping_address.address_line1 }}, {{ order_data.shipping_address.city }}</span>
+                    <span>Shipping: {{ order_data.shipping_address }}</span>
                 </div>
                 {% endif %}
             </div>

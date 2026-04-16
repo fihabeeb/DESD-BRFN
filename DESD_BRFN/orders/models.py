@@ -77,7 +77,7 @@ class OrderPayment(models.Model):
     
     def save(self, *args, **kwargs):
         if self.shipping_address_id and not self.shipping_address:
-            self.shipping_address = self.shipping_address_id.full_address()
+            self.shipping_address = self.shipping_address_id.full_address # no brackets because @property decorator.
 
         super().save(*args, **kwargs)
 
@@ -140,13 +140,20 @@ class OrderProducer(models.Model):
 
     order_status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
 
+    food_mile_distance = models.DecimalField(max_digits=10, decimal_places=1, null=True) # what happens if the user delete the address?
+
     # financial
     producer_subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     commission = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     producer_payout = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-    delivered_by = models.DateField(null=True, blank=True)
+    # settlement tracking
+    settlement_id = models.IntegerField(null=True, blank=True)
+    settled_at = models.DateTimeField(null=True,blank=True)
+    is_settled=models.BooleanField(default=False)
 
+    # customer order details
+    delivered_by = models.DateField(null=True, blank=True)
     customer_note = models.TextField(blank=True)
 
     # TC-017: flag bulk orders from community groups
@@ -158,6 +165,7 @@ class OrderProducer(models.Model):
     # timestamp
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Calculate commission and payout when first created
@@ -166,6 +174,9 @@ class OrderProducer(models.Model):
 
         if not self.producer_payout and self.producer_subtotal: # and self.commission?
             self.producer_payout = self.producer_subtotal - self.commission
+
+        if self.order_status == 'delivered' and not self.completed_at:
+            self.completed_at = timezone.now()
 
         super().save(*args, **kwargs)
 

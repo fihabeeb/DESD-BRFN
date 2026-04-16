@@ -41,8 +41,8 @@ def get_user_sequences():
             continue
         
         # Repeat product ID based on quantity purchased
-        for _ in range(item.quantity):
-            sequences[user.id].append(product.id)
+        # for _ in range(item.quantity):
+        sequences[user.id].append(product.id)
     
     return dict(sequences)
 
@@ -173,42 +173,20 @@ def build_improved_lstm_model(num_products, sequence_length, embedding_dim=64, l
         tensorflow.keras.Model: Compiled LSTM model
     """
     model = Sequential([
-        # Embedding layer with masking for padding
-        Embedding(
-            input_dim=num_products + 1,  # +1 for padding token
-            output_dim=embedding_dim,
-            mask_zero=True  # Mask padding tokens
-        ),
-        
-        # First LSTM layer with return sequences (bidirectional for better context)
-        Bidirectional(LSTM(lstm_units, return_sequences=True, dropout=0.2, recurrent_dropout=0.2)),
+        Embedding(num_products + 1, embedding_dim, mask_zero=True),
+        LSTM(lstm_units, return_sequences=True, dropout=0.2),
         BatchNormalization(),
         Dropout(0.3),
-        
-        # Second LSTM layer
-        Bidirectional(LSTM(lstm_units // 2, return_sequences=False, dropout=0.2, recurrent_dropout=0.2)),
+        LSTM(lstm_units // 2, return_sequences=False, dropout=0.2),
         BatchNormalization(),
         Dropout(0.3),
-        
-        # Dense layers for better representation
         Dense(128, activation='relu'),
-        BatchNormalization(),
         Dropout(0.3),
-        
-        Dense(64, activation='relu'),
-        Dropout(0.2),
-        
-        # Output layer
-        Dense(num_products + 1, activation='softmax')  # +1 for padding token
+        Dense(num_products + 1, activation='softmax')
     ])
-    
-    # Use a lower learning rate and add label smoothing
-    model.compile(
-        loss='sparse_categorical_crossentropy',
-        optimizer=Adam(learning_rate=0.0005),
-        metrics=['accuracy']
-    )
-    
+    model.compile(loss='sparse_categorical_crossentropy',
+                  optimizer=Adam(learning_rate=0.001),
+                  metrics=['accuracy'])
     return model
 
 

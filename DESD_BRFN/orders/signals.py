@@ -10,6 +10,7 @@ from django.db import transaction
 from orders.models import OrderPayment, OrderProducer, OrderItem
 from customers.models import CartItem
 from products.models import Product
+from mainApp.utils import haversine_miles
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def handle_order_payment_created(sender, instance, created, **kwargs):
         logger.info(f"OrderPayment #{instance.id} created with status: {instance.payment_status}")
         
         if instance.payment_status == 'pending':
-            # Set expiry time (30 minutes from now)
+            # Set expiry time (15 minutes from now)
             expiry_time = timezone.now() + timedelta(minutes=15)
             instance.expires_at = expiry_time
             instance.save(update_fields=['expires_at'])
@@ -39,7 +40,15 @@ def handle_producer_order_created(sender, instance, created, **kwargs):
     Handle new OrderProducer creation
     """
     if created:
-        logger.info(f"OrderProducer #{instance.id} created for OrderPayment #{instance.payment.id}")
+        if instance.payment.shipping_address_id:
+            producer_lat, producer_long = instance.producer.user.get_default_address_coordinates()
+            user_lat, user_long = instance.payment.shipping_address_id.get_coordinates()
+
+            distance = haversine_miles(producer_lat, producer_long, user_lat, user_long)
+
+            instance.food_mile_distance = distance
+
+            logger.info(f"OrderProducer #{instance.id} created for OrderPayment #{instance.payment.id}")
 
 
 @receiver(post_save, sender=OrderItem)

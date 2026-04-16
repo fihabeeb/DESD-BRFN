@@ -1,0 +1,198 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<style>
+    .order-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    .order-table th, .order-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    .order-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    .order-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .order-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    .summary-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .verification-box {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: #155724;
+    }
+    .verification-error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+    .commission-match {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .commission-mismatch {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .btn {
+        display: inline-block;
+        padding: 4px 8px;
+        font-size: 12px;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+    .btn-info:hover {
+        background-color: #138496;
+        color: white;
+    }
+    .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .btn-warning:hover {
+        background-color: #e0a800;
+        color: #212529;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module">
+        
+        <div class="summary-box">
+            <h2>Settlement Summary</h2>
+            <p><strong>Settlement ID:</strong> {{ settlement.id }}</p>
+            <p><strong>Producer:</strong> {{ settlement.producer.business_name }}</p>
+            <p><strong>Period:</strong> {{ settlement.week_start }} to {{ settlement.week_end }}</p>
+            <p><strong>Status:</strong> {{ settlement.settlement_status }}</p>
+            {% if settlement.paid_at %}
+                <p><strong>Paid At:</strong> {{ settlement.paid_at }}</p>
+            {% endif %}
+            <p><strong>Payment Reference:</strong> {{ settlement.payment_reference|default:"Not set" }}</p>
+        </div>
+        
+        <div class="{% if verification_summary.subtotal_matches and verification_summary.commission_matches and verification_summary.payout_matches %}verification-box{% else %}verification-box verification-error{% endif %}">
+            <h3>Verification Summary</h3>
+            <p><strong>Total Orders Count:</strong> {{ summary.total_orders }}</p>
+            <p><strong>Subtotal Match:</strong> 
+                {% if verification_summary.subtotal_matches %}
+                    <span class="commission-match">✓ Matches</span>
+                {% else %}
+                    <span class="commission-mismatch">✗ Mismatch (Difference: £{{ verification_summary.subtotal_difference|floatformat:2 }})</span>
+                {% endif %}
+            </p>
+            <p><strong>Commission Match:</strong>
+                {% if verification_summary.commission_matches %}
+                    <span class="commission-match">✓ Matches</span>
+                {% else %}
+                    <span class="commission-mismatch">✗ Mismatch (Difference: £{{ verification_summary.commission_difference|floatformat:2 }})</span>
+                {% endif %}
+            </p>
+            <p><strong>Payout Match:</strong>
+                {% if verification_summary.payout_matches %}
+                    <span class="commission-match">✓ Matches</span>
+                {% else %}
+                    <span class="commission-mismatch">✗ Mismatch (Difference: £{{ verification_summary.payout_difference|floatformat:2 }})</span>
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="summary-box">
+            <h3>Totals</h3>
+            <p><strong>Total Subtotal:</strong> £{{ summary.total_subtotal|floatformat:2 }}</p>
+            <p><strong>Total Commission (5%):</strong> £{{ summary.total_commission|floatformat:2 }}</p>
+            <p><strong>Total Payout (95%):</strong> £{{ summary.total_payout|floatformat:2 }}</p>
+        </div>
+        
+        <h2>Order Details</h2>
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <td>Name of Product(s)</td>
+
+                    <th>Completed Date</th>
+                    <th>Subtotal</th>
+                    <th>Commission (5%)</th>
+                    <th>Expected Commission</th>
+                    <th>Payout (95%)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_id }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.product_names }}</td>
+
+                    <td>{{ order.completed_date|date:"Y-m-d H:i"|default:"N/A" }}</td>
+                    <td>£{{ order.subtotal|floatformat:2 }}</td>
+                    <td>£{{ order.commission|floatformat:2 }}</td>
+                    <td>
+                        £{{ order.expected_commission|floatformat:2 }}
+                        {% if order.commission_matches %}
+                            <span class="commission-match">✓</span>
+                        {% else %}
+                            <span class="commission-mismatch">✗</span>
+                        {% endif %}
+                    </td>
+                    <td>£{{ order.payout|floatformat:2 }}</td>
+                    <td>{{ order.status }}</td>
+                    <td>
+                        <a href="{% url 'admin:order-audit' order.order_producer_id %}" 
+                           class="btn btn-info" 
+                           target="_blank"
+                           style="font-size: 12px; padding: 4px 8px;">
+                            Audit
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center;">No orders found for this settlement.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background-color: #e9ecef; font-weight: bold;">
+                    <td colspan="3"><strong>Totals</strong></td>
+                    <td><strong>£{{ summary.total_subtotal|floatformat:2 }}</strong></td>
+                    <td><strong>£{{ summary.total_commission|floatformat:2 }}</strong></td>
+                    <td></td>
+                    <td><strong>£{{ summary.total_payout|floatformat:2 }}</strong></td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <div style="margin-top: 20px;">
+            <a href="{% url 'admin:payments_paymentsettlement_changelist' %}" class="btn btn-info">Back to Settlements</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
