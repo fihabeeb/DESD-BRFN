@@ -7,7 +7,8 @@ from collections import defaultdict
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
-from orders.models import OrderItem
+from orders.models import OrderItem, OrderPayment, OrderProducer
+from django.db.models import Count,Avg, Sum
 
 
 # Import your existing DB functions (adjust path as needed)
@@ -17,8 +18,30 @@ from orders.models import OrderItem
 # _,_,_ = train_simple_lstm(max_seq_len=7)
 
 
-NUM_OF_FEATURES = 5
-SEQ_LEN = 20
+def avg_basket():
+    # Get all paid orders with their total item count (across all producers)
+    orders = OrderPayment.objects.filter(
+        payment_status='paid'
+    ).annotate(
+        # Sum up quantities OR count unique product lines – you decide
+        total_quantity=Sum('producer_orders__order_items__quantity'),
+        unique_products=Count('producer_orders__order_items__product', distinct=True),
+        item_lines=Count('producer_orders__order_items')  # each OrderItem row
+    )
+    
+    # Average basket size based on quantity (total units)
+    avg_quantity = orders.aggregate(avg=Avg('total_quantity'))['avg']
+    print(f"Average total quantity per order: {avg_quantity:.2f} units")
+    
+    # Average unique products per order
+    avg_unique = orders.aggregate(avg=Avg('unique_products'))['avg']
+    print(f"Average unique products per order: {avg_unique:.2f} products")
+    
+    # Average OrderItem rows (each product once, regardless of quantity)
+    avg_lines = orders.aggregate(avg=Avg('item_lines'))['avg']
+    print(f"Average product lines (rows) per order: {avg_lines:.2f}")
+
+
 #
 # Utility
 #
@@ -76,8 +99,8 @@ def get_user_sequences_with_timestamps(ignore_quantity=True, no_limit=True):
         else:
         # Store tuple of (product_id, timestamp, order_id)
         # Repeat product ID based on quantity purchased
-            repeat_limit = None if no_limit else 3
-            for _ in range(item.quantity, repeat_limit):
+            # repeat_limit = None if no_limit else 3
+            for _ in range(item.quantity):
                 sequences[user.id].append((product.id, timestamp, order_id))
     
     return dict(sequences)
@@ -121,12 +144,14 @@ def encode_products(X, y):
 #
 # Train
 #
+NUM_OF_FEATURES = 5
+SEQ_LEN = 7
 def train_simple_lstm(
     max_seq_len=SEQ_LEN,
-    embedding_dim=64,
-    lstm_units=128,
-    user_embedding_dim=32,
-    dense_nodes=32,
+    # embedding_dim=64,
+    # lstm_units=128,
+    user_embedding_dim=8,
+    # dense_nodes=32,
     batch_size=32,
     epochs=30,
     test_size=0.2,
@@ -245,6 +270,8 @@ def train_simple_lstm(
     num_users = len(unique_users) + 1  # +1 for padding index 0
     print(f"Number of unique users: {len(unique_users)}")
     print(f"User embedding size: {num_users}")
+    print(f"Padded X shape: {user_encoded.shape}")
+
     
 
     #------------ 4. Train/test split
@@ -276,6 +303,8 @@ def train_simple_lstm(
     #
     # ------------ 5. Build model ----------------
     print("\n[5/6] Building LSTM model...")
+    from tensorflow.keras.regularizers import l2
+
     # Product sequence input
     
     # Product branch
@@ -293,15 +322,19 @@ def train_simple_lstm(
 
     combined = keras.layers.Concatenate(axis=-1)([product_embed, time_input])
 
-    lstm_out = keras.layers.LSTM(128, dropout=0.2, return_sequence=True, name='lstm')(combined)
-    lstm_out = keras.layers.LSTM(64, dropout=0.2, name='lstm')(lstm_out)
+    # lstm_out = keras.layers.LSTM(128, dropout=0.3, recurrent_dropout=0.0, name='lstm')(combined)
+    lstm_out = keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.05, return_sequences=True,kernel_regularizer=l2(0.01), name='lstm')(combined)
+    # lstm_out = keras.layers.LSTM(32, dropout=0.1, name='lstm2')(lstm_out)
+
+    lstm_out = keras.layers.LSTM(64, dropout=0.3, name='lstm2')(lstm_out)
+    # lstm_out = keras.layers.LSTM(32, dropout=0.2, name='lstm3')(lstm_out)
 
 
     # User ID input
     user_input = keras.Input(shape=(1,), name='user_input')
     user_embed = keras.layers.Embedding(
         input_dim=num_users,
-        output_dim=user_embedding_dim,
+        output_dim=16,
         name='user_embedding'
     )(user_input)
     user_embed_flat = keras.layers.Flatten()(user_embed)
@@ -407,7 +440,7 @@ def extract_temporal_features(timestamp: datetime.datetime, days_since_last=0):
     days_norm = np.log1p(days_since_last) / 6.0
     days_norm = min(days_norm, 1.0)
 
-    return [day_sin, day_cos, month_sin, month_cos, is_weekend]
+    return [day_sin, day_cos, month_sin, month_cos, is_weekend]# days_norm]
 
 
 

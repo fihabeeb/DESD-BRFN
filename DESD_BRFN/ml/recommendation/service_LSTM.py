@@ -40,6 +40,11 @@ class LSTMService:
             from tensorflow.keras.models import load_model
             
             self._model = load_model("ml/recommendation/final/simple_lstm_db.keras")
+
+            # self._model = load_model("ml/recommendation/final/best/50/simple_lstm_db.keras")
+            # with open("ml/recommendation/final/best/50/simple_lstm_mappings.pkl", "rb") as f:
+            #     mappings = pickle.load(f)
+
             
             with open("ml/recommendation/final/simple_lstm_mappings.pkl", "rb") as f:
                 mappings = pickle.load(f)
