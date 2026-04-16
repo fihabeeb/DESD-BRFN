@@ -77,7 +77,7 @@ def product_list(request):
             default=Value(False),
             output_field=BooleanField()
         )
-    )
+    ).prefetch_related('surplus_deal')
 
     # get and apply filters
     organic_filter = request.GET.get('organic') == 'true'
@@ -87,8 +87,6 @@ def product_list(request):
         products = products.filter(is_organic=True)
     if season_filter:
         products = products.filter(is_in_season_annotated=True)
-
-        ).prefetch_related('surplus_deal')
 
     search_query = request.GET.get('q', '')
     if search_query:

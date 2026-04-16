@@ -10,8 +10,7 @@ urlpatterns = [
     path('cancel/', views.cancel, name='cancel'),
     path('webhook/stripe/', views.stripe_webhook, name='stripe_webhook'),
 
-    path('order-history/', views.order_history, name="order_history")
-    path('history/', views.order_history, name="order_history"),
+    path('order-history/', views.order_history, name="order_history"),
 
     # TC-018: Recurring orders management
     path('recurring/', views.recurring_orders_list, name='recurring_list'),
