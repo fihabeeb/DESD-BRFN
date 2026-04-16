@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Image Classification Insights</h1>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label>Upload Image:</label>
+    <input type="file" name="image" required>
+    <button type="submit" class="button">Analyze</button>
+</form>
+
+{% if result %}
+<hr>
+<h2>Prediction Results</h2>
+
+<p><strong>Overall Score:</strong> {{ result.overall_score }} (Grade {{ result.grade }})</p>
+
+<h3>Breakdown</h3>
+<ul>
+    <li>Condition: {{ result.breakdown.condition }}</li>
+    <li>Colour: {{ result.breakdown.color }}</li>
+    <li>Size: {{ result.breakdown.size }}</li>
+</ul>
+
+<h3>Labels</h3>
+<ul>
+    <li>Condition: {{ result.labels.condition }}</li>
+    <li>Colour: {{ result.labels.colour }}</li>
+    <li>Size: {{ result.labels.size }}</li>
+</ul>
+
+<h3>Confidences</h3>
+<ul>
+    <li>Condition: {{ result.confidences.condition }}%</li>
+    <li>Colour: {{ result.confidences.colour }}%</li>
+    <li>Size: {{ result.confidences.size }}%</li>
+</ul>
+
+{% if heatmap %}
+<hr>
+<h2>Model Explanation (Grad‑CAM)</h2>
+
+<h3>Original Image</h3>
+<img src="data:image/png;base64,{{ original }}" style="max-width:300px;">
+
+<h3>Grad‑CAM Heatmap (Condition Head)</h3>
+<img src="data:image/png;base64,{{ heatmap }}" style="max-width:300px;">
+
+<h3>Overlay</h3>
+<img src="data:image/png;base64,{{ overlay }}" style="max-width:300px;">
+{% endif %}
+{% endif %}
+{% endblock %}

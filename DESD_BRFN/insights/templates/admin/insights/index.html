@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Insights Dashboard</h1>
+<p>Explore explainable AI tools that provide transparency into how the system makes decisions.</p>
+
+<div style="margin-top: 20px;">
+    <a class="button" href="{% url 'admin:insights_recommendations' %}">Recommendation Process</a>
+    <a class="button" href="{% url 'admin:insights_classification' %}" style="margin-left: 10px;">Image Classification
+        Process</a>
+</div>
+{% endblock %}
