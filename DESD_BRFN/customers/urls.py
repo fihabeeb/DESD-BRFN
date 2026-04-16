@@ -17,6 +17,16 @@ urlpatterns = [
 
     path("customer/register/", views.register_customer, name="register"),
 
+    # TC-017: Community group registration & login
+    path("community/register/", views.register_community_group, name="register_community"),
+    path("community/login/", auth_views.LoginView.as_view(
+        template_name="customers/login.html",
+        authentication_form=CustomerLoginForm,
+        redirect_authenticated_user=True,
+        extra_context={'title': 'Community Group Login'},
+        next_page='/',
+    ), name='community_login'),
+
     # Cart operations
     path("customer/cart/add/<int:product_id>/", views.add_to_cart, name="add_to_cart"),
     path("customer/cart/", views.view_cart, name="view_cart"),

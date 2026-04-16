@@ -142,6 +142,27 @@
                                 <a href="{% url 'mainApp:producers:edit_product' product.id %}" class="btn-edit">
                                     <i class="bi bi-pencil"></i> Edit
                                 </a>
+                                <!-- TC-019: Surplus deal action -->
+                                {% if product.surplus_deal and product.surplus_deal.is_active %}
+                                <a href="{% url 'mainApp:producers:mark_surplus' product.id %}"
+                                   style="font-size:0.75rem;color:#f97316;text-decoration:none;margin-left:0.5rem;"
+                                   title="Edit surplus deal">
+                                    🏷️ Surplus
+                                </a>
+                                <form method="post" action="{% url 'mainApp:producers:remove_surplus' product.id %}"
+                                      style="display:inline;" onsubmit="return confirm('Remove surplus deal?')">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            style="font-size:0.75rem;color:#ef4444;background:none;border:none;cursor:pointer;padding:0;margin-left:0.25rem;"
+                                            title="Remove surplus deal">✕</button>
+                                </form>
+                                {% else %}
+                                <a href="{% url 'mainApp:producers:mark_surplus' product.id %}"
+                                   style="font-size:0.75rem;color:#9ca3af;text-decoration:none;margin-left:0.5rem;"
+                                   title="Mark as surplus deal">
+                                    + Surplus
+                                </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}

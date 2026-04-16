@@ -12,8 +12,8 @@ from products.forms import ProductForm
 from mainApp.models import RegularUser
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from datetime import timezone
-from producers.forms import ProducerRegistrationForm, ProducerPersonalInfoForm
+from datetime import timezone, timedelta
+from producers.forms import ProducerRegistrationForm, ProducerPersonalInfoForm, RestaurantRegistrationForm
 from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
 from orders.models import OrderPayment, OrderItem, OrderProducer
@@ -64,6 +64,33 @@ def register_view(request):
         'title': 'Producer Registration'
     }
     return render(request, 'producers/register.html', context)
+
+
+def register_restaurant_view(request):
+    """TC-018: Registration view for restaurant / business accounts."""
+    if request.user.is_authenticated:
+        return redirect('mainApp:home')
+
+    if request.method == 'POST':
+        form = RestaurantRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                user = form.save()
+                messages.success(request, f"Welcome {user.username}! Your restaurant account has been created.")
+                messages.info(request, 'Please log in to access your dashboard.')
+                return redirect('mainApp:customers:login')
+            except Exception as e:
+                logger.error(f"Restaurant registration error: {e}")
+                messages.error(request, 'An error occurred. Please try again.')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = RestaurantRegistrationForm()
+
+    return render(request, 'producers/register_restaurant.html', {
+        'form': form,
+        'title': 'Restaurant Registration'
+    })
 
 
 # =================
@@ -647,3 +674,253 @@ def producer_profile_view(request):
 
     return render(request, "profile/profile_page.html", context)
 
+
+# =============================================================================
+# TC-019 — Surplus / Last-Minute Deals
+# =============================================================================
+
+@login_required
+@producer_required
+def mark_surplus(request, product_id):
+    """Mark a product as a surplus deal or update an existing one."""
+    from products.models import SurplusDeal, Product
+    from django.utils import timezone as tz
+
+    producer_profile = request.user.producer_profile
+    product = get_object_or_404(Product, id=product_id, producer=producer_profile)
+
+    existing = getattr(product, 'surplus_deal', None)
+
+    if request.method == 'POST':
+        discount = request.POST.get('discount_percent')
+        hours = request.POST.get('expires_hours', 48)
+        note = request.POST.get('note', '')
+        best_before = request.POST.get('best_before_date') or None
+
+        try:
+            discount = int(discount)
+            hours = int(hours)
+            if discount < 10:
+                messages.error(request, 'Discount must be at least 10%.')
+                return redirect('mainApp:producers:mark_surplus', product_id=product_id)
+            if hours < 1:
+                messages.error(request, 'Expiry must be at least 1 hour.')
+                return redirect('mainApp:producers:mark_surplus', product_id=product_id)
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid discount or expiry value.')
+            return redirect('mainApp:producers:mark_surplus', product_id=product_id)
+
+        expires_at = tz.now() + timedelta(hours=hours)
+
+        if existing:
+            existing.discount_percent = discount
+            existing.original_price = product.price
+            existing.note = note
+            existing.best_before_date = best_before
+            existing.expires_at = expires_at
+            existing.is_active = True
+            existing.save()
+            messages.success(request, f'"{product.name}" surplus deal updated.')
+        else:
+            SurplusDeal.objects.create(
+                product=product,
+                producer=producer_profile,
+                discount_percent=discount,
+                original_price=product.price,
+                note=note,
+                best_before_date=best_before,
+                expires_at=expires_at,
+                is_active=True,
+            )
+            messages.success(request, f'"{product.name}" marked as surplus deal.')
+
+        return redirect('mainApp:producers:myproduct')
+
+    context = {
+        'product': product,
+        'existing': existing,
+    }
+    return render(request, 'producers/surplus/mark_surplus.html', context)
+
+
+@login_required
+@producer_required
+def remove_surplus(request, product_id):
+    """Remove surplus deal status from a product."""
+    from products.models import SurplusDeal, Product
+
+    producer_profile = request.user.producer_profile
+    product = get_object_or_404(Product, id=product_id, producer=producer_profile)
+    deal = getattr(product, 'surplus_deal', None)
+    if deal:
+        deal.is_active = False
+        deal.save(update_fields=['is_active'])
+        messages.success(request, f'Surplus deal removed from "{product.name}".')
+    return redirect('mainApp:producers:myproduct')
+
+
+# =============================================================================
+# TC-020 — Recipes & Farm Stories
+# =============================================================================
+
+@login_required
+@producer_required
+def content_dashboard(request):
+    """Producer content management: recipes and farm stories."""
+    from producers.models import Recipe, FarmStory
+
+    producer_profile = request.user.producer_profile
+    recipes = Recipe.objects.filter(producer=producer_profile).order_by('-created_at')
+    stories = FarmStory.objects.filter(producer=producer_profile).order_by('-created_at')
+
+    context = {
+        'recipes': recipes,
+        'stories': stories,
+        'producer': producer_profile,
+    }
+    return render(request, 'producers/content/dashboard.html', context)
+
+
+@login_required
+@producer_required
+def add_recipe(request):
+    """Create a new recipe."""
+    from producers.models import Recipe
+    from products.models import Product
+
+    producer_profile = request.user.producer_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '')
+        ingredients = request.POST.get('ingredients', '')
+        instructions = request.POST.get('instructions', '')
+        seasonal_tags = request.POST.get('seasonal_tags', '')
+        linked_product_ids = request.POST.getlist('linked_products')
+        image = request.FILES.get('image')
+
+        if not title or not ingredients or not instructions:
+            messages.error(request, 'Title, ingredients, and instructions are required.')
+        else:
+            recipe = Recipe.objects.create(
+                producer=producer_profile,
+                title=title,
+                description=description,
+                ingredients=ingredients,
+                instructions=instructions,
+                seasonal_tags=seasonal_tags,
+                image=image,
+            )
+            if linked_product_ids:
+                products = Product.objects.filter(
+                    id__in=linked_product_ids, producer=producer_profile
+                )
+                recipe.linked_products.set(products)
+            messages.success(request, f'Recipe "{title}" submitted for review.')
+            return redirect('mainApp:producers:content')
+
+    producer_products = Product.objects.filter(producer=producer_profile, is_active=True)
+    return render(request, 'producers/content/add_recipe.html', {
+        'producer': producer_profile,
+        'producer_products': producer_products,
+    })
+
+
+@login_required
+@producer_required
+def edit_recipe(request, recipe_id):
+    """Edit an existing recipe."""
+    from producers.models import Recipe
+    from products.models import Product
+
+    producer_profile = request.user.producer_profile
+    recipe = get_object_or_404(Recipe, id=recipe_id, producer=producer_profile)
+
+    if request.method == 'POST':
+        recipe.title = request.POST.get('title', recipe.title).strip()
+        recipe.description = request.POST.get('description', recipe.description)
+        recipe.ingredients = request.POST.get('ingredients', recipe.ingredients)
+        recipe.instructions = request.POST.get('instructions', recipe.instructions)
+        recipe.seasonal_tags = request.POST.get('seasonal_tags', recipe.seasonal_tags)
+        if request.FILES.get('image'):
+            recipe.image = request.FILES['image']
+        recipe.moderation_status = 'pending'  # Re-submit for review on edit
+        recipe.save()
+
+        linked_product_ids = request.POST.getlist('linked_products')
+        if linked_product_ids:
+            products = Product.objects.filter(id__in=linked_product_ids, producer=producer_profile)
+            recipe.linked_products.set(products)
+        else:
+            recipe.linked_products.clear()
+
+        messages.success(request, f'Recipe "{recipe.title}" updated and submitted for review.')
+        return redirect('mainApp:producers:content')
+
+    producer_products = Product.objects.filter(producer=producer_profile, is_active=True)
+    return render(request, 'producers/content/add_recipe.html', {
+        'producer': producer_profile,
+        'producer_products': producer_products,
+        'recipe': recipe,
+        'is_edit': True,
+    })
+
+
+@login_required
+@producer_required
+def delete_recipe(request, recipe_id):
+    """Delete a recipe."""
+    from producers.models import Recipe
+
+    producer_profile = request.user.producer_profile
+    recipe = get_object_or_404(Recipe, id=recipe_id, producer=producer_profile)
+    if request.method == 'POST':
+        name = recipe.title
+        recipe.delete()
+        messages.success(request, f'Recipe "{name}" deleted.')
+    return redirect('mainApp:producers:content')
+
+
+@login_required
+@producer_required
+def add_farm_story(request):
+    """Create a new farm story."""
+    from producers.models import FarmStory, FarmStoryImage
+
+    producer_profile = request.user.producer_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        body = request.POST.get('body', '')
+
+        if not title or not body:
+            messages.error(request, 'Title and body are required.')
+        else:
+            story = FarmStory.objects.create(
+                producer=producer_profile,
+                title=title,
+                body=body,
+            )
+            for image in request.FILES.getlist('images'):
+                FarmStoryImage.objects.create(story=story, image=image)
+            messages.success(request, f'Farm story "{title}" submitted for review.')
+            return redirect('mainApp:producers:content')
+
+    return render(request, 'producers/content/add_farm_story.html', {
+        'producer': producer_profile,
+    })
+
+
+@login_required
+@producer_required
+def delete_farm_story(request, story_id):
+    """Delete a farm story."""
+    from producers.models import FarmStory
+
+    producer_profile = request.user.producer_profile
+    story = get_object_or_404(FarmStory, id=story_id, producer=producer_profile)
+    if request.method == 'POST':
+        name = story.title
+        story.delete()
+        messages.success(request, f'Farm story "{name}" deleted.')
+    return redirect('mainApp:producers:content')

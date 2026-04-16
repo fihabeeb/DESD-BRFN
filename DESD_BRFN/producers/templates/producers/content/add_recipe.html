@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Recipe — FarmDirect{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <a href="{% url 'mainApp:producers:content' %}" class="text-sm text-green-600 hover:underline">&larr; Back to content</a>
+
+  <div class="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h1 class="text-xl font-bold text-gray-900 mb-5">
+      {% if is_edit %}Edit Recipe: {{ recipe.title }}{% else %}Add New Recipe{% endif %}
+    </h1>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for message in messages %}
+      <div class="p-3 rounded-lg text-sm
+        {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <input type="text" name="title" required
+               value="{% if recipe %}{{ recipe.title }}{% endif %}"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea name="description" rows="2"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+        >{% if recipe %}{{ recipe.description }}{% endif %}</textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Ingredients * <span class="text-gray-400 font-normal">(one per line)</span></label>
+        <textarea name="ingredients" rows="6" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="500g carrots&#10;2 tbsp olive oil&#10;1 tsp cumin"
+        >{% if recipe %}{{ recipe.ingredients }}{% endif %}</textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Instructions *</label>
+        <textarea name="instructions" rows="8" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="1. Preheat oven to 200°C&#10;2. ..."
+        >{% if recipe %}{{ recipe.instructions }}{% endif %}</textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Seasonal Tags</label>
+        <input type="text" name="seasonal_tags"
+               value="{% if recipe %}{{ recipe.seasonal_tags }}{% endif %}"
+               placeholder="e.g. autumn,winter"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        <p class="text-xs text-gray-400 mt-1">Comma-separated: spring, summer, autumn, winter, year_round</p>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Recipe Image</label>
+        <input type="file" name="image" accept="image/*"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Link to Your Products</label>
+        <div class="border border-gray-200 rounded-lg p-3 max-h-40 overflow-y-auto space-y-1">
+          {% for product in producer_products %}
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="linked_products" value="{{ product.id }}"
+              {% if recipe and product in recipe.linked_products.all %}checked{% endif %}>
+            {{ product.name }}
+          </label>
+          {% empty %}
+          <p class="text-xs text-gray-400">No active products found.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit"
+        class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm transition-colors">
+        {% if is_edit %}Save Changes{% else %}Submit for Review{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from customers.forms import CustomerRegistrationForm
+from customers.forms import CustomerRegistrationForm, CommunityGroupRegistrationForm
 from django.contrib import messages
 from mainApp.models import Address, CustomerProfile
 from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
@@ -18,6 +18,7 @@ import re
 import logging
 from django.http import JsonResponse
 from orders.models import OrderItem, OrderPayment
+from django.db import transaction
 from django.db import models
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,36 @@ def register_customer(request):
     return render(request, 'customers/register.html', context)
 
 
+def register_community_group(request):
+    """TC-017: Registration view for community group / organisation accounts."""
+    if request.user.is_authenticated:
+        return redirect('mainApp:home')
+
+    if request.method == "POST":
+        form = CommunityGroupRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                user = form.save()
+                messages.success(
+                    request,
+                    f"Welcome {user.username}! Your community group account has been created."
+                )
+                messages.info(request, 'Please log in to continue.')
+                return redirect('mainApp:customers:login')
+            except Exception as e:
+                logger.error(f"Community group registration error: {e}")
+                messages.error(request, 'An error occurred during registration. Please try again.')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = CommunityGroupRegistrationForm()
+
+    return render(request, 'customers/register_community.html', {
+        'form': form,
+        'title': 'Community Group Registration'
+    })
+
+
 # =================
 # cart functionality
 # =================
@@ -67,36 +98,50 @@ def add_to_cart(request, product_id):
     """
     next_url = request.META.get('HTTP_REFERER', '/')
 
-    product = get_object_or_404(Product, id=product_id)
     quantity = int(request.POST.get("quantity", 1))
     if quantity < 1:
         quantity = 1
 
-    if product.producer.id == request.user.id:
-        messages.error(request, f"Can't add {product.name} listed by you.")
-        return redirect(next_url)
+    with transaction.atomic():
+        # Lock the product row to prevent concurrent stock over-allocation
+        product = get_object_or_404(Product.objects.select_for_update(), id=product_id)
 
-    # Ensure customer profile exists
-    customer = getattr(request.user, "customer_profile", None)
-    if customer is None:
-        customer = CustomerProfile.objects.create(user=request.user)
-        Cart.objects.create(customer=customer)
+        if product.producer.id == request.user.id:
+            messages.error(request, f"Can't add {product.name} listed by you.")
+            return redirect(next_url)
 
-    cart, _ = Cart.objects.get_or_create(customer=customer)
+        # Check stock before adding
+        customer = getattr(request.user, "customer_profile", None)
+        if customer is None:
+            customer = CustomerProfile.objects.create(user=request.user)
+            Cart.objects.create(customer=customer)
 
-    # Use product FK to find existing cart item
-    cart_item = cart.items.filter(product=product).first()
-    if cart_item:
-        cart_item.quantity += quantity
-        cart_item.save()
-    else:
-        CartItem.objects.create(
-            cart=cart,
-            product=product,
-            product_name=product.name,
-            unit_price=product.price,
-            quantity=quantity,
-        )
+        cart, _ = Cart.objects.get_or_create(customer=customer)
+
+        # Calculate total quantity already in cart for this product
+        cart_item = cart.items.filter(product=product).first()
+        already_in_cart = cart_item.quantity if cart_item else 0
+        total_requested = already_in_cart + quantity
+
+        if total_requested > product.stock_quantity:
+            available = max(0, product.stock_quantity - already_in_cart)
+            if available == 0:
+                messages.error(request, f"No more stock available for {product.name}.")
+                return redirect(next_url)
+            quantity = available
+            messages.warning(request, f"Only {quantity} more unit(s) of {product.name} available. Added {quantity}.")
+
+        if cart_item:
+            cart_item.quantity += quantity
+            cart_item.save()
+        else:
+            CartItem.objects.create(
+                cart=cart,
+                product=product,
+                product_name=product.name,
+                unit_price=product.price,
+                quantity=quantity,
+            )
 
     messages.success(request, f"{product.name} added to your cart")
 
@@ -286,13 +331,12 @@ def customer_profile_view(request):
         'stats': stats_card,
         'latest_order': latest_order,
         'order_data': order_data,
-        'user_role': 'customer'
+        'user_role': request.user.role,
     }
 
     return render(request, "profile/profile_page.html", context)
 
 @login_required
-@customer_required
 def customer_personal_info_view(request):
     """Customer personal information management"""
     user = request.user

@@ -58,6 +58,12 @@ class OrderPayment(models.Model):
     shipping_address = models.TextField(blank=True) # the field below is handled by the system.
     global_delivery_notes = models.TextField(blank=True)
 
+    # TC-017: special delivery instructions for community/bulk orders
+    special_instructions = models.TextField(
+        blank=True,
+        help_text="e.g. 'Delivery to kitchen entrance, contact kitchen manager'"
+    )
+
     # timestamp
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -143,6 +149,11 @@ class OrderProducer(models.Model):
 
     customer_note = models.TextField(blank=True)
 
+    # TC-017: flag bulk orders from community groups
+    is_bulk_order = models.BooleanField(
+        default=False,
+        help_text="Marked automatically when ordered by a community group account"
+    )
 
     # timestamp
     created_at = models.DateTimeField(default=timezone.now)
@@ -190,6 +201,159 @@ class OrderItem(models.Model):
     @property
     def line_total(self):
         return self.product_price * self.quantity
-    
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product_name}"
+
+
+# =============================================================================
+# TC-018 — Recurring Orders (restaurant / business accounts)
+# =============================================================================
+
+class RecurringOrder(models.Model):
+    """
+    Standing order template created by a restaurant / business account.
+    A scheduled job creates an OrderInstance from this template each week.
+    """
+
+    RECURRENCE_CHOICES = [
+        ('weekly', 'Weekly'),
+        ('fortnightly', 'Fortnightly'),
+    ]
+
+    DAY_CHOICES = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+    ]
+
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('paused', 'Paused'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    customer = models.ForeignKey(
+        RegularUser,
+        on_delete=models.CASCADE,
+        related_name='recurring_orders'
+    )
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    recurrence = models.CharField(max_length=20, choices=RECURRENCE_CHOICES, default='weekly')
+    recurrence_day = models.CharField(max_length=10, choices=DAY_CHOICES, help_text="Day the order is triggered")
+    delivery_day = models.CharField(max_length=10, choices=DAY_CHOICES, help_text="Expected delivery day")
+
+    # Delivery address snapshot
+    delivery_address = models.ForeignKey(
+        Address,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recurring_orders'
+    )
+    delivery_notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    next_scheduled_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Recurring order #{self.id} for {self.customer.username} ({self.recurrence})"
+
+
+class RecurringOrderItem(models.Model):
+    """Items in a recurring order template."""
+
+    recurring_order = models.ForeignKey(
+        RecurringOrder,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='recurring_items'
+    )
+    producer = models.ForeignKey(
+        'mainApp.ProducerProfile',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    product_name = models.CharField(max_length=255)  # snapshot
+    quantity = models.PositiveIntegerField(default=1)
+    unit = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product_name}"
+
+
+class OrderInstance(models.Model):
+    """
+    A single generated instance of a RecurringOrder.
+    Starts as a copy of the template items but can be modified per instance.
+    """
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('confirmed', 'Confirmed'),
+        ('modified', 'Modified'),
+        ('cancelled', 'Cancelled'),
+        ('processed', 'Processed'),
+    ]
+
+    recurring_order = models.ForeignKey(
+        RecurringOrder,
+        on_delete=models.CASCADE,
+        related_name='instances'
+    )
+    scheduled_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    # Link to the actual OrderPayment once processed through checkout
+    order_payment = models.OneToOneField(
+        OrderPayment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recurring_instance'
+    )
+
+    notification_sent = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-scheduled_date']
+
+    def __str__(self):
+        return f"Instance #{self.id} of RecurringOrder #{self.recurring_order_id} on {self.scheduled_date}"
+
+
+class OrderInstanceItem(models.Model):
+    """Per-instance item overrides (copied from template, editable per instance)."""
+
+    instance = models.ForeignKey(
+        OrderInstance,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='instance_items'
+    )
+    product_name = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField(default=1)
+    unit = models.CharField(max_length=50, blank=True)
+
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"

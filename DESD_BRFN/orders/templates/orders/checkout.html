@@ -258,6 +258,70 @@
                                     placeholder="Any instructions for all producers (e.g., ring doorbell)"></textarea>
                         <small class="text-muted">Shared with all producers</small>
                     </div>
+
+                    <!-- TC-018: Recurring order option for restaurant users -->
+                    {% if request.user.role == 'restaurant' %}
+                    <div class="mt-3 p-3 rounded-lg" style="background:#eff6ff;border:1px solid #bfdbfe;">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="make_recurring" id="make_recurring_check"
+                                   onchange="toggleRecurringOptions(this.checked)">
+                            <label class="form-check-label fw-semibold" for="make_recurring_check" style="color:#1e40af;">
+                                <i class="bi bi-arrow-repeat"></i> Make this a recurring order
+                            </label>
+                        </div>
+                        <div id="recurring-options" style="display:none;">
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-4">
+                                    <label class="form-label" style="font-size:0.85rem;">Frequency</label>
+                                    <select name="recurrence" class="form-control form-control-sm">
+                                        <option value="weekly">Weekly</option>
+                                        <option value="fortnightly">Fortnightly</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" style="font-size:0.85rem;">Order Day</label>
+                                    <select name="recurrence_day" class="form-control form-control-sm">
+                                        <option value="monday">Monday</option>
+                                        <option value="tuesday">Tuesday</option>
+                                        <option value="wednesday">Wednesday</option>
+                                        <option value="thursday">Thursday</option>
+                                        <option value="friday">Friday</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" style="font-size:0.85rem;">Delivery Day</label>
+                                    <select name="delivery_day" class="form-control form-control-sm">
+                                        <option value="monday">Monday</option>
+                                        <option value="tuesday">Tuesday</option>
+                                        <option value="wednesday">Wednesday</option>
+                                        <option value="thursday">Thursday</option>
+                                        <option value="friday">Friday</option>
+                                        <option value="saturday">Saturday</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-1">Your order will repeat automatically. You can pause or cancel anytime from your account.</small>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- TC-017: Special instructions for community group / bulk deliveries -->
+                    {% if request.user.role == 'community_member' %}
+                    <div class="mt-3 p-3 rounded-lg" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                        <label class="form-label fw-semibold text-green-800">
+                            <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Special Bulk Delivery Instructions
+                        </label>
+                        <textarea name="special_instructions"
+                                    class="form-control mt-1"
+                                    rows="3"
+                                    placeholder="e.g. 'Delivery to kitchen entrance, contact kitchen manager on 07700 900000'"></textarea>
+                        <small class="text-muted">These instructions will be sent to all producers with your order.</small>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -379,6 +443,11 @@
                 checkoutButton.innerHTML = '<i class="bi bi-lock"></i> Pay £{{ total }}';
             }
         });
+    }
+
+    function toggleRecurringOptions(checked) {
+        const opts = document.getElementById('recurring-options');
+        if (opts) opts.style.display = checked ? 'block' : 'none';
     }
 
     function setMinDeliveryDates() {

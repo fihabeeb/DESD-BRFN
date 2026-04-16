@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Order Instance — FarmDirect{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <a href="{% url 'mainApp:orders:recurring_detail' instance.recurring_order_id %}"
+     class="text-sm text-green-600 hover:underline">&larr; Back</a>
+
+  <div class="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">
+      Edit Order Instance — {{ instance.scheduled_date|date:"d M Y" }}
+    </h1>
+    <p class="text-sm text-gray-400 mb-6">Changes apply only to this delivery, not the template.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% with items=instance.items.all template_items=instance.recurring_order.items.all %}
+
+      {% if items %}
+        {% with items_list=items %}
+        <input type="hidden" name="items_count" value="{{ items_list|length }}">
+        {% for item in items_list %}
+        <div class="flex items-center gap-4 mb-3">
+          <span class="flex-1 text-sm text-gray-700">{{ item.product_name }}</span>
+          <input type="hidden" name="product_{{ forloop.counter0 }}" value="{{ item.product_id }}">
+          <input type="number" name="quantity_{{ forloop.counter0 }}" value="{{ item.quantity }}"
+                 min="0" class="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center">
+          <span class="text-xs text-gray-400">{{ item.unit }}</span>
+        </div>
+        {% endfor %}
+        {% endwith %}
+      {% else %}
+        <input type="hidden" name="items_count" value="{{ template_items|length }}">
+        {% for item in template_items %}
+        <div class="flex items-center gap-4 mb-3">
+          <span class="flex-1 text-sm text-gray-700">{{ item.product_name }}</span>
+          <input type="hidden" name="product_{{ forloop.counter0 }}" value="{{ item.product_id }}">
+          <input type="number" name="quantity_{{ forloop.counter0 }}" value="{{ item.quantity }}"
+                 min="0" class="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center">
+          <span class="text-xs text-gray-400">{{ item.unit }}</span>
+        </div>
+        {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <p class="text-xs text-gray-400 mt-2 mb-4">Set quantity to 0 to remove an item from this instance.</p>
+
+      <button type="submit"
+        class="w-full py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">
+        Save Changes for This Delivery
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
