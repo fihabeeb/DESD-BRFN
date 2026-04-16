@@ -56,9 +56,21 @@
             <!-- Name & price -->
             <h1 class="detail-name">{{ product.name }}</h1>
 
+            {% if active_deal %}
+            <div class="detail-price">
+                <span style="text-decoration:line-through;color:#9ca3af;font-size:0.9em;">£{{ product.price }}</span>
+                <strong style="color:#dc2626;font-size:1.3em;">£{{ active_deal.discounted_price }}</strong>
+                <span>per {{ product.unit }}</span>
+                <span style="background:#ff6b00;color:#fff;font-size:0.75em;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;margin-left:4px;">{{ active_deal.discount_percent }}% OFF</span>
+            </div>
+            {% if active_deal.note %}
+            <p style="color:#6b7280;font-size:0.85em;margin-top:0.25rem;">{{ active_deal.note }}</p>
+            {% endif %}
+            {% else %}
             <div class="detail-price">
                 £{{ product.price }} <span>per {{ product.unit }}</span>
             </div>
+            {% endif %}
 
             <!-- Food miles -->
             {% if food_miles is not None %}
@@ -134,7 +146,7 @@
                 {% endif %}
             </ul>
 
-           <!-- Add to cart form -->
+            <!-- Add to cart form -->
             <div class="detail-cart-form">
                 {% if product.is_active %}
                     <!-- {# Product is active and available #} -->
@@ -154,15 +166,15 @@
                                 {% if product.stock_quantity == 0 %}Out of Stock{% else %}Add to Cart{% endif %}
                             </button>
                         </form>
-                        <!-- Wishlist (UI only) -->
-                    <button class="btn-wishlist" type="button" aria-label="Save to wishlist">
-                        <i class="bi bi-heart"></i>
-                    </button>
-                {% else %}
-                        <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}"
-                        class="btn-login-prompt">
-                            <i class="bi bi-box-arrow-in-right"></i> Log in to add to cart
-                        </a>
+                            <!-- Wishlist (UI only) -->
+                            <button class="btn-wishlist" type="button" aria-label="Save to wishlist">
+                                <i class="bi bi-heart"></i>
+                            </button>
+                    {% else %}
+                    <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:product_detail' product.id %}"
+                    class="btn-login-prompt">
+                        <i class="bi bi-box-arrow-in-right"></i> Log in to add to cart
+                    </a>
                     {% endif %}
 
                 {% else %}
@@ -187,6 +199,35 @@
         </div>
     </div>
 
+    <!-- TC-020: Recipe Suggestions -->
+    {% if linked_recipes %}
+    <div class="detail-wrapper" style="padding-top:0;padding-bottom:0;margin-top:1.5rem;">
+        <div class="profile-card" style="padding:1.25rem;">
+            <div class="profile-card-title"><i class="bi bi-journal-richtext"></i> Recipe Suggestions</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-top:0.75rem;">
+                {% for recipe in linked_recipes %}
+                <a href="{% url 'mainApp:products:recipe_detail' recipe.id %}"
+                   class="product-card" style="text-decoration:none;display:block;">
+                    {% if recipe.image %}
+                    <div class="product-card-image">
+                        <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}" style="height:130px;object-fit:cover;width:100%;">
+                    </div>
+                    {% else %}
+                    <div class="product-card-image">
+                        <div class="no-image" style="height:130px;">🍽️</div>
+                    </div>
+                    {% endif %}
+                    <div class="product-card-body">
+                        <h3 style="font-size:0.875rem;margin-bottom:0.2rem;">{{ recipe.title }}</h3>
+                        <div class="product-producer"><i class="bi bi-shop"></i> {{ recipe.producer.business_name }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- About the Producer -->
     {% if product.producer %}
     <div class="detail-producer-card">
@@ -196,20 +237,26 @@
         </div>
         <div class="producer-card-body">
             <div class="producer-avatar"><i class="bi bi-person-badge"></i></div>
-            <div>
+            <div style="flex:1;">
                 <div class="producer-card-name">{{ product.producer.business_name }}</div>
-                {% if product.producer.farm_city or product.producer.farm_county %}
+                {% with addr=product.producer.farm_address %}
+                {% if addr and addr.city %}
                 <div class="producer-card-location">
                     <i class="bi bi-geo-alt"></i>
-                    {{ product.producer.farm_city }}{% if product.producer.farm_city and product.producer.farm_county %}, {% endif %}{{ product.producer.farm_county }}
+                    {{ addr.city }}{% if addr.county %}, {{ addr.county }}{% endif %}
                 </div>
                 {% endif %}
+                {% endwith %}
                 {% if food_miles is not None %}
                 <div class="producer-card-miles">
                     <i class="bi bi-arrow-left-right"></i>
                     {{ food_miles }} miles from Bristol
                 </div>
                 {% endif %}
+                <a href="{% url 'mainApp:products:producer_stories' product.producer.id %}"
+                   class="btn-outline" style="display:inline-flex;margin-top:0.75rem;font-size:0.8rem;">
+                    <i class="bi bi-journal-richtext"></i> View Stories & Recipes
+                </a>
             </div>
         </div>
     </div>

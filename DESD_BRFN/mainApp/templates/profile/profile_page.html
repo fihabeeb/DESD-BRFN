@@ -165,6 +165,10 @@
             <p class="profile-hero-sub">@{{ user.username }} &mdash; Customer Account</p>
             {% elif user.role == 'producer' %}
             <p class="profile-hero-sub">@{{ user.username }} &mdash; Producer Account</p>
+            {% elif user.role == 'community_member' %}
+            <p class="profile-hero-sub">@{{ user.username }} &mdash; Community Group Account</p>
+            {% elif user.role == 'restaurant' %}
+            <p class="profile-hero-sub">@{{ user.username }} &mdash; Restaurant Account</p>
             {% endif %}
         </div>
     </div>
@@ -398,7 +402,7 @@
             <div class="profile-card-title"><i class="bi bi-gear"></i> Account Settings</div>
             <p style="color:var(--color-muted); font-size:0.875rem; margin-bottom:0.75rem;">Update your personal information, password, or delete your account.</p>
 
-            {% if user.role == "customer" %}
+            {% if user.role == "customer" or user.role == "community_member" or user.role == "restaurant" %}
             <a href="{% url 'mainApp:customers:personal_info' %}" class="btn-primary">
                 <i class="bi bi-pencil"></i> Edit Settings
             </a>

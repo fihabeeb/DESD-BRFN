@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Recommendation Process Insights</h1>
+
+<form method="POST">
+    {% csrf_token %}
+    <label>Select Customer:</label>
+    <input type="number" name="customer_id" placeholder="Customer ID" required>
+    <button type="submit" class="button">View Insights</button>
+</form>
+
+{% if customer %}
+<hr>
+<h2>Customer: {{ customer }}</h2>
+
+<h3>Purchase History</h3>
+<ul>
+    {% for item in purchase_history %}
+    <li>{{ item.product.name }} ({{ item.quantity }})</li>
+    {% endfor %}
+</ul>
+
+<h3>Sequence Used by Model</h3>
+<p>{{ sequence_used }}</p>
+
+<h3>Top Recommendations</h3>
+<ul>
+    {% for rec in recommendations %}
+    <li>{{ rec.product.name }} — Confidence: {{ rec.confidence }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

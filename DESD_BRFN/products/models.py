@@ -127,9 +127,13 @@ class Product(models.Model):
         ]
 
     def deduct_stock(self, quantity):
-        if self.stock_quantity >= quantity:
-            self.stock_quantity -= quantity
-            self.save(update_fields=['stock_quantity'])
+        from django.db.models import F
+        updated = Product.objects.filter(
+            pk=self.pk,
+            stock_quantity__gte=quantity
+        ).update(stock_quantity=F('stock_quantity') - quantity)
+        if updated:
+            self.refresh_from_db(fields=['stock_quantity'])
             return True
         return False
 
@@ -277,6 +281,71 @@ class ProductCategory(models.Model):
         if not self.slug:
             self.slug = slugify(self.name) # set url path to use the name of the category
         super().save(*args, **kwargs)
+
+
+# =============================================================================
+# TC-019 — Surplus / Last-Minute Deals
+# =============================================================================
+
+class SurplusDeal(models.Model):
+    """
+    A time-limited discount applied to a product to reduce food waste.
+    Created by producers; expires automatically via a scheduled job.
+    """
+
+    product = models.OneToOneField(
+        'Product',
+        on_delete=models.CASCADE,
+        related_name='surplus_deal'
+    )
+    producer = models.ForeignKey(
+        'mainApp.ProducerProfile',
+        on_delete=models.CASCADE,
+        related_name='surplus_deals'
+    )
+
+    discount_percent = models.PositiveIntegerField(
+        help_text="Discount between 10 and 50 percent inclusive"
+    )
+    original_price = models.DecimalField(max_digits=10, decimal_places=2)
+    discounted_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    note = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="e.g. 'Perfect condition, must sell quickly'"
+    )
+    best_before_date = models.DateField(null=True, blank=True)
+    expires_at = models.DateTimeField(help_text="When this deal automatically expires")
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(discount_percent__gte=10),
+                name='surplus_discount_min'
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        from decimal import Decimal
+        # Auto-calculate discounted price
+        self.discounted_price = (
+            self.original_price * (1 - Decimal(self.discount_percent) / 100)
+        ).quantize(Decimal('0.01'))
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() >= self.expires_at
+
+    def __str__(self):
+        return f"{self.discount_percent}% off {self.product.name} (expires {self.expires_at:%d %b %Y %H:%M})"
 
 
 class Allergen(models.Model):

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product, ProductCategory
+from .models import Product, ProductCategory, SurplusDeal
 
 @admin.register(ProductCategory)
 class ProductCategoryAdmin(admin.ModelAdmin):
@@ -51,6 +51,15 @@ class ProductAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         if not change:  # If creating new product
-            # can auto-set producer here 
+            # can auto-set producer here
             pass
         super().save_model(request, obj, form, change)
+
+
+@admin.register(SurplusDeal)
+class SurplusDealAdmin(admin.ModelAdmin):
+    list_display = ['product', 'producer', 'discount_percent', 'discounted_price', 'expires_at', 'is_active']
+    list_filter = ['is_active', 'created_at']
+    list_editable = ['is_active']
+    readonly_fields = ['discounted_price', 'created_at', 'updated_at']
+    search_fields = ['product__name', 'producer__business_name']

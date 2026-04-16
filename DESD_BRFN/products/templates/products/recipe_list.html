@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load product_extras %}
+
+{% block title %}Recipes — FarmDirect{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Recipes from the Farm</h1>
+  </div>
+
+  <!-- Search & tag filters -->
+  <form method="get" class="flex flex-wrap gap-3 mb-6">
+    <input type="text" name="q" value="{{ search }}" placeholder="Search recipes..."
+           class="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+    <select name="tag" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <option value="">All seasons</option>
+      <option value="spring" {% if active_tag == 'spring' %}selected{% endif %}>Spring</option>
+      <option value="summer" {% if active_tag == 'summer' %}selected{% endif %}>Summer</option>
+      <option value="autumn" {% if active_tag == 'autumn' %}selected{% endif %}>Autumn</option>
+      <option value="winter" {% if active_tag == 'winter' %}selected{% endif %}>Winter</option>
+    </select>
+    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">Search</button>
+  </form>
+
+  {% if not recipes %}
+  <div class="text-center py-16 bg-white rounded-2xl border border-gray-100">
+    <p class="text-gray-400">No recipes found.</p>
+  </div>
+  {% else %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for recipe in recipes %}
+    <a href="{% url 'mainApp:products:recipe_detail' recipe.id %}"
+       class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow block">
+      {% if recipe.image %}
+      <img src="{{ recipe.image.url }}" alt="{{ recipe.title }}" class="w-full h-44 object-cover">
+      {% else %}
+      <div class="w-full h-44 bg-gradient-to-br from-green-50 to-yellow-50 flex items-center justify-center">
+        <span class="text-4xl">🍽️</span>
+      </div>
+      {% endif %}
+      <div class="p-4">
+        <h2 class="font-semibold text-gray-900 mb-0.5">{{ recipe.title }}</h2>
+        <p class="text-xs text-gray-400 mb-2">by {{ recipe.producer.business_name }}</p>
+        {% if recipe.description %}
+        <p class="text-sm text-gray-600 line-clamp-2">{{ recipe.description }}</p>
+        {% endif %}
+        {% if recipe.seasonal_tags %}
+        <div class="mt-2 flex flex-wrap gap-1">
+          {% for tag in recipe.seasonal_tags|split:',' %}
+          <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{{ tag|title }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -39,3 +39,4 @@ scikit-learn
 redis==7.4.0
 django-celery-beat==2.9.0
 reportlab==4.2.2
+opencv-python-headless==4.10.0.84

@@ -29,19 +29,12 @@ class CustomerLoginForm(AuthenticationForm):
     )
 
     def confirm_login_allowed(self, user):
-        if user.role != User.Role.CUSTOMER:
+        allowed_roles = (User.Role.CUSTOMER, User.Role.COMMUNITY_MEMBER, User.Role.RESTAURANT)
+        if user.role not in allowed_roles:
             raise ValidationError(
-                "This account is not registered as a Customer.",
+                "This account is not registered as a customer or community account.",
                 code='invalid_role',
             )
-        
-        # Also check if producer profile exists
-        if not hasattr(user, 'customer_profile'):
-            raise ValidationError(
-                "Your producer profile is not set up correctly. Please contact support.",
-                code='no_profile',
-            )
-        
         super().confirm_login_allowed(user)
 
 class CustomerRegistrationForm(UserCreationForm):
@@ -121,12 +114,13 @@ class CustomerRegistrationForm(UserCreationForm):
     
     city = forms.CharField(
         required=True,
+        initial='Bristol',
         widget=forms.TextInput(attrs={
             'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
             'placeholder': 'City'
         })
     )
-    
+
     county = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
@@ -319,6 +313,110 @@ class CustomerRegistrationForm(UserCreationForm):
 #             home.save()
 
 #         return user
+
+
+class CommunityGroupRegistrationForm(UserCreationForm):
+    """TC-017: Registration form for community group / organisation accounts."""
+
+    CHARITY_EDUCATION_CHOICES = [
+        ('charity', 'Charity'),
+        ('education', 'Educational Institution'),
+        ('other', 'Other Community Organisation'),
+    ]
+
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
+    phone_number = forms.CharField(required=True)
+
+    # Organisation fields
+    organisation_name = forms.CharField(required=True, label="Organisation Name")
+    charity_or_education_status = forms.ChoiceField(
+        choices=CHARITY_EDUCATION_CHOICES,
+        required=True,
+        label="Organisation Type"
+    )
+    institutional_email = forms.EmailField(
+        required=False,
+        label="Institutional Email (optional)",
+        help_text="Your official organisation email for verification"
+    )
+
+    # Address
+    address_line1 = forms.CharField(required=True, label="Address Line 1")
+    address_line2 = forms.CharField(required=False, label="Address Line 2 (optional)")
+    city = forms.CharField(required=True, initial='Bristol')
+    county = forms.CharField(required=False)
+    post_code = forms.CharField(required=True, label="Post Code")
+
+    class Meta:
+        model = User
+        fields = [
+            'username', 'email', 'first_name', 'last_name',
+            'password1', 'password2', 'phone_number',
+            'organisation_name', 'charity_or_education_status', 'institutional_email',
+            'address_line1', 'address_line2', 'city', 'county', 'post_code'
+        ]
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("This email address is already registered. Please use a different email or log in.")
+        return email
+
+    def clean_post_code(self):
+        post_code = self.cleaned_data.get('post_code')
+        uk_postcode_pattern = r'^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$'
+        import re
+        if not re.match(uk_postcode_pattern, post_code.upper()):
+            raise ValidationError("Please enter a valid UK postcode.")
+        return post_code.upper()
+
+    def save(self, commit=True):
+        from mainApp.utils import geocode_postcode
+        with transaction.atomic():
+            user = super().save(commit=False)
+            user.email = self.cleaned_data['email']
+            user.first_name = self.cleaned_data['first_name']
+            user.last_name = self.cleaned_data['last_name']
+            user.phone_number = self.cleaned_data['phone_number']
+            user.role = User.Role.COMMUNITY_MEMBER
+            user.save()
+
+            # Update the community member profile created by signal
+            profile = user.community_member_profile
+            profile.organisation_name = self.cleaned_data['organisation_name']
+            profile.charity_or_education_status = self.cleaned_data['charity_or_education_status']
+            profile.institutional_email = self.cleaned_data.get('institutional_email', '')
+            profile.save()
+
+            lat, lon = geocode_postcode(self.cleaned_data['post_code'])
+            Address.objects.create(
+                user=user,
+                address_line1=self.cleaned_data['address_line1'],
+                address_line2=self.cleaned_data.get('address_line2', ''),
+                city=self.cleaned_data['city'],
+                county=self.cleaned_data.get('county', ''),
+                post_code=self.cleaned_data['post_code'],
+                country='UK',
+                address_type='home',
+                is_default=True,
+                latitude=lat,
+                longitude=lon,
+            )
+            return user
+
+
+class CommunityGroupLoginForm(AuthenticationForm):
+    """Login form that accepts community_member role users."""
+
+    def confirm_login_allowed(self, user):
+        if user.role not in (User.Role.CUSTOMER, User.Role.COMMUNITY_MEMBER):
+            raise ValidationError(
+                "This account is not registered as a customer or community group.",
+                code='invalid_role',
+            )
+        super().confirm_login_allowed(user)
 
 
 class CustomerPersonalInfoForm(forms.Form):

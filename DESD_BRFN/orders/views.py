@@ -10,7 +10,10 @@ import stripe
 from datetime import date, timedelta, datetime
 from customers.models import Cart
 from mainApp.models import Address
-from orders.models import OrderPayment, OrderProducer, OrderItem
+from orders.models import (
+    OrderPayment, OrderProducer, OrderItem,
+    RecurringOrder, RecurringOrderItem, OrderInstance, OrderInstanceItem,
+)
 from decimal import ROUND_HALF_UP
 from django.contrib.auth import get_user_model 
 from django.utils import timezone
@@ -81,6 +84,7 @@ def create_checkout_session(request):
     now  = timezone.now()
     address_id = request.POST.get('address_id')
     global_delivery_notes = request.POST.get('global_delivery_notes', '')
+    special_instructions = request.POST.get('special_instructions', '')  # TC-017
 
     producer_groups = cart.get_items_by_producer()
 
@@ -129,7 +133,22 @@ def create_checkout_session(request):
     
     if cart.items.count() == 0:
         return JsonResponse({'error': 'Cart is empty'}, status=400)
-    
+
+    # Re-check stock for all cart items before creating a Stripe session
+    from products.models import Product as ProductModel
+    stock_errors = []
+    for cart_item in cart.items.select_related('product').all():
+        if cart_item.product is None:
+            continue
+        # Re-fetch current stock from DB to catch concurrent changes
+        current_stock = ProductModel.objects.filter(id=cart_item.product.id).values_list('stock_quantity', flat=True).first()
+        if current_stock is None or cart_item.quantity > current_stock:
+            stock_errors.append(
+                f'"{cart_item.product_name}" only has {current_stock or 0} units in stock but you requested {cart_item.quantity}.'
+            )
+    if stock_errors:
+        return JsonResponse({'error': stock_errors}, status=400)
+
     # Build line items for Stripe
     line_items = []
     for cart_item in cart.items.select_related('product').all():
@@ -171,6 +190,18 @@ def create_checkout_session(request):
                 # }),
             }
         )
+        # TC-017: detect community group accounts for bulk order flagging
+        is_community_group = (
+            hasattr(request.user, 'role') and
+            request.user.role == 'community_member'
+        )
+
+        # TC-018: recurring order for restaurant users
+        make_recurring = request.POST.get('make_recurring') == 'on'
+        recurrence = request.POST.get('recurrence', 'weekly')
+        recurrence_day = request.POST.get('recurrence_day', 'monday')
+        delivery_day = request.POST.get('delivery_day', 'monday')
+
         with transaction.atomic():
             # Create OrderPayment (customer payment)
             payment = OrderPayment.objects.create(
@@ -181,15 +212,16 @@ def create_checkout_session(request):
                 shipping_address=address,
                 shipping_address_id=address,
                 global_delivery_notes=global_delivery_notes,
+                special_instructions=special_instructions,  # TC-017
                 payment_status='pending'
             )
-            
+
             # Create OrderProducer for each producer (commission calculated here)
             producer_groups = cart.get_items_by_producer()
             for producer_id, group in producer_groups.items():
                 delivery_date = delivery_dates.get(producer_id)
                 customer_note = request.POST.get(f'customer_note_{producer_id}', '')
-                
+
                 producer_order = OrderProducer.objects.create(
                     payment=payment,
                     producer=group['producer'],
@@ -197,6 +229,7 @@ def create_checkout_session(request):
                     order_status='pending',
                     customer_note=customer_note,
                     delivered_by=delivery_date,
+                    is_bulk_order=is_community_group,  # TC-017
                 )
                 
                 for cart_item in group['items']:
@@ -208,7 +241,27 @@ def create_checkout_session(request):
                         quantity=cart_item.quantity,
                         unit=cart_item.product.unit,
                     )
-        
+
+            # TC-018: create RecurringOrder for restaurant users who opted in
+            if make_recurring and hasattr(request.user, 'role') and request.user.role == 'restaurant':
+                from orders.models import RecurringOrder, RecurringOrderItem
+                recurring = RecurringOrder.objects.create(
+                    customer=request.user,
+                    status='active',
+                    recurrence=recurrence,
+                    recurrence_day=recurrence_day,
+                    delivery_day=delivery_day,
+                )
+                for cart_item in cart.items.select_related('product').all():
+                    RecurringOrderItem.objects.create(
+                        recurring_order=recurring,
+                        product=cart_item.product,
+                        producer=cart_item.product.producer if cart_item.product else None,
+                        product_name=cart_item.product.name if cart_item.product else cart_item.product_name,
+                        quantity=cart_item.quantity,
+                        unit=cart_item.product.unit if cart_item.product else '',
+                    )
+
         return JsonResponse({'sessionId': checkout_session.id})
         
     except stripe.error.StripeError as e:
@@ -216,31 +269,9 @@ def create_checkout_session(request):
 
 @login_required
 def success(request):
-    """Handle successful payment. Confirms the order if webhook hasn't done so yet."""
+    """Handle successful payment."""
     session_id = request.GET.get('session_id')
     order = OrderPayment.objects.filter(stripe_session_id=session_id).first()
-
-    # if order and order.status == 'pending':
-    #     # Webhook hasn't fired yet (common in local dev). Verify with Stripe and confirm.
-    #     try:
-    #         session = stripe.checkout.Session.retrieve(session_id)
-    #         if session.payment_status == 'paid':
-    #             order.stripe_payment_intent_id = session.payment_intent
-    #             order.status = 'confirmed'
-    #             order.save()
-
-    #             # Deduct stock
-    #             for item in order.items.all():
-    #                 if item.product:
-    #                     item.product.deduct_stock(item.quantity)
-
-    #             # Clear cart
-    #             try:
-    #                 order.user.customer_profile.cart.items.all().delete()
-    #             except Exception:
-    #                 pass
-    #     except stripe.error.StripeError:
-    #         pass
 
     return render(request, 'orders/success.html', {'order': order})
     
@@ -273,8 +304,8 @@ def stripe_webhook(request):
 
         existing_payment = OrderPayment.objects.filter(stripe_session_id=session['id']).first()
 
-        # If already confirmed (webhook fired twice), do nothing
-        if existing_payment and existing_payment.payment_status == 'confirmed':
+        # If already paid (webhook fired twice), do nothing
+        if existing_payment and existing_payment.payment_status == 'paid':
             return HttpResponse(status=200)
 
         try:
@@ -396,3 +427,101 @@ def order_history(request):
     }
     
     return render(request, "orders/profile/order_history.html", context)
+
+
+# =============================================================================
+# TC-018 — Recurring Orders (restaurant accounts)
+# =============================================================================
+
+@login_required
+def recurring_orders_list(request):
+    """List all recurring orders for the logged-in restaurant/customer."""
+    recurring_orders = RecurringOrder.objects.filter(
+        customer=request.user
+    ).prefetch_related('items__product', 'instances').order_by('-created_at')
+
+    context = {
+        'recurring_orders': recurring_orders,
+    }
+    return render(request, 'orders/recurring/list.html', context)
+
+
+@login_required
+def recurring_order_detail(request, pk):
+    """View and manage a single recurring order."""
+    recurring_order = get_object_or_404(RecurringOrder, pk=pk, customer=request.user)
+    instances = recurring_order.instances.order_by('-scheduled_date')[:10]
+
+    context = {
+        'recurring_order': recurring_order,
+        'instances': instances,
+    }
+    return render(request, 'orders/recurring/detail.html', context)
+
+
+@login_required
+def pause_recurring_order(request, pk):
+    """Pause an active recurring order."""
+    if request.method != 'POST':
+        return redirect('mainApp:orders:recurring_list')
+    recurring_order = get_object_or_404(RecurringOrder, pk=pk, customer=request.user)
+    if recurring_order.status == 'active':
+        recurring_order.status = 'paused'
+        recurring_order.save(update_fields=['status'])
+    return redirect('mainApp:orders:recurring_list')
+
+
+@login_required
+def resume_recurring_order(request, pk):
+    """Resume a paused recurring order."""
+    if request.method != 'POST':
+        return redirect('mainApp:orders:recurring_list')
+    recurring_order = get_object_or_404(RecurringOrder, pk=pk, customer=request.user)
+    if recurring_order.status == 'paused':
+        recurring_order.status = 'active'
+        recurring_order.save(update_fields=['status'])
+    return redirect('mainApp:orders:recurring_list')
+
+
+@login_required
+def cancel_recurring_order(request, pk):
+    """Cancel a recurring order."""
+    if request.method != 'POST':
+        return redirect('mainApp:orders:recurring_list')
+    recurring_order = get_object_or_404(RecurringOrder, pk=pk, customer=request.user)
+    recurring_order.status = 'cancelled'
+    recurring_order.save(update_fields=['status'])
+    return redirect('mainApp:orders:recurring_list')
+
+
+@login_required
+def edit_instance(request, pk):
+    """Edit the next pending instance of a recurring order (quantities only)."""
+    instance = get_object_or_404(
+        OrderInstance, pk=pk,
+        recurring_order__customer=request.user,
+        status__in=['pending', 'confirmed']
+    )
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            instance.items.all().delete()
+            items_count = int(request.POST.get('items_count', 0))
+            for i in range(items_count):
+                product_id = request.POST.get(f'product_{i}')
+                quantity = request.POST.get(f'quantity_{i}', 1)
+                item = instance.recurring_order.items.filter(product_id=product_id).first()
+                if item and int(quantity) > 0:
+                    OrderInstanceItem.objects.create(
+                        instance=instance,
+                        product=item.product,
+                        product_name=item.product_name,
+                        quantity=int(quantity),
+                        unit=item.unit,
+                    )
+            instance.status = 'modified'
+            instance.save(update_fields=['status'])
+        return redirect('mainApp:orders:recurring_detail', pk=instance.recurring_order_id)
+
+    context = {'instance': instance}
+    return render(request, 'orders/recurring/edit_instance.html', context)

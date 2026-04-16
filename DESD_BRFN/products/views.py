@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from .models import Product, ProductCategory
 from django.db.models import Case, When, Value, BooleanField, Q, F
 from django.contrib.postgres.search import TrigramSimilarity
@@ -46,6 +47,9 @@ def product_list(request):
     '''
     Display products for customers to browse
     '''
+    from .models import SurplusDeal
+    now = timezone.now()
+
     products = Product.objects.filter(
         availability='available',
         is_active=True,
@@ -84,6 +88,7 @@ def product_list(request):
     if season_filter:
         products = products.filter(is_in_season_annotated=True)
 
+        ).prefetch_related('surplus_deal')
 
     search_query = request.GET.get('q', '')
     if search_query:
@@ -174,8 +179,25 @@ def product_list(request):
         'recommended_products': recommended_products,
         'user_purchase_history': user_purchase_history[:10],  # Last 10 purchases for display
         'has_recommendations': bool(recommended_products),
+        'now': now,
     }
     return render(request, 'products/product_list.html', context)
+
+def surplus_deals(request):
+    """TC-019: Customer-facing surplus / last-minute deals listing."""
+    from .models import SurplusDeal
+
+    now = timezone.now()
+    deals = SurplusDeal.objects.filter(
+        is_active=True,
+        expires_at__gt=now,
+    ).select_related('product__producer', 'product__category').order_by('expires_at')
+
+    return render(request, 'products/surplus_deals.html', {
+        'deals': deals,
+        'now': now,
+    })
+
 
 def product_detail(request, product_id):
     '''
@@ -191,13 +213,113 @@ def product_detail(request, product_id):
 
     food_miles = product.get_food_miles(user_lat, user_long)
 
+    # TC-020: Recipe suggestions linked to this product
+    from producers.models import Recipe
+    linked_recipes = Recipe.objects.filter(
+        linked_products=product,
+        is_published=True,
+        moderation_status='approved',
+    ).select_related('producer')[:3]
+
+    # TC-019: surplus deal for this product
+    active_deal = None
+    try:
+        deal = product.surplus_deal
+        if deal.is_active and deal.expires_at > timezone.now():
+            active_deal = deal
+    except Exception:
+        pass
+
     context = {
         'product': product,
         'food_miles': food_miles,
         'user_is_authenticated': request.user.is_authenticated,
         'user_has_coordinates': bool(user_lat and user_long),
         'is_deleted': not product.is_active,
+        'linked_recipes': linked_recipes,  # TC-020
+        'active_deal': active_deal,  # TC-019
     }
-    
 
     return render(request, 'products/product_detail.html', context)
+
+
+# =============================================================================
+# TC-020 — Customer-facing recipe & farm story views
+# =============================================================================
+
+def recipe_list(request):
+    """List all approved, published recipes."""
+    from producers.models import Recipe
+
+    recipes = Recipe.objects.filter(
+        is_published=True,
+        moderation_status='approved',
+    ).select_related('producer').prefetch_related('linked_products')
+
+    search = request.GET.get('q', '')
+    if search:
+        recipes = recipes.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(ingredients__icontains=search)
+        )
+
+    tag = request.GET.get('tag', '')
+    if tag:
+        recipes = recipes.filter(seasonal_tags__icontains=tag)
+
+    return render(request, 'products/recipe_list.html', {
+        'recipes': recipes,
+        'search': search,
+        'active_tag': tag,
+    })
+
+
+def recipe_detail(request, recipe_id):
+    """Full recipe detail page."""
+    from producers.models import Recipe, SavedRecipe
+
+    recipe = get_object_or_404(Recipe, id=recipe_id, is_published=True, moderation_status='approved')
+    is_saved = False
+    if request.user.is_authenticated:
+        is_saved = SavedRecipe.objects.filter(customer=request.user, recipe=recipe).exists()
+
+    return render(request, 'products/recipe_detail.html', {
+        'recipe': recipe,
+        'is_saved': is_saved,
+    })
+
+
+@login_required
+def toggle_saved_recipe(request, recipe_id):
+    """Save or unsave a recipe for the logged-in customer."""
+    from producers.models import Recipe, SavedRecipe
+
+    recipe = get_object_or_404(Recipe, id=recipe_id, is_published=True)
+    saved, created = SavedRecipe.objects.get_or_create(customer=request.user, recipe=recipe)
+    if not created:
+        saved.delete()
+        messages.success(request, 'Recipe removed from saved.')
+    else:
+        messages.success(request, 'Recipe saved!')
+    return redirect('mainApp:products:recipe_detail', recipe_id=recipe_id)
+
+
+def producer_stories(request, producer_id):
+    """TC-020: Producer profile — farm stories & recipes tab."""
+    from mainApp.models import ProducerProfile
+    from producers.models import Recipe, FarmStory
+
+    producer = get_object_or_404(ProducerProfile, id=producer_id)
+    stories = FarmStory.objects.filter(
+        producer=producer, is_published=True, moderation_status='approved'
+    ).order_by('-published_at')
+    recipes = Recipe.objects.filter(
+        producer=producer, is_published=True, moderation_status='approved'
+    ).order_by('-published_at')
+
+    return render(request, 'products/producer_stories.html', {
+        'producer': producer,
+        'stories': stories,
+        'recipes': recipes,
+    })
