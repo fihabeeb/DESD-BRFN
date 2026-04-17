@@ -122,19 +122,19 @@ def product_list(request):
     user_purchase_history = []
     if request.user.is_authenticated:
         try:
-            from ml.recommendation.service_enhanced import EnhancedRecommendationService
+            from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
             
             # Get user's purchase history
             from orders.models import OrderItem, OrderPayment
             # Fetch user's purchase history ordered by time
-            user_orders = OrderPayment.objects.filter(
-                user=request.user,
-                payment_status='paid'
-            ).order_by('created_at')
+            # user_orders = OrderPayment.objects.filter(
+            #     user=request.user,
+            #     payment_status='paid'
+            # ).order_by('created_at')
             
             # Extract product IDs from order items
             order_items = OrderItem.objects.filter(
-                producer_order__payment__in=user_orders
+                producer_order__payment__user=request.user
             ).select_related('product').order_by('producer_order__payment__created_at')
             
             user_purchase_history = []  # List of (product_id, timestamp) tuples
@@ -152,7 +152,7 @@ def product_list(request):
             
             # Get recommendations if user has purchase history
             if user_purchase_history:
-                recommendation_service = EnhancedRecommendationService()
+                recommendation_service = LSTMServiceSigmoid()
                 recommended_products = recommendation_service.get_recommendations(
                     user_id=request.user.id,
                     purchase_history_with_timestamps=user_purchase_history,
