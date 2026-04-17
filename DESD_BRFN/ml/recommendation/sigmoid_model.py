@@ -191,8 +191,8 @@ def train_sigmoid_lstm(
     test_size=0.2,
     top_k_products=200,
     save_model=True,
-    model_save_path="ml/recommendation/final/sigmoid_lstm_fixed.keras",
-    mappings_save_path="ml/recommendation/final/sigmoid_mappings_fixed.pkl"
+    model_save_path="ml/recommendation/final/sigmoid_lstm.keras",
+    mappings_save_path="ml/recommendation/final/sigmoid_mappings.pkl"
 ):
     """
     Returns: (model, product_to_idx, idx_to_product, user_to_idx, idx_to_user, history)
@@ -297,7 +297,7 @@ def train_sigmoid_lstm(
     callbacks = [
         keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1),
         keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1),
-        keras.callbacks.ModelCheckpoint('ml/recommendation/final/checkpoint/sigmoid_fixed_checkpoint.keras', monitor='val_loss', save_best_only=True)
+        keras.callbacks.ModelCheckpoint('ml/recommendation/final/checkpoint/sigmoid_checkpoint.keras', monitor='val_loss', save_best_only=True)
     ]
 
     # 8. Train
