@@ -31,8 +31,8 @@ class LSTMServiceSigmoid:
         return cls._instance
 
     def load_model(self,
-                   model_path="ml/recommendation/final/sigmoid_lstm_fixed.keras",
-                   mappings_path="ml/recommendation/final/sigmoid_mappings_fixed.pkl"):
+                   model_path="ml/recommendation/final/sigmoid_lstm.keras",
+                   mappings_path="ml/recommendation/final/sigmoid_mappings.pkl"):
         """Load the trained sigmoid model and mappings."""
         try:
             from tensorflow.keras.models import load_model
@@ -122,5 +122,5 @@ class LSTMServiceSigmoid:
             return recommended_products
 
         except Exception as e:
-            logger.error(f"Error in fixed sigmoid recommendation service: {e}", exc_info=True)
+            logger.error(f"Error in sigmoid recommendation service: {e}", exc_info=True)
             return []

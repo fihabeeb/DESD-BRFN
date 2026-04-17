@@ -8,7 +8,7 @@ from django.shortcuts import render
 
 from mainApp.models import CustomerProfile
 from ml import predictor
-from ml.recommendation.service import RecommendationService
+from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
 from orders.models import OrderItem
 from products.models import Product  # kept in case you use it later
 from .gradcam import generate_gradcam, overlay_heatmap, to_base64
@@ -49,7 +49,7 @@ def recommendation_insights(request):
 
         purchase_history = [item.product.id for item in items if item.product]
 
-        service = RecommendationService()
+        service = LSTMServiceSigmoid()
         recommendations = service.get_recommendations(
             customer_id, purchase_history, top_k=5
         )
