@@ -1,4 +1,3 @@
-# recommendation/management/commands/generate_realistic_orders.py
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -12,6 +11,20 @@ from django.db import transaction
 from mainApp.models import CustomerProfile, Address
 from products.models import Product
 from orders.models import OrderPayment, OrderProducer, OrderItem
+
+CO_PURCHASE = {
+    "Pasta": ["Tomato Sauce", "Parmesan"],
+    "Bread": ["Butter", "Jam"],
+    "Tea": ["Honey", "Lemon"],
+    "Coffee": ["Milk", "Sugar"],
+    "Rice": ["Chicken", "Vegetables"],
+}
+
+def get_product_by_name(products, name):
+    for p in products:
+        if p.name == name:
+            return p
+    return None
 
 
 class Command(BaseCommand):
@@ -41,6 +54,16 @@ class Command(BaseCommand):
         for customer in customers:
             user = customer.user
 
+            # --- User-specific behaviour ---
+            favorite_products = random.sample(products, k=min(15, len(products)))
+
+            preferred_categories = random.sample(
+                list(product_by_category.keys()), 
+                k=min(3, len(product_by_category))
+            )
+
+            staples = random.sample(products, k=min(5, len(products)))
+
             # customer_addresses = list(user.addresses.filter(address_type='home'))
             
             # Each customer has natural preferences (but NOT predefined patterns)
@@ -62,34 +85,70 @@ class Command(BaseCommand):
                 
                 # Basket size follows power law distribution (realistic)
                 basket_size = self.weighted_basket_size()
-                
                 selected_products = []
-                
+
+                # --- Phase 1: core selection (respects basket_size) ---
                 for i in range(basket_size):
-                    # Selection strategy WITHOUT artificial patterns
                     selection_method = random.random()
                     
-                    if selection_method < 0.6 and customer_history[customer.id]:
-                        # 60%: Choose from customer's history (repeat purchases)
+                    if selection_method < 0.35 and customer_history[customer.id]:
                         product = random.choice(customer_history[customer.id])
-                    elif selection_method < 0.8 and product_by_category:
-                        # 20%: Explore new categories (random category)
-                        category = random.choice(list(product_by_category.keys()))
-                        if product_by_category[category]:
-                            product = random.choice(product_by_category[category])
+                    elif selection_method < 0.75:
+                        if random.random() < 0.7:
+                            product = random.choice(favorite_products)
                         else:
-                            product = random.choice(products)
+                            category = random.choice(preferred_categories)
+                            product = random.choice(product_by_category[category]) \
+                                if product_by_category[category] else random.choice(products)
                     else:
-                        # 20%: Complete random exploration
+                        # Exploration
                         product = random.choice(products)
                     
                     selected_products.append(product)
                     customer_history[customer.id].append(product)
                 
+                # phase 2
+                co_purchase_additions = []
+                for product in selected_products:
+                    if product.name in CO_PURCHASE and random.random() < 0.6:
+                        related_name = random.choice(CO_PURCHASE[product.name])  # pick one, not all
+                        related = get_product_by_name(products, related_name)
+                        if related:
+                            co_purchase_additions.append(related)
+                selected_products.extend(co_purchase_additions)
+
+                # Staple top-up: only if basket is genuinely small, and add at most 1
+                if len(selected_products) < 3 and random.random() < 0.5:
+                    selected_products.append(random.choice(staples))
+
+                # Deduplicate while preserving order
+                seen = set()
+                unique_products = []
+                for p in selected_products:
+                    if p.id not in seen:
+                        seen.add(p.id)
+                        unique_products.append(p)
+                    
+                    # # --- Co-purchase injection ---
+                    # if product.name in CO_PURCHASE and random.random() < 0.6:
+                    #     for related_name in CO_PURCHASE[product.name]:
+                    #         related_product = get_product_by_name(products, related_name)
+                    #         if related_product:
+                    #             selected_products.append(related_product)
+                    # if random.random() < 0.5:
+                    #     selected_products.append(random.choice(staples))
+
+                    # if len(selected_products) < 4:
+                    #     selected_products.extend(random.sample(staples, k=2))
+
+                    # customer_history[customer.id].append(product)
+                
                 # Process order (deduplicate within same order)
                 producer_map = {}
                 order_total = Decimal("0.00")
-                
+
+                selected_products = list(set(selected_products))
+                random.shuffle(selected_products)
                 for product in set(selected_products):  # Use set to avoid duplicates in same order
                     producer = product.producer
                     if not producer:
@@ -151,101 +210,6 @@ class Command(BaseCommand):
         self.print_statistics(customer_history, products)
 
         return
-
-            
-        #     for order_num in range(num_orders):
-        #         # Random timing (no artificial recency bias)
-        #         days_ago = random.randint(1, 180)
-        #         created_at = timezone.now() - timedelta(days=days_ago)
-
-        #         # selected_address = random.choice(customer_addresses) # probably only 1 address associated tho
-                
-        #         order = OrderPayment.objects.create(
-        #             # customer=customer,
-        #             user=user,
-        #             payment_status='paid',
-        #             total_amount=Decimal("0.00"),
-        #             shipping_address_id = user.default_address,
-        #             created_at=created_at
-        #         )
-                
-        #         # Basket size follows power law distribution (realistic)
-        #         # Most orders are 1-3 items, occasional larger orders
-        #         basket_size = self.weighted_basket_size()
-                
-        #         selected_products = []
-                
-        #         for i in range(basket_size):
-        #             # Selection strategy WITHOUT artificial patterns
-        #             selection_method = random.random()
-                    
-        #             if selection_method < 0.6 and customer_history[customer.id]:
-        #                 # 60%: Choose from customer's history (repeat purchases)
-        #                 # This naturally creates sequences without forcing patterns
-        #                 product = random.choice(customer_history[customer.id])
-        #             elif selection_method < 0.8 and product_by_category:
-        #                 # 20%: Explore new categories (random category)
-        #                 category = random.choice(list(product_by_category.keys()))
-        #                 if product_by_category[category]:
-        #                     product = random.choice(product_by_category[category])
-        #                 else:
-        #                     product = random.choice(products)
-        #             else:
-        #                 # 20%: Complete random exploration
-        #                 product = random.choice(products)
-                    
-        #             selected_products.append(product)
-        #             customer_history[customer.id].append(product)
-                
-        #         # Process order (deduplicate within same order)
-        #         producer_map = {}
-        #         order_total = Decimal("0.00")
-                
-        #         for product in set(selected_products):  # Use set to avoid duplicates in same order
-        #             producer = product.producer
-        #             if not producer:
-        #                 continue
-                    
-        #             if producer.id not in producer_map:
-        #                 producer_map[producer.id] = OrderProducer.objects.create(
-        #                     payment=order,
-        #                     producer=producer,
-        #                     producer_subtotal=Decimal("0.00"),
-        #                     order_status='confirmed',
-        #                 )
-                    
-        #             producer_order = producer_map[producer.id]
-                    
-        #             # Quantity based on product type (realistic)
-        #             quantity = self.get_realistic_quantity(product)
-        #             price = product.price
-                    
-        #             OrderItem.objects.create(
-        #                 producer_order=producer_order,
-        #                 product=product,
-        #                 product_name=product.name,
-        #                 product_price=price,
-        #                 quantity=quantity,
-        #                 unit=product.unit
-        #             )
-                    
-        #             line_total = price * quantity
-        #             order_total += line_total
-        #             producer_order.producer_subtotal += line_total
-                
-        #         for po in producer_map.values():
-        #             po.save()
-                
-        #         order.total_amount = order_total
-        #         order.save()
-        #         total_orders += 1
-            
-        #     if customers.index(customer) % 10 == 0:
-        #         self.stdout.write(f'Processed {customers.index(customer)}/{len(customers)} customers...')
-        
-        # # Print statistics
-        # self.stdout.write(self.style.SUCCESS(f'Generated {total_orders} orders for {len(customers)} customers'))
-        # self.print_statistics(customer_history, products)
     
     def weighted_basket_size(self):
         """Basket size follows realistic distribution (power law)"""
@@ -303,21 +267,18 @@ class Command(BaseCommand):
         prev_days_back = None
         
         for i in range(num_orders):
+            # Assign user shopping pattern once
             if i == 0:
-                # First purchase - random start between 30-180 days ago
-                # days_back = random.randint(10, 360)
-                days_back = 10
+                shopping_pattern = random.choice(["weekly", "biweekly", "monthly"])
+
+            if shopping_pattern == "weekly":
+                base_gap = random.randint(5, 9)
+            elif shopping_pattern == "biweekly":
+                base_gap = random.randint(10, 18)
             else:
-                # Subsequent purchases have realistic gaps
-                gap_type = random.random()
-                if gap_type < 0.6:  # Regular purchases (weekly/bi-weekly)
-                    days_gap = random.randint(3, 10)
-                elif gap_type < 0.85:  # Monthly patterns
-                    days_gap = random.randint(25, 35)
-                else:  # Occasional large gaps
-                    days_gap = random.randint(40, 90)
-                
-                days_back = prev_days_back + days_gap
+                base_gap = random.randint(25, 35)
+
+            days_back = base_gap + random.randint(-2, 2)
             
             # Create timestamp
             timestamp = timezone.now() - timedelta(days=days_back)

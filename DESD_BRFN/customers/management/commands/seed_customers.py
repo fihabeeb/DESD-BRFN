@@ -46,7 +46,7 @@ class Command(BaseCommand):
         
         created_count = 0
         
-        for i in range(15):  # Create 15 customers
+        for i in range(100):  # Create 15 customers
             username = f"demo_customer{i+1}"
             email = f"demo_customer{i+1}@example.com"
             
