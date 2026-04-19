@@ -10,7 +10,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ---------- Django imports (adapt to your project) ----------
 from orders.models import OrderItem, OrderPayment
 from django.db.models import Sum, Count, Avg
 
