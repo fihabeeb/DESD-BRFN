@@ -19,6 +19,7 @@ class InsightsAdmin(admin.ModelAdmin):
             path('', self.admin_site.admin_view(views.insights_index), name='insights_index'),
             path('recommendations/', self.admin_site.admin_view(views.recommendation_insights), name='insights_recommendations'),
             path('classification/', self.admin_site.admin_view(views.classification_insights), name='insights_classification'),
+            path('models/upload/', self.admin_site.admin_view(views.upload_model), name='insights_upload_model'),
         ]
         return custom_urls + urls
 

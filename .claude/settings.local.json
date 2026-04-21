@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(find DESD_BRFN -name \"*.py\" -type f -exec grep -l \"notify\\\\|email\\\\|message\" {} \\\\;)",
-      "Bash(python manage.py makemigrations mainApp --name \"add_restaurant_role_and_profiles\")"
+      "Bash(python manage.py makemigrations mainApp --name \"add_restaurant_role_and_profiles\")",
+      "Bash(xargs grep *)"
     ]
   }
 }

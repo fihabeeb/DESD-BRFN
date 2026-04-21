@@ -201,7 +201,11 @@ def product_detail(request, product_id):
     '''
     Show detailed product
     '''
+    from interactions.utils import log_interaction
+    from interactions.models import UserInteraction
+
     product = Product.objects.get(id=product_id)
+    log_interaction(request, UserInteraction.PRODUCT_VIEWED, product=product)
 
     if request.user.is_authenticated:
         user_lat, user_long = request.user.get_default_address_coordinates()

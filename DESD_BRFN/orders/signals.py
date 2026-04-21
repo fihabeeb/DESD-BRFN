@@ -66,11 +66,34 @@ def notify_producers_on_confirmation(sender, instance, created, **kwargs):
     When an order is confirmed (paid), notify producers
     """
     if not created and instance.payment_status == 'paid':
-        # Check if this is a status change from pending to paid
         try:
             old_instance = OrderPayment.objects.get(id=instance.id)
             if old_instance.payment_status == 'pending':
                 logger.info(f"OrderPayment #{instance.id} confirmed! Notifying producers...")
-                # Here you would send emails/notifications to producers
         except OrderPayment.DoesNotExist:
             pass
+
+
+@receiver(post_save, sender=OrderPayment)
+def log_purchased_interactions(sender, instance, created, **kwargs):
+    """Record a UserInteraction(purchased) for every item in a newly paid order."""
+    if instance.payment_status != 'paid':
+        return
+
+    try:
+        from interactions.models import UserInteraction
+        items = instance.producer_orders.prefetch_related('order_items__product').all()
+        bulk = []
+        for producer_order in items:
+            for item in producer_order.order_items.all():
+                if item.product:
+                    bulk.append(UserInteraction(
+                        user=instance.user,
+                        interaction_type=UserInteraction.PURCHASED,
+                        product=item.product,
+                        metadata={"order_payment_id": instance.id, "quantity": item.quantity},
+                    ))
+        if bulk:
+            UserInteraction.objects.bulk_create(bulk, ignore_conflicts=True)
+    except Exception as e:
+        logger.warning("Failed to log purchased interactions for order %s: %s", instance.id, e)

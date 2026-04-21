@@ -33,10 +33,7 @@ urllib3==1.26.18
 vine==5.1.0
 wcwidth==0.6.0
 geopy==2.4.0
-tensorflow
 numpy
-scikit-learn
 redis==7.4.0
 django-celery-beat==2.9.0
 reportlab==4.2.2
-opencv-python-headless==4.10.0.84

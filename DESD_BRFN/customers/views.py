@@ -145,6 +145,11 @@ def add_to_cart(request, product_id):
 
     messages.success(request, f"{product.name} added to your cart")
 
+    from interactions.utils import log_interaction
+    from interactions.models import UserInteraction
+    log_interaction(request, UserInteraction.ADDED_TO_CART, product=product,
+                    metadata={"quantity": quantity})
+
     return redirect(next_url)
 
     # return redirect("mainApp:customers:view_cart")

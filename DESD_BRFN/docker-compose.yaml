@@ -31,9 +31,30 @@ services:
       - DJANGO_SUPERUSER_USERNAME=admin
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
       - DJANGO_SUPERUSER_PASSWORD=secret
+      - ML_SERVICE_URL=http://ml-service:8001
     depends_on:
       - db
       - redis
+      - ml-service
+
+  ml-service:
+    build: ./ml-service
+    container_name: brfn-ml-service
+    volumes:
+      - ./ml:/app/ml
+    ports:
+      - "8001:8001"
+    environment:
+      - ML_MODEL_PATH=/app/ml/best_model.keras
+      - ML_ENCODER_PATH=/app/ml/encoders.pkl
+      - RECOMMENDATION_MODEL_PATH=/app/ml/recommendation/final/sigmoid_lstm.keras
+      - RECOMMENDATION_MAPPINGS_PATH=/app/ml/recommendation/final/sigmoid_mappings.pkl
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   db:
     image: postgres:15
@@ -70,6 +91,8 @@ services:
             sleep 10 &&
             celery -A BRFN worker -l info
       "
+    environment:
+      - ML_SERVICE_URL=http://ml-service:8001
     depends_on:
       - webapp
       - redis
