@@ -7,13 +7,10 @@ class ProductsConfig(AppConfig):
 
     def ready(self):
         try:
-            from ml.recommendation.service_enhanced import EnhancedRecommendationService
-            
-            # Pre-load the model at startup
-            service = EnhancedRecommendationService.get_instance()
-            service.load_model()
-            
-            print("Recommendation model pre-loaded successfully")
+            from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
+
+            service = LSTMServiceSigmoid.get_instance()
+            service.load_model() 
             
         except Exception as e:
             print(f"Could not pre-load recommendation model: {e}")
