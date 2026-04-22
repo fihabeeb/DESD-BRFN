@@ -8,6 +8,9 @@ import pickle
 import datetime
 import logging
 
+from django.db.models import Window, F
+from django.db.models.functions import RowNumber
+
 logger = logging.getLogger(__name__)
 
 from orders.models import OrderItem, OrderPayment
@@ -30,14 +33,43 @@ def extract_temporal_features(timestamp: datetime.datetime):
 #  Data extraction from DB (with order grouping)
 # ------------------------------------------------------------
 def get_user_orders_with_products():
+    '''
+    quantity ignored.
+    user_id : (order_num, datetime, products in order)
+    1 : (664, datetime.datetime(2026, 3, 14, 10, 12, 53, 931192, tzinfo=datetime.timezone.utc), [42, 43, 140, 271, 52, 183, 184])]
+    '''
     user_orders = defaultdict(list)
+    # order_items = OrderItem.objects.filter(
+    #     producer_order__payment__payment_status='paid'
+    # ).exclude(
+    #     producer_order__payment__user__customer_profile__id=1
+    # ).select_related(
+    #     'product', 'producer_order__payment__user'
+    # ).order_by('producer_order__payment__created_at')
+
     order_items = OrderItem.objects.filter(
         producer_order__payment__payment_status='paid'
     ).exclude(
         producer_order__payment__user__customer_profile__id=1
     ).select_related(
         'product', 'producer_order__payment__user'
-    ).order_by('producer_order__payment__created_at')
+    ).order_by('-producer_order__payment__created_at')
+
+    # order_items = OrderItem.objects.filter(
+    #     producer_order__payment__payment_status='paid'
+    # ).exclude(
+    #     producer_order__payment__user__customer_profile__id=1
+    # ).annotate(
+    #     rn=Window(
+    #         expression=RowNumber(),
+    #         partition_by=[F('producer_order__payment__user')],
+    #         order_by=F('producer_order__payment__created_at').desc()
+    #     )
+    # ).filter(
+    #     rn__gt=1  # Exclude the first row (latest) for each user
+    # ).select_related(
+    #     'product', 'producer_order__payment__user'
+    # ).order_by('producer_order__payment__created_at')
 
     current_user = None
     current_order = None
@@ -184,11 +216,11 @@ def encode_users(user_ids):
 #  Training function
 # ------------------------------------------------------------
 def train_sigmoid_lstm(
-    max_seq_len=8,
+    max_seq_len=5,
     batch_size=32,
     epochs=25,
     test_size=0.2,
-    top_k_products=200,
+    top_k_products=164, # half of db products
     save_model=True,
     model_save_path="ml/recommendation/final/sigmoid_lstm.keras",
     mappings_save_path="ml/recommendation/final/sigmoid_mappings.pkl"
@@ -205,6 +237,8 @@ def train_sigmoid_lstm(
     user_orders = get_user_orders_with_products()
     if not user_orders:
         raise ValueError("No user orders found.")
+    
+    avg_basket()
 
     # 2. Limit to top K products
     print(f"\n[2/6] Selecting top {top_k_products} most frequent products...")
@@ -265,15 +299,32 @@ def train_sigmoid_lstm(
     )(product_input)
 
     combined = keras.layers.Concatenate(axis=-1)([prod_embed, time_input])
-    lstm_out = keras.layers.LSTM(64, dropout=0.2, return_sequences=False, name='lstm')(combined)
+
+    # may consider stack lstm tho requires more time during training. 
+    # results are similar therefore, i decided to just stick with 1 lstm + attention layer. 
+    lstm_out = keras.layers.LSTM(64, dropout=0.2, return_sequences=True, name='lstm')(combined)
+    # lstm_out = keras.layers.LSTM(32, dropout=0.3, return_sequences=True, name='lstm1')(lstm_out)
+
+    attention = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32, name='attention')(lstm_out, lstm_out)
+    # attention_pooled = keras.layers.GlobalAveragePooling1D()(attention)
+
+    # bias to latest product purchase.
+    recency_weights = tf.constant([0.1, 0.15, 0.2, 0.25, 0.3], dtype=tf.float32)
+    weighted_attention = attention * recency_weights[tf.newaxis, :, tf.newaxis]
+    attention_pooled = keras.layers.GlobalAveragePooling1D()(weighted_attention)
 
     user_embed = keras.layers.Embedding(input_dim=num_users, output_dim=16, name='user_emb')(user_input)
     user_flat = keras.layers.Flatten()(user_embed)
+    # user_flat = keras.layers.Dropout(0.8)(user_flat)
 
-    merged = keras.layers.Concatenate()([lstm_out, user_flat])
+
+    # if not using attention layer, uncomment the other option
+    merged = keras.layers.Concatenate()([attention_pooled, user_flat])
+    # merged = keras.layers.Concatenate()([lstm_out, user_flat])
+
     dense = keras.layers.Dense(32, activation='relu')(merged)
-    # dense = keras.layers.BatchNormalization()(dense)
-    dropout = keras.layers.Dropout(0.2)(dense)
+    # dense = keras.layers.BatchNormalization()(dense) # DONT USE BATCH NORMALIZATION ( it will make all predictions generic/universal)
+    dropout = keras.layers.Dropout(0.1)(dense)
 
     # Sigmoid output for multi-label
     output_size = max(product_to_idx.values()) + 1
@@ -286,9 +337,9 @@ def train_sigmoid_lstm(
     
     model.compile(
         optimizer='adam',
+        # loss=focal_loss(),
         # loss='binary_crossentropy',
         loss=tf.keras.losses.BinaryFocalCrossentropy(),
-        # loss=weighted_binary_crossentropy(weight),
         metrics=['binary_accuracy', tf.keras.metrics.Precision(top_k=5), tf.keras.metrics.Recall(top_k=5)]
     )
     model.summary()
@@ -308,7 +359,7 @@ def train_sigmoid_lstm(
         epochs=epochs,
         validation_data=([X_prod_val, X_time_val, user_val], y_val),
         callbacks=callbacks,
-        verbose=1
+        verbose=1,
     )
 
     # Evaluate
@@ -372,9 +423,17 @@ def recommend_next_items_sigmoid(
     if len(user_history_products) > max_seq_len:
         user_history_products = user_history_products[-max_seq_len:]
         user_history_timestamps = user_history_timestamps[-max_seq_len:]
+
+    user_history_products = pad_sequences(
+        [user_history_products], 
+        maxlen=max_seq_len, 
+        padding='pre',  # pad at beginning (most common for sequences)
+        truncating='pre',  # truncate from beginning
+        value=0  # padding value for product indices
+    )[0]
+
     pad_len = max_seq_len - len(user_history_products)
     if pad_len > 0:
-        user_history_products = [0] * pad_len + user_history_products
         zero_feat = [0.0] * 5
         user_history_timestamps = [zero_feat] * pad_len + user_history_timestamps
 
@@ -413,3 +472,48 @@ def recommend_next_items_sigmoid(
     # Return list of (product_id, normalized_score)
     return [(idx_to_product[i], normalized_scores[idx]) for idx, i in enumerate(top_indices)]
 
+
+# =========
+# custom loss function (not in use)
+# =========
+from keras.saving import register_keras_serializable
+register_keras_serializable('Custom', name='focal_loss')
+def focal_loss(gamma=2.0, alpha=0.5):  # alpha small because positives are rare
+    def focal_loss_fn(y_true, y_pred):
+        y_pred = tf.clip_by_value(y_pred, 1e-7, 1 - 1e-7)
+        
+        ce = -y_true * tf.math.log(y_pred) - (1 - y_true) * tf.math.log(1 - y_pred)
+        pt = y_true * y_pred + (1 - y_true) * (1 - y_pred)
+        modulating_factor = tf.pow(1 - pt, gamma)
+        alpha_factor = y_true * alpha + (1 - y_true) * (1 - alpha)
+        
+        loss = alpha_factor * modulating_factor * ce
+        return tf.reduce_mean(loss)
+    return focal_loss_fn
+
+
+# =====
+# stats
+# =====
+def avg_basket():
+    # Get all paid orders with their total item count (across all producers)
+    orders = OrderPayment.objects.filter(
+        payment_status='paid'
+    ).annotate(
+        # Sum up quantities OR count unique product lines – you decide
+        total_quantity=Sum('producer_orders__order_items__quantity'),
+        unique_products=Count('producer_orders__order_items__product', distinct=True),
+        item_lines=Count('producer_orders__order_items')  # each OrderItem row
+    )
+    
+    # Average basket size based on quantity (total units)
+    avg_quantity = orders.aggregate(avg=Avg('total_quantity'))['avg']
+    print(f"Average total quantity per order: {avg_quantity:.2f} units")
+    
+    # Average unique products per order
+    avg_unique = orders.aggregate(avg=Avg('unique_products'))['avg']
+    print(f"Average unique products per order: {avg_unique:.2f} products")
+    
+    # Average OrderItem rows (each product once, regardless of quantity)
+    avg_lines = orders.aggregate(avg=Avg('item_lines'))['avg']
+    print(f"Average product lines (rows) per order: {avg_lines:.2f}")

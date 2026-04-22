@@ -1,7 +1,7 @@
 import pickle
 import logging
 from products.models import Product
-from ml.recommendation.sigmoid_model import recommend_next_items_sigmoid
+from ml.recommendation.sigmoid_model import recommend_next_items_sigmoid, focal_loss
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,9 @@ class LSTMServiceSigmoid:
         try:
             from tensorflow.keras.models import load_model
 
-            self._model = load_model(model_path)#//, custom_objects={'loss': weighted_binary_crossentropy})
+            # self._model = load_model(model_path, custom_objects={'focal_loss_fn': focal_loss()})
+
+            self._model = load_model(model_path)
 
             with open(mappings_path, "rb") as f:
                 self._mappings = pickle.load(f)
@@ -99,7 +101,8 @@ class LSTMServiceSigmoid:
                 user_to_idx=self._user_to_idx,
                 max_seq_len=self._max_seq_len,
                 top_k=top_k,
-                other_token=self._other_token
+                other_token=self._other_token,
+                normalize=False,
             )
 
             # Fetch actual Product objects
