@@ -11,6 +11,11 @@ class ProductsConfig(AppConfig):
 
             service = LSTMServiceSigmoid.get_instance()
             service.load_model() 
+
+            # from ml.recommendation.service import LSTMSAttention
+
+            # service = LSTMSAttention.get_instance()
+            # service.load_model() 
             
         except Exception as e:
             print(f"Could not pre-load recommendation model: {e}")

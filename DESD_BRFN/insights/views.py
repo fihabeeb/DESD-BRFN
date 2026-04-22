@@ -44,14 +44,23 @@ def recommendation_insights(request):
                 producer_order__payment__payment_status="paid",
             )
             .select_related("product")
-            .order_by("producer_order__payment__created_at")
+            .order_by("-producer_order__payment__created_at")
         )
 
-        purchase_history = [item.product.id for item in items if item.product]
+        user_purchase_history = []  # List of (product_id, timestamp) tuples
+
+        for item in items:
+            # Get the timestamp from the payment
+            timestamp = item.producer_order.payment.created_at
+            
+            # Repeat product ID based on quantity, each with the same timestamp
+            for _ in range(item.quantity):
+                user_purchase_history.append((item.product.id, timestamp))
+
 
         service = LSTMServiceSigmoid()
         recommendations = service.get_recommendations(
-            customer_id, purchase_history, top_k=5
+            customer.user.id, user_purchase_history, top_k=5
         )
 
         context.update(
@@ -59,7 +68,7 @@ def recommendation_insights(request):
                 "customer": customer,
                 "purchase_history": items,
                 "recommendations": recommendations,
-                "sequence_used": purchase_history[-service.sequence_length :],
+                "sequence_used": user_purchase_history[-service._max_seq_len :],
             }
         )
 

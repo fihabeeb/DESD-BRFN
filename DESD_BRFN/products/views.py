@@ -123,6 +123,7 @@ def product_list(request):
     if request.user.is_authenticated:
         try:
             from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
+
             
             # Get user's purchase history
             from orders.models import OrderItem, OrderPayment
@@ -134,8 +135,11 @@ def product_list(request):
             
             # Extract product IDs from order items
             order_items = OrderItem.objects.filter(
-                producer_order__payment__user=request.user
-            ).select_related('product').order_by('producer_order__payment__created_at')
+                producer_order__payment__user=request.user,
+                producer_order__payment__payment_status="paid",
+            ).select_related('product').order_by('-producer_order__payment__created_at')
+            # for order in order_items:
+                # print(order.producer_order.payment.created_at)
             
             user_purchase_history = []  # List of (product_id, timestamp) tuples
 
@@ -148,7 +152,7 @@ def product_list(request):
                     user_purchase_history.append((item.product.id, timestamp))
 
             # Sort by timestamp to ensure chronological order
-            user_purchase_history.sort(key=lambda x: x[1])
+            # user_purchase_history.sort(key=lambda x: x[1])
             
             # Get recommendations if user has purchase history
             if user_purchase_history:
@@ -158,6 +162,12 @@ def product_list(request):
                     purchase_history_with_timestamps=user_purchase_history,
                     top_k=6  # Get top 6 recommendations
                 )
+                # recommendation_service = LSTMSAttention()
+                # recommended_products = recommendation_service.get_recommendations(
+                #     user_id=request.user.id,
+                #     purchase_history_with_timestamps=user_purchase_history,
+                #     top_k=6  # Get top 6 recommendations
+                # )
                 
                 # Log for debugging (optional)
                 print(f"Generated {len(recommended_products)} recommendations for user {request.user.id}")
