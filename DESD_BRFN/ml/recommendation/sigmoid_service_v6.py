@@ -138,7 +138,7 @@ class LSTMServiceV6:
             
             while len(context_products) < max_order_history:
                 context_products = [[0] * max_items_per_order] + context_products
-                context_timestamps = [[0.0] * 5] + context_timestamps
+                context_timestamps = [[0, 0]] + context_timestamps
             
             product_seq = [p for order_prods in context_products for p in order_prods]
             time_seq = context_timestamps
@@ -221,13 +221,8 @@ class LSTMServiceV6:
     def _extract_temporal_features(self, timestamp):
         """Extract temporal features from datetime."""
         day_of_week = timestamp.weekday()
-        day_sin = np.sin(2 * np.pi * day_of_week / 7.0)
-        day_cos = np.cos(2 * np.pi * day_of_week / 7.0)
-        month = timestamp.month
-        month_sin = np.sin(2 * np.pi * month / 12.0)
-        month_cos = np.cos(2 * np.pi * month / 12.0)
-        is_weekend = 1.0 if day_of_week >= 5 else 0.0
-        return [day_sin, day_cos, month_sin, month_cos, is_weekend]
+        is_weekend = 1 if day_of_week >= 5 else 0
+        return [day_of_week, is_weekend]
     
     def _apply_intelligent_scoring(self, purchase_history, model_probs, idx_to_product, purchase_counts):
         """

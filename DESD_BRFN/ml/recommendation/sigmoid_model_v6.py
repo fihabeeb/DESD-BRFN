@@ -29,7 +29,7 @@ BATCH_SIZE = 64
 EPOCHS = 30
 LEARNING_RATE = 1e-3
 MAX_ORDER_HISTORY = 15
-MAX_ITEMS_PER_ORDER = 10
+MAX_ITEMS_PER_ORDER = 5
 NUM_CLASSES = 162
 NUM_NEGATIVES = 20
 
@@ -40,13 +40,8 @@ CATEGORY_NAMES = [
 
 def extract_temporal_features(timestamp):
     day_of_week = timestamp.weekday()
-    day_sin = np.sin(2 * np.pi * day_of_week / 7.0)
-    day_cos = np.cos(2 * np.pi * day_of_week / 7.0)
-    month = timestamp.month
-    month_sin = np.sin(2 * np.pi * month / 12.0)
-    month_cos = np.cos(2 * np.pi * month / 12.0)
-    is_weekend = 1.0 if day_of_week >= 5 else 0.0
-    return [day_sin, day_cos, month_sin, month_cos, is_weekend]
+    is_weekend = 1 if day_of_week >= 5 else 0
+    return [day_of_week, is_weekend]
 
 def get_user_orders():
     user_orders = defaultdict(list)
@@ -115,7 +110,7 @@ def build_sequences_with_hard_negatives(
                 ctx_times.append(extract_temporal_features(ts))
             while len(ctx_prods) < max_hist:
                 ctx_prods = [[0]*max_items] + ctx_prods
-                ctx_times = [[0.0]*5] + ctx_times
+                ctx_times = [[0, 0]] + ctx_times
             flat = [p for o in ctx_prods for p in o]
             
             pos_idx = [product_to_idx.get(p, other_token) for p in tgt[2] if p in product_to_idx]
@@ -152,7 +147,7 @@ def build_sequences_with_hard_negatives(
 
 def build_model(num_classes=162, seq_len=150, use_cluster=True, n_clusters=8, dropout=0.1):
     p_in = keras.Input(shape=(seq_len,), name="product_input")
-    t_in = keras.Input(shape=(MAX_ORDER_HISTORY, 5), name="time_input")
+    t_in = keras.Input(shape=(MAX_ORDER_HISTORY, 2), name="time_input")
     c_in = keras.Input(shape=(1,), name="user_cluster")
     
     emb = layers.Embedding(num_classes + 2, 64, mask_zero=True)(p_in)
