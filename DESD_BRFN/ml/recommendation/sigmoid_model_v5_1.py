@@ -29,7 +29,7 @@ EPOCHS = 30
 LEARNING_RATE = 1e-3
 MAX_ORDER_HISTORY = 15
 MAX_ITEMS_PER_ORDER = 5
-VOCAB_SIZE = 162
+VOCAB_SIZE = 200
 NUM_NEGATIVES = 20
 NUM_CLASSES = 160
 DROPOUT = 0.2
@@ -134,9 +134,10 @@ def build_model(num_classes=160, seq_len=15, items_per_order=5,
     last_hidden = layers.Reshape((1, lstm_units))(lstm_out[:, -1, :])
     
     attn_scores = layers.Dot(axes=(2, 2))([last_hidden, lstm_out])
-    attn_weights = layers.Softmax()(attn_scores)
-    attn_weights_squeezed = layers.Reshape((seq_len,))(attn_weights)
-    context = layers.Dot(axes=(1, 1))([attn_weights_squeezed, lstm_out])
+    attn_weights = layers.Softmax(name="attention")(attn_scores)
+    attn_weights_flat = layers.Reshape((seq_len,), name="attention_flat")(attn_weights)
+    
+    context = layers.Dot(axes=(1, 1))([attn_weights_flat, lstm_out])
     context = layers.Dropout(dropout)(context)
     
     c_emb = layers.Embedding(n_clusters + 1, 8)(user_cluster)
@@ -148,13 +149,22 @@ def build_model(num_classes=160, seq_len=15, items_per_order=5,
     x = layers.Dense(32, activation="relu")(x)
     x = layers.Dropout(dropout * 0.5)(x)
     
-    logits = layers.Dense(num_classes + 2, activation=None, name="output")(x)
+    logits = layers.Dense(num_classes + 2, activation=None, name="logits")(x)
     
-    model = keras.Model(inputs=[product_ids, temporal, user_cluster], outputs=logits)
+    model = keras.Model(
+        inputs=[product_ids, temporal, user_cluster], 
+        outputs=[logits, attn_weights_flat]
+    )
     model.compile(
         optimizer=keras.optimizers.Adam(LEARNING_RATE),
-        loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=[keras.metrics.SparseTopKCategoricalAccuracy(k=5)]
+        loss={
+            "logits": keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            "attention_flat": None
+        },
+        # metrics={
+        #     "logits": [keras.metrics.Precision(), keras.metrics.Recall()],
+        #     "attention_flat": None
+        # }
     )
     return model
 
@@ -224,23 +234,28 @@ def train_v5_1():
     c_va = np.array([[u2c.get(uids[i], 0) for i in va_idx]]).T
     
     print("\n[5] Training LSTM + Attention...")
-    model.fit([Xp_tr, Xt_tr, c_tr], y_tr,
-            batch_size=BATCH_SIZE, epochs=EPOCHS,
-            validation_data=([Xp_va, Xt_va, c_va], y_va),
-            callbacks=[keras.callbacks.EarlyStopping(
-                "val_loss", 
-                patience=5, 
-                min_delta=0.01,
-                restore_best_weights=True
-            )],
-            verbose=1)
+    model.fit([Xp_tr, Xt_tr, c_tr], 
+          {"logits": y_tr, "attention_flat": np.zeros((len(y_tr), 15), dtype=np.float32)},
+          batch_size=BATCH_SIZE, epochs=EPOCHS,
+          validation_data=([Xp_va, Xt_va, c_va], 
+                           {"logits": y_va, "attention_flat": np.zeros((len(y_va), 15), dtype=np.float32)}),
+          callbacks=[keras.callbacks.EarlyStopping(
+              "val_loss", 
+              patience=5, 
+              min_delta=0.01,
+              restore_best_weights=True
+          )],
+          verbose=1)
     
     print("\n" + "=" * 50)
     print("EVALUATION")
     print("=" * 50)
     
-    logits = model.predict([Xp_va, Xt_va, c_va], verbose=0)
+    logits, attention = model.predict([Xp_va, Xt_va, c_va], verbose=0)
     probs = tf.nn.softmax(logits, axis=-1).numpy()
+    attn_weights = attention  # already softmax from model
+    
+    print(f"\nSample attention weights (first 5): {attn_weights[0, :5]}")
     
     hit1 = hit3 = hit5 = hit10 = 0
     total = len(y_va)
