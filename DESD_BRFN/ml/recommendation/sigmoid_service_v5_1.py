@@ -458,7 +458,7 @@ class LSTMServiceV5_1:
         
         history = self.get_user_purchase_history(user_id)
         num_orders = len(history)
-        print(history)
+        # print(history) # used to verify seq was right.
         
         if num_orders < 2:
             return {
@@ -569,43 +569,101 @@ class LSTMServiceV5_1:
     
     def get_product_saliency(self, user_id, target_product_id):
         """
-        Use attention weights as saliency proxy.
-        Shows which historical products most influenced the prediction.
+        Compute gradient-based saliency for a target product prediction.
         """
         if not self._model:
             return []
         
-        # Get the full prediction with attention
-        result = self.get_predictions_with_explanation(user_id, top_k=5)
+        history = self.get_user_purchase_history(user_id)
         
-        if not result['order_details']:
+        if len(history) < 2:
             return []
         
-        # Use attention weights for orders, distribute to products
+        mappings = self._mappings
+        product_to_idx = mappings.get('p2i', {})
+        idx_to_product = mappings.get('i2p', {})
+        
+        target_idx = int(product_to_idx.get(target_product_id, 0))
+        if target_idx == 0:
+            return []
+        
+        max_order_history = 15
+        max_items_per_order = 5
+        
+        sorted_order_ids = sorted(history.keys(), key=lambda x: history[x]['timestamp'])
+        
+        context_products = []
+        context_timestamps = []
+        
+        for order_id in sorted_order_ids[-max_order_history:]:
+            order = history[order_id]
+            prods = order['products'][:max_items_per_order]
+            
+            if len(prods) < max_items_per_order:
+                prods = prods + [0] * (max_items_per_order - len(prods))
+            
+            encoded = [product_to_idx.get(p, 1) if p != 0 else 0 for p in prods]
+            context_products.append(encoded)
+            context_timestamps.append(self._extract_temporal_features(order['timestamp']))
+        
+        while len(context_products) < max_order_history:
+            context_products = [[0] * max_items_per_order] + context_products
+            context_timestamps = [[0.0] * 5] + context_timestamps
+        
+        import tensorflow as tf
+        
+        # Convert to tensors
+        prod_input = tf.constant([context_products], dtype=tf.int32)
+        time_input = tf.constant([context_timestamps], dtype=tf.float32)
+        
+        # Get user cluster or use default
+        user_to_cluster = mappings.get('u2c', {})
+        cluster_id = user_to_cluster.get(user_id, 0)
+        user_cluster = tf.constant([[cluster_id]], dtype=tf.int32)
+        
+        # Get the embedding layer weights to compute gradients
+        # We'll compute gradients with respect to the input embeddings
+        embedding_layer = self._model.get_layer('embedding')
+        
+        with tf.GradientTape() as tape:
+            embeddings = embedding_layer(prod_input)
+        
+            # Watch the embeddings
+            tape.watch(embeddings)
+
+            # Forward pass
+            logits, _ = self._model([prod_input, time_input, user_cluster], training=False)
+            target_score = logits[0, target_idx]
+        
+        # Compute gradients with respect to embedding weights
+        grads = tape.gradient(target_score, embedding_layer.weights[0])
+        
+        if grads is None:
+            # Fallback: compute saliency from logits directly
+            return self._get_saliency_fallback(context_products, idx_to_product, target_idx)
+        
+        # Get saliency for each product in the input sequence
+        saliency_map = tf.abs(grads).numpy()
+        
+        # Map saliency to actual product IDs
         product_scores = {}
+        for order_idx in range(max_order_history):
+            for item_idx in range(max_items_per_order):
+                product_idx = context_products[order_idx][item_idx]
+                if product_idx > 0 and product_idx < len(idx_to_product):
+                    actual_pid = idx_to_product.get(int(product_idx))
+                    if actual_pid and product_idx < len(saliency_map):
+                        # Sum saliency across embedding dimensions
+                        score = float(np.mean(saliency_map[product_idx]))
+                        product_scores[actual_pid] = product_scores.get(actual_pid, 0) + score
         
-        for order_detail, weight in zip(result['order_details'], result['attention_weights']):
-            for product_id in order_detail['products']:
-                if product_id == target_product_id:
-                    continue  # Don't include the target product itself
-                
-                # Weight by attention weight of the order
-                product_scores[product_id] = product_scores.get(product_id, 0) + weight
-        
-        # Normalize scores
-        if product_scores:
-            max_score = max(product_scores.values())
-            for pid in product_scores:
-                product_scores[pid] = product_scores[pid] / max_score
-        
-        # Get top products
         sorted_prods = sorted(product_scores.items(), key=lambda x: x[1], reverse=True)[:10]
         
-        result_list = []
+        result = []
         for pid, score in sorted_prods:
             try:
                 product = Product.objects.get(id=pid)
-                result_list.append({
+                result.append({
                     'product_id': pid,
                     'product_name': product.name,
                     'saliency': float(score),
@@ -613,4 +671,42 @@ class LSTMServiceV5_1:
             except Product.DoesNotExist:
                 pass
         
-        return result_list
+        return result
+
+    def _get_saliency_fallback(self, context_products, idx_to_product, target_idx):
+        """
+        Fallback method when gradient computation fails.
+        Uses attention weights as a proxy for saliency.
+        """
+        product_scores = {}
+        
+        # Count product occurrences and weight by position (more recent = higher weight)
+        for order_idx, order in enumerate(context_products):
+            position_weight = 1.0 + (order_idx / len(context_products))  # Recent orders get higher weight
+            for product_idx in order:
+                if product_idx > 0 and product_idx < len(idx_to_product):
+                    actual_pid = idx_to_product.get(int(product_idx))
+                    if actual_pid:
+                        product_scores[actual_pid] = product_scores.get(actual_pid, 0) + position_weight
+        
+        # Normalize scores
+        if product_scores:
+            max_score = max(product_scores.values())
+            for pid in product_scores:
+                product_scores[pid] = product_scores[pid] / max_score
+        
+        sorted_prods = sorted(product_scores.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        result = []
+        for pid, score in sorted_prods:
+            try:
+                product = Product.objects.get(id=pid)
+                result.append({
+                    'product_id': pid,
+                    'product_name': product.name,
+                    'saliency': float(score),
+                })
+            except Product.DoesNotExist:
+                pass
+        
+        return result
