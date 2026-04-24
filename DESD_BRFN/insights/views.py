@@ -7,10 +7,9 @@ from django.contrib import messages
 from django.shortcuts import render
 
 from mainApp.models import CustomerProfile
-from ml import predictor
-from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
+from ml.recommendation.sigmoid_service_v5_1 import LSTMServiceV5_1
 from orders.models import OrderItem
-from products.models import Product  # kept in case you use it later
+from products.models import Product
 from .gradcam import generate_gradcam, overlay_heatmap, to_base64
 
 
@@ -23,7 +22,8 @@ def insights_index(request):
 
 def recommendation_insights(request):
     """
-    XAI page for explaining the recommendation process.
+    XAI page for V5.1 recommendation transparency.
+    Shows recommendations + attention weights + product saliency.
     """
     context = {}
 
@@ -36,41 +36,31 @@ def recommendation_insights(request):
             messages.error(request, "Customer not found.")
             return render(request, "admin/insights/recommendation.html", context)
 
-        # Fetch purchase history
-        items = (
-            OrderItem.objects
-            .filter(
-                producer_order__payment__user=customer.user,
-                producer_order__payment__payment_status="paid",
-            )
-            .select_related("product")
-            .order_by("-producer_order__payment__created_at")
+        service = LSTMServiceV5_1()
+        service.load_model()
+
+        result = service.get_predictions_with_explanation(
+            user_id=customer.user.id,
+            top_k=100
         )
 
-        user_purchase_history = []  # List of (product_id, timestamp) tuples
+        salient_products = []
+        if result.get('recommendations'):
+            top_rec = result['recommendations'][0]
+            if hasattr(top_rec.get('product'), 'id'):
+                salient_products = service.get_product_saliency(
+                    customer.user.id,
+                    top_rec['product'].id
+                )
 
-        for item in items:
-            # Get the timestamp from the payment
-            timestamp = item.producer_order.payment.created_at
-            
-            # Repeat product ID based on quantity, each with the same timestamp
-            for _ in range(item.quantity):
-                user_purchase_history.append((item.product.id, timestamp))
-
-
-        service = LSTMServiceSigmoid()
-        recommendations = service.get_recommendations(
-            customer.user.id, user_purchase_history, top_k=5
-        )
-
-        context.update(
-            {
-                "customer": customer,
-                "purchase_history": items,
-                "recommendations": recommendations,
-                "sequence_used": user_purchase_history[-service._max_seq_len :],
-            }
-        )
+        context.update({
+            "customer": customer,
+            "recommendations": result.get('recommendations', []),
+            "attention_weights": result.get('attention_weights', []),
+            "order_details": result.get('order_details', []),
+            "num_orders": result.get('num_orders', 0),
+            "salient_products": salient_products,
+        })
 
     return render(request, "admin/insights/recommendation.html", context)
 

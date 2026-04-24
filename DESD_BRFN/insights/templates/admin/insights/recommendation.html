@@ -1,10 +1,10 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
-<h1>Recommendation Process Insights</h1>
+<h1>Recommendation Process Insights (V5.1)</h1>
 
 <form method="POST">
     {% csrf_token %}
-    <label>Select Customer:</label>
+    <label>Select Customer ID:</label>
     <input type="number" name="customer_id" placeholder="Customer ID" required>
     <button type="submit" class="button">View Insights</button>
 </form>
@@ -12,22 +12,59 @@
 {% if customer %}
 <hr>
 <h2>Customer: {{ customer }}</h2>
+<p>Number of orders: {{ num_orders }}</p>
 
-<h3>Purchase History</h3>
-<ul>
-    {% for item in purchase_history %}
-    <li>{{ item.product.name }} ({{ item.quantity }})</li>
-    {% endfor %}
-</ul>
-
-<h3>Sequence Used by Model</h3>
-<p>{{ sequence_used }}</p>
-
-<h3>Top Recommendations</h3>
-<ul>
+<h3>Model Predictions (Top 5)</h3>
+<table>
+    <tr>
+        <th>Rank</th>
+        <th>Product</th>
+        <th>Score</th>
+    </tr>
     {% for rec in recommendations %}
-    <li>{{ rec.product.name }} — Confidence: {{ rec.confidence }}</li>
+    <tr>
+        <td>{{ rec.rank }}</td>
+        <td>{{ rec.product.name }}</td>
+        <td>{{ rec.score|floatformat:4 }}</td>
+    </tr>
     {% endfor %}
-</ul>
+</table>
+
+<h3>Attention Weights (Order Importance)</h3>
+<p>Higher weight = model focuses more on that order for prediction.</p>
+<table>
+    <tr>
+        <th>Order (Oldest → Newest)</th>
+        <th>Date</th>
+        <th>Weight</th>
+        <th>Products</th>
+    </tr>
+    {% for order in order_details %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ order.date }}</td>
+        <td>{{ order.weight|floatformat:4 }}</td>
+        <td>{{ order.products|join:", " }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h3>Product Saliency (Why Top Prediction?)</h3>
+<p>These products in history most influenced the top recommendation:</p>
+<table>
+    <tr>
+        <th>Rank</th>
+        <th>Product</th>
+        <th>Saliency Score</th>
+    </tr>
+    {% for sp in salient_products %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ sp.product_name }}</td>
+        <td>{{ sp.saliency|floatformat:4 }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
 {% endif %}
 {% endblock %}
