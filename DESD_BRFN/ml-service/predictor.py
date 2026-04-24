@@ -4,9 +4,10 @@ import pickle
 import numpy as np
 from PIL import Image
 
-MODEL_PATH = os.environ.get("ML_MODEL_PATH", "ml/best_model.keras")
-ENCODER_PATH = os.environ.get("ML_ENCODER_PATH", "ml/encoders.pkl")
-IMG_SIZE = (128, 128)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.environ.get("ML_MODEL_PATH", os.path.join(_HERE, "ml", "best_model.keras"))
+ENCODER_PATH = os.environ.get("ML_ENCODER_PATH", os.path.join(_HERE, "ml", "encoders.pkl"))
+IMG_SIZE = (224, 224)
 
 _model = None
 _encoders = None

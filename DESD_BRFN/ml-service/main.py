@@ -5,12 +5,13 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List, Optional
 
+import cv2
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile, Form
 from pydantic import BaseModel
 
 import predictor
-from gradcam import generate_gradcam, overlay_heatmap, to_base64
+from gradcam import generate_gradcam, overlay_heatmap, colorize_heatmap, to_base64
 from recommendation.sigmoid_service import RecommendationService
 
 logging.basicConfig(level=logging.INFO)
@@ -71,9 +72,11 @@ async def predict_quality(image: UploadFile = File(...)):
         heatmap = generate_gradcam(model, img_input, cond_index)
         overlay = overlay_heatmap(heatmap, np.array(img_resized))
 
+        img_arr = np.array(img_resized)
+        heatmap_large = cv2.resize(heatmap, (img_arr.shape[1], img_arr.shape[0]), interpolation=cv2.INTER_LINEAR)
         result["gradcam"] = {
-            "original": to_base64(np.array(img_resized)),
-            "heatmap": to_base64((heatmap * 255).astype("uint8")),
+            "original": to_base64(img_arr),
+            "heatmap": to_base64(colorize_heatmap(heatmap_large)),
             "overlay": to_base64(overlay),
         }
     except Exception as e:
