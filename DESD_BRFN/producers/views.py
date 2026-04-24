@@ -492,7 +492,15 @@ def quality_scan_view(request):
 
         try:
             from ml.predictor import predict
+            from interactions.utils import log_interaction
+            from interactions.models import UserInteraction
             prediction = predict(image)
+            log_interaction(request, UserInteraction.QUALITY_SCAN, metadata={
+                'overall_score': prediction.get('overall_score'),
+                'grade': prediction.get('grade'),
+                'breakdown': prediction.get('breakdown'),
+                'labels': prediction.get('labels'),
+            })
             return JsonResponse({'success': True, **prediction})
 
         except FileNotFoundError as e:

@@ -158,9 +158,14 @@ def product_list(request):
                     purchase_history_with_timestamps=user_purchase_history,
                     top_k=6  # Get top 6 recommendations
                 )
-                
-                # Log for debugging (optional)
-                print(f"Generated {len(recommended_products)} recommendations for user {request.user.id}")
+
+                if recommended_products:
+                    from interactions.utils import log_interaction
+                    from interactions.models import UserInteraction
+                    log_interaction(request, UserInteraction.RECOMMENDATION_SERVED, metadata={
+                        'product_ids': [r['product'].id for r in recommended_products],
+                        'count': len(recommended_products),
+                    })
 
         except Exception as e:
             print(f"Recommendation error for user {request.user.id}: {e}")

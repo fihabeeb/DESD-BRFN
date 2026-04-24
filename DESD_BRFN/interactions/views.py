@@ -1,8 +1,22 @@
 import csv
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from .models import UserInteraction
+from .utils import log_interaction
+
+
+def recommendation_click(request, product_id):
+    """
+    Log a recommendation click then redirect to the product detail page.
+    Linked from recommendation cards in the product list so clicks are tracked.
+    """
+    from products.models import Product
+    product = get_object_or_404(Product, id=product_id)
+    log_interaction(request, UserInteraction.RECOMMENDATION_CLICKED, product=product)
+    return HttpResponseRedirect(reverse('mainApp:products:product_detail', args=[product_id]))
 
 
 @staff_member_required

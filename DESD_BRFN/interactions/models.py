@@ -6,12 +6,16 @@ class UserInteraction(models.Model):
     ADDED_TO_CART = 'added_to_cart'
     PURCHASED = 'purchased'
     RECOMMENDATION_CLICKED = 'recommendation_clicked'
+    QUALITY_SCAN = 'quality_scan'
+    RECOMMENDATION_SERVED = 'recommendation_served'
 
     INTERACTION_TYPES = [
         (PRODUCT_VIEWED, 'Product Viewed'),
         (ADDED_TO_CART, 'Added to Cart'),
         (PURCHASED, 'Purchased'),
         (RECOMMENDATION_CLICKED, 'Recommendation Clicked'),
+        (QUALITY_SCAN, 'Quality Scan'),
+        (RECOMMENDATION_SERVED, 'Recommendation Served'),
     ]
 
     user = models.ForeignKey(
