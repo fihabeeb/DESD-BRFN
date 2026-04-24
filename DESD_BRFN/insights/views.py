@@ -19,7 +19,6 @@ def insights_index(request):
     """
     return render(request, "admin/insights/index.html")
 
-
 def recommendation_insights(request):
     """
     XAI page for V5.1 recommendation transparency.
@@ -39,9 +38,10 @@ def recommendation_insights(request):
         service = LSTMServiceV5_1()
         service.load_model()
 
+        TOP_K = 10
         result = service.get_predictions_with_explanation(
             user_id=customer.user.id,
-            top_k=100
+            top_k=TOP_K
         )
 
         salient_products = []
@@ -53,9 +53,15 @@ def recommendation_insights(request):
                     top_rec['product'].id
                 )
 
+        recommendations = result.get('recommendations', [])
+        # Add display_score (percentage) for the score bars
+        for rec in recommendations:
+            rec['display_score'] = rec['score'] * 100
+
         context.update({
             "customer": customer,
-            "recommendations": result.get('recommendations', []),
+            "TOP_K_used": TOP_K,
+            "recommendations": recommendations,
             "attention_weights": result.get('attention_weights', []),
             "order_details": result.get('order_details', []),
             "num_orders": result.get('num_orders', 0),

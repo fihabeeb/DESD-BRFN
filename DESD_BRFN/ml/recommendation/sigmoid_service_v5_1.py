@@ -560,6 +560,8 @@ class LSTMServiceV5_1:
                 'products': order['products']
             })
         
+        order_details = sorted(order_details, key=lambda x: x['date'], reverse=True)
+
         return {
             'recommendations': recommended,
             'attention_weights': attn_weights,

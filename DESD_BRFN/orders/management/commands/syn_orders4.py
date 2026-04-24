@@ -16,6 +16,8 @@ from orders.models import OrderPayment, OrderProducer, OrderItem
 from collections import defaultdict
 import random
 
+DEFAULT_SEED = 42
+
 # Category-based co-purchase relationships
 CATEGORY_CO_PURCHASE = {
     # Dairy pairs well with many things
@@ -24,13 +26,13 @@ CATEGORY_CO_PURCHASE = {
         'tea': 0.3,          # Milk in tea
         'grains': 0.35,      # Cheese with pasta/bread
         'fruits': 0.2,       # Yogurt with berries
-        'herbs_spices': 0.15 # Cheese with herbs
+        'Herbs Spices': 0.15 # Cheese with herbs
     },
     
     # Meat pairs with vegetables and herbs
     'meat': {
         'vegetables': 0.5,   # Meat with veggies
-        'herbs_spices': 0.3, # Seasoning for meat
+        'Herbs Spices': 0.3, # Seasoning for meat
         'grains': 0.25,      # Meat with rice/pasta
         'mushrooms': 0.2     # Meat with mushrooms
     },
@@ -39,14 +41,14 @@ CATEGORY_CO_PURCHASE = {
     'vegetables': {
         'meat': 0.4,         # Veggies with meat
         'dairy': 0.25,       # Veggies with cheese
-        'herbs_spices': 0.35, # Seasoning for veggies
+        'Herbs Spices': 0.35, # Seasoning for veggies
         'grains': 0.2        # Veggies with rice/pasta
     },
     
     # Fruits pair with dairy and honey
     'fruits': {
         'dairy': 0.4,        # Fruit with yogurt/cream
-        'honey_bee': 0.3,    # Fruit with honey
+        'Honey Bee': 0.3,    # Fruit with honey
         'snacks': 0.2,       # Dried fruits
         'beverages': 0.25    # Fruit juices
     },
@@ -57,19 +59,19 @@ CATEGORY_CO_PURCHASE = {
         'meat': 0.3,         # Rice with chicken
         'vegetables': 0.3,   # Pasta with veggies
         'preserves': 0.2,    # Bread with jam
-        'herbs_spices': 0.15  # Seasoning
+        'Herbs Spices': 0.15  # Seasoning
     },
     
     # Beverages (tea, coffee, juice)
     'beverages': {
         'dairy': 0.3,        # Milk in coffee/tea
-        'honey_bee': 0.35,   # Honey in tea
+        'Honey Bee': 0.35,   # Honey in tea
         'fruits': 0.2,       # Fruit juice combinations
-        'herbs_spices': 0.15  # Herbal teas
+        'Herbs Spices': 0.15  # Herbal teas
     },
     
     # Herbs & Spices - almost always paired
-    'herbs_spices': {
+    'Herbs Spices': {
         'meat': 0.5,         # Seasoning meat
         'vegetables': 0.5,   # Seasoning veggies
         'grains': 0.3,       # Seasoning rice/pasta
@@ -94,7 +96,7 @@ CATEGORY_CO_PURCHASE = {
     },
     
     # Honey & Bee products
-    'honey_bee': {
+    'Honey Bee': {
         'beverages': 0.4,    # Honey in tea
         'dairy': 0.3,        # Honey with yogurt
         'fruits': 0.25,      # Honey with fruit
@@ -205,9 +207,20 @@ def get_product_by_name(products, name):
 class Command(BaseCommand):
     help = "Generate realistic synthetic orders without artificial patterns"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--seed',
+            type=int,
+            default=DEFAULT_SEED,
+            help='Random seed for reproducible data generation (default: 42)'
+        )
+
     def handle(self, *args, **kwargs):
-        customers = list(CustomerProfile.objects.all())
-        products = list(Product.objects.filter(availability='available'))
+        seed = kwargs.get('seed', DEFAULT_SEED)
+        random.seed(seed)
+        np.random.seed(seed)
+        customers = list(CustomerProfile.objects.all().order_by('id'))
+        products = list(Product.objects.filter(availability='available').order_by('id'))
         home_addresses = list(Address.objects.filter(
             address_type='home'
         ))
@@ -238,12 +251,10 @@ class Command(BaseCommand):
             )
 
             staples = random.sample(products, k=min(5, len(products)))
-
-            # customer_addresses = list(user.addresses.filter(address_type='home'))
             
             # Each customer has natural preferences (but NOT predefined patterns)
             # These emerge from their purchase history, not forced patterns
-            num_orders = random.randint(100,200)
+            num_orders = random.randint(80,130)
 
             timestamps = self.add_realistic_timing(num_orders)
             orders_for_customer = []
@@ -350,6 +361,7 @@ class Command(BaseCommand):
                             producer=producer,
                             producer_subtotal=Decimal("0.00"),
                             order_status='delivered',
+                            created_at=created_at,
                             completed_at=completed_at
                         )
                     
@@ -447,39 +459,41 @@ class Command(BaseCommand):
 
 
     def add_realistic_timing(self, num_orders):
-        """Generate realistic purchase timing with patterns"""
+        """Generate realistic purchase timing with patterns (wrap around if exceed present)"""
         timestamps = []
-        current_date = timezone.now()
-        prev_days_back = None
+        
+        shopping_pattern = random.choice(["weekly", "biweekly", "monthly"])
+        
+        # Start with a random past date
+        start_date = timezone.now() - timedelta(days=random.randint(30, 90))
+        current_date = start_date
         
         for i in range(num_orders):
-            # Assign user shopping pattern once
-            if i == 0:
-                shopping_pattern = random.choice(["weekly", "biweekly", "monthly"])
-
             if shopping_pattern == "weekly":
                 base_gap = random.randint(5, 9)
             elif shopping_pattern == "biweekly":
                 base_gap = random.randint(10, 18)
             else:
                 base_gap = random.randint(25, 35)
-
-            days_back = base_gap + random.randint(-2, 2)
             
-            # Create timestamp
-            timestamp = timezone.now() - timedelta(days=days_back)
+            gap_days = base_gap + random.randint(-2, 2)
+            current_date += timedelta(days=gap_days)
             
-            # Apply weekend bias (60% chance to keep weekend purchases, 40% to reschedule)
-            if self.should_keep_purchase(timestamp):
-                timestamps.append(timestamp)
-                prev_days_back = days_back
+            # If we reach the present, wrap around to the past
+            if current_date > timezone.now():
+                # Start a new cycle from the original start date
+                current_date = start_date + timedelta(days=random.randint(1, 30))
+            
+            # Apply weekend bias
+            if self.should_keep_purchase(current_date):
+                adjusted_ts = current_date
             else:
-                # Reschedule to nearest weekday
-                adjusted_timestamp = self.adjust_to_weekday(timestamp)
-                timestamps.append(adjusted_timestamp)
-                prev_days_back = days_back
+                adjusted_ts = self.adjust_to_weekday(current_date)
+            
+            if adjusted_ts not in timestamps:
+                timestamps.append(adjusted_ts)
+            # else: skip duplicate timestamp
         
-        # Sort timestamps chronologically (oldest first)
         timestamps.sort()
         return timestamps
     

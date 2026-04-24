@@ -1,70 +1,674 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Django Admin Color Scheme Variables */
+    :root {
+        --django-bg: #f8f8f8;
+        --django-container: #fff;
+        --django-border: #eaeaea;
+        --django-primary: #79aec8;
+        --django-secondary: #417690;
+        --django-dark: #343a40;
+        --django-text: #333;
+        --django-muted: #666;
+        --django-success: #2b9c3e;
+        --django-warning: #d9881e;
+        --django-danger: #ba2121;
+    }
+    
+    /* Dark mode support */
+    [data-theme="dark"] {
+        --django-bg: #1a1c1e;
+        --django-container: #2c2f33;
+        --django-border: #404244;
+        --django-primary: #609ab6;
+        --django-secondary: #33708a;
+        --django-text: #e1e4e8;
+        --django-muted: #9a9a9a;
+        --django-success: #3ba55d;
+        --django-warning: #faa81a;
+        --django-danger: #ed4245;
+    }
+    
+    /* Dashboard Container */
+    .insights-dashboard {
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Header Section - Django style */
+    .dashboard-header {
+        background: var(--django-secondary);
+        padding: 1.2rem 1.5rem;
+        margin: 0 0 1.5rem 0;
+        color: white;
+        border-radius: 4px;
+    }
+    
+    .dashboard-header h1 {
+        margin: 0 0 0.3rem 0;
+        font-size: 1.5rem;
+        font-weight: 400;
+    }
+    
+    .dashboard-header p {
+        margin: 0;
+        opacity: 0.85;
+        font-size: 0.85rem;
+    }
+    
+    /* Search Form - Django style */
+    .search-card {
+        background: var(--django-container);
+        border: 1px solid var(--django-border);
+        border-radius: 4px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .search-form {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.3rem;
+        font-weight: normal;
+        color: var(--django-text);
+        font-size: 0.8125rem;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--django-border);
+        border-radius: 4px;
+        font-size: 0.8125rem;
+        background: var(--django-container);
+        color: var(--django-text);
+        box-sizing: border-box;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--django-primary);
+    }
+    
+    .btn-primary {
+        background: var(--django-primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1.2rem;
+        border-radius: 4px;
+        font-weight: normal;
+        cursor: pointer;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+    
+    .btn-primary:hover {
+        background: var(--django-secondary);
+    }
+    
+    /* Customer Profile Card - Django style */
+    .customer-profile {
+        background: var(--django-container);
+        border: 1px solid var(--django-border);
+        border-radius: 4px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .customer-info h3 {
+        margin: 0 0 0.3rem 0;
+        color: var(--django-text);
+        font-size: 1.2rem;
+        font-weight: 500;
+    }
+    
+    .customer-info p {
+        margin: 0;
+        color: var(--django-muted);
+        font-size: 0.75rem;
+    }
+    
+    .order-badge {
+        background: var(--django-bg);
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-align: center;
+        border: 1px solid var(--django-border);
+    }
+    
+    .order-badge .number {
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: var(--django-primary);
+        line-height: 1;
+    }
+    
+    .order-badge .label {
+        font-size: 0.7rem;
+        color: var(--django-muted);
+        margin-top: 0.2rem;
+    }
+    
+    /* Grid Layout */
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 0;
+    }
+    
+    /* Cards - Django admin style */
+    .insight-card {
+        background: var(--django-container);
+        border: 1px solid var(--django-border);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: var(--django-bg);
+        padding: 0.8rem 1.2rem;
+        border-bottom: 1px solid var(--django-border);
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--django-text);
+    }
+    
+    .card-header .subtitle {
+        margin-top: 0.2rem;
+        font-size: 0.7rem;
+        color: var(--django-muted);
+    }
+    
+    .card-body {
+        padding: 1rem;
+        max-height: 450px;
+        overflow-y: auto;
+    }
+    
+    /* Tables - Django admin style */
+    .insight-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+    }
+    
+    .insight-table th {
+        text-align: left;
+        padding: 0.5rem 0.4rem;
+        background: var(--django-bg);
+        font-weight: 500;
+        color: var(--django-text);
+        border-bottom: 1px solid var(--django-border);
+    }
+    
+    .insight-table td {
+        padding: 0.5rem 0.4rem;
+        border-bottom: 1px solid var(--django-border);
+        color: var(--django-text);
+    }
+    
+    .insight-table tr:hover {
+        background: var(--django-bg);
+    }
+    
+    /* Rank styling */
+    .rank-top {
+        font-weight: 600;
+        color: var(--django-warning);
+    }
+    
+    .rank-1 {
+        font-weight: 700;
+        color: var(--django-success);
+    }
+    
+    /* Score bar */
+    .score-cell {
+        min-width: 120px;
+    }
+    
+    .score-bar-container {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .score-bar-wrapper {
+        flex: 1;
+        background: var(--django-border);
+        border-radius: 2px;
+        overflow: hidden;
+        height: 4px;
+    }
+    
+    .score-bar {
+        height: 100%;
+        background: var(--django-primary);
+        border-radius: 2px;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+    
+    .score-value {
+        font-size: 0.7rem;
+        color: var(--django-muted);
+        min-width: 40px;
+        text-align: right;
+    }
+    
+    /* Product tags */
+    .product-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.2rem;
+    }
+    
+    .product-tag {
+        background: var(--django-bg);
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+        font-size: 0.65rem;
+        color: var(--django-text);
+        border: 1px solid var(--django-border);
+    }
+    
+    /* Attention visualization */
+    .attention-cell {
+        min-width: 120px;
+    }
+    
+    .attention-bar-container {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .attention-bar-wrapper {
+        flex: 1;
+        background: var(--django-border);
+        border-radius: 2px;
+        overflow: hidden;
+        height: 4px;
+    }
+    
+    .attention-fill {
+        height: 100%;
+        background: var(--django-warning);
+        border-radius: 2px;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+    
+    .attention-value {
+        font-size: 0.7rem;
+        color: var(--django-muted);
+        min-width: 40px;
+        text-align: right;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--django-muted);
+        font-size: 0.8rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .insights-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .search-form {
+            flex-direction: column;
+        }
+        
+        .form-group {
+            width: 100%;
+        }
+        
+        .btn-primary {
+            width: 100%;
+        }
+        
+        .customer-profile {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+    
+    /* Custom scrollbar for Django theme */
+    .card-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .card-body::-webkit-scrollbar-track {
+        background: var(--django-bg);
+    }
+    
+    .card-body::-webkit-scrollbar-thumb {
+        background: var(--django-border);
+        border-radius: 4px;
+    }
+    
+    /* Top recommendation highlight */
+    .top-rec-badge {
+        font-size: 0.65rem;
+        background: var(--django-success)20;
+        color: var(--django-success);
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-left: 8px;
+    }
+    
+    /* Info box */
+    .info-box {
+        padding: 0.75rem;
+        background: var(--django-bg);
+        border-radius: 4px;
+        margin-bottom: 0.75rem;
+        border-left: 3px solid var(--django-primary);
+    }
+    
+    .info-box-title {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--django-muted);
+        margin-bottom: 0.2rem;
+    }
+    
+    .info-box-content {
+        font-size: 0.8rem;
+        color: var(--django-text);
+    }
+    
+    .info-box-content strong {
+        color: var(--django-primary);
+    }
+    
+    /* Saliency cell */
+    .saliency-cell {
+        min-width: 120px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Recommendation Process Insights (V5.1)</h1>
+<div class="insights-dashboard">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1>Recommendation Process Insights</h1>
+        <p>Model V5.1 - LSTM with Attention | Understand why products are recommended</p>
+    </div>
 
-<form method="POST">
-    {% csrf_token %}
-    <label>Select Customer ID:</label>
-    <input type="number" name="customer_id" placeholder="Customer ID" required>
-    <button type="submit" class="button">View Insights</button>
-</form>
+    <!-- Search Form -->
+    <div class="search-card">
+        <form method="POST" class="search-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Customer ID:</label>
+                <input type="number" name="customer_id" placeholder="Enter customer ID" 
+                       value="{{ request.POST.customer_id }}" required>
+            </div>
+            <button type="submit" class="btn-primary">View Insights</button>
+        </form>
+    </div>
 
-{% if customer %}
-<hr>
-<h2>Customer: {{ customer }}</h2>
-<p>Number of orders: {{ num_orders }}</p>
+    {% if customer %}
+    <!-- Customer Profile -->
+    <div class="customer-profile">
+        <div class="customer-info">
+            <h3>Customer: {{ customer }}</h3>
+            <p>ID: {{ customer.id }} | Member since: {{ customer.user.date_joined|date:"F j, Y" }}</p>
+        </div>
+        <div class="order-badge">
+            <div class="number">{{ num_orders }}</div>
+            <div class="label">Total Orders</div>
+        </div>
+    </div>
 
-<h3>Model Predictions (Top 5)</h3>
-<table>
-    <tr>
-        <th>Rank</th>
-        <th>Product</th>
-        <th>Score</th>
-    </tr>
-    {% for rec in recommendations %}
-    <tr>
-        <td>{{ rec.rank }}</td>
-        <td>{{ rec.product.name }}</td>
-        <td>{{ rec.score|floatformat:4 }}</td>
-    </tr>
-    {% endfor %}
-</table>
+    <!-- Main Grid -->
+    <div class="insights-grid">
+        
+        <!-- Predictions Card -->
+        <div class="insight-card">
+            <div class="card-header">
+                <h3>Top Recommendations</h3>
+                <div class="subtitle">Products this customer is most likely to buy next</div>
+            </div>
+            <div class="card-body">
+                <table class="insight-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Product</th>
+                            <th>Score</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in recommendations %}
+                        <tr>
+                            <td class="{% if forloop.counter == 1 %}rank-1{% else %}rank-top{% endif %}">
+                                #{{ rec.rank }}
+                            </td>
+                            <td>
+                                <strong>{{ rec.product.name }}</strong>
+                                {% if forloop.counter == 1 %}
+                                    <span class="top-rec-badge">Top Pick</span>
+                                {% endif %}
+                            </td>
+                            <td class="score-cell">
+                                <div class="score-bar-container">
+                                    <div class="score-bar-wrapper">
+                                        <div class="score-bar" style="width: {{ rec.display_score|floatformat:0 }}%;"></div>
+                                    </div>
+                                    <span class="score-value">{{ rec.score|floatformat:3 }}</span>
+                                </div>
+                            </td>
+                            <td>{{ rec.confidence }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty-state">No recommendations available</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-<h3>Attention Weights (Order Importance)</h3>
-<p>Higher weight = model focuses more on that order for prediction.</p>
-<table>
-    <tr>
-        <th>Order (Oldest → Newest)</th>
-        <th>Date</th>
-        <th>Weight</th>
-        <th>Products</th>
-    </tr>
-    {% for order in order_details %}
-    <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ order.date }}</td>
-        <td>{{ order.weight|floatformat:4 }}</td>
-        <td>{{ order.products|join:", " }}</td>
-    </tr>
-    {% endfor %}
-</table>
+        <!-- Attention Weights Card -->
+        <div class="insight-card">
+            <div class="card-header">
+                <h3>Order Attention Weights</h3>
+                <div class="subtitle">Higher weight = model focuses more on that order</div>
+            </div>
+            <div class="card-body">
+                <table class="insight-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Attention</th>
+                            <th>Products</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in order_details %}
+                        <tr>
+                            <td style="color: var(--django-muted);">{{ forloop.counter }}</td>
+                            <td>{{ order.date }}</td>
+                            <td class="attention-cell">
+                                <div class="attention-bar-container">
+                                    <div class="attention-bar-wrapper">
+                                        {% widthratio order.weight 1 100 as attention_width %}
+                                        <div class="attention-fill" style="width: {{ attention_width }}%;"></div>
+                                    </div>
+                                    <span class="attention-value">{{ order.weight|floatformat:3 }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="product-tags">
+                                    {% for pid in order.products|slice:":3" %}
+                                        <span class="product-tag">#{{ pid }}</span>
+                                    {% endfor %}
+                                    {% if order.products|length > 3 %}
+                                        <span class="product-tag">+{{ order.products|length|add:"-3" }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty-state">No order history available</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-<h3>Product Saliency (Why Top Prediction?)</h3>
-<p>These products in history most influenced the top recommendation:</p>
-<table>
-    <tr>
-        <th>Rank</th>
-        <th>Product</th>
-        <th>Saliency Score</th>
-    </tr>
-    {% for sp in salient_products %}
-    <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ sp.product_name }}</td>
-        <td>{{ sp.saliency|floatformat:4 }}</td>
-    </tr>
-    {% endfor %}
-</table>
+        <!-- Product Saliency Card -->
+        <div class="insight-card">
+            <div class="card-header">
+                <h3>Why This Recommendation?</h3>
+                <div class="subtitle">Products in history that most influenced the top recommendation</div>
+            </div>
+            <div class="card-body">
+                {% if recommendations %}
+                <div class="info-box">
+                    <div class="info-box-title">TOP RECOMMENDATION</div>
+                    <div class="info-box-content">
+                        <strong>{{ recommendations.0.product.name }}</strong> 
+                        <span style="color: var(--django-muted);">(Score: {{ recommendations.0.score|floatformat:3 }})</span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <table class="insight-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Product</th>
+                            <th>Influence Score</th>
+                            <th>Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sp in salient_products %}
+                        <tr>
+                            <td class="rank-top">#{{ forloop.counter }}</td>
+                            <td><strong>{{ sp.product_name }}</strong></td>
+                            <td class="saliency-cell">
+                                <div class="attention-bar-container">
+                                    <div class="attention-bar-wrapper">
+                                        {% widthratio sp.saliency 1 100 as saliency_width %}
+                                        <div class="attention-fill" style="width: {{ saliency_width }}%; background: var(--django-success);"></div>
+                                    </div>
+                                    <span class="attention-value">{{ sp.saliency|floatformat:3 }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if sp.saliency > 0.1 %}
+                                    <span style="color: var(--django-success);">High</span>
+                                {% elif sp.saliency > 0.05 %}
+                                    <span style="color: var(--django-warning);">Medium</span>
+                                {% else %}
+                                    <span style="color: var(--django-muted);">Low</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty-state">No saliency data available</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-{% endif %}
+        <!-- Summary Card -->
+        <div class="insight-card">
+            <div class="card-header">
+                <h3>Insights Summary</h3>
+                <div class="subtitle">Key takeaways from this customer's behavior</div>
+            </div>
+            <div class="card-body">
+                {% if recommendations and order_details %}
+                <div>
+                    <div class="info-box">
+                        <div class="info-box-title">PURCHASE PATTERN</div>
+                        <div class="info-box-content">
+                            {% with latest_orders=order_details|slice:"-3:" %}
+                                Customer has made <strong>{{ num_orders }}</strong> total purchases.
+                                Most recent activity: <strong>{{ latest_orders.2.date|default:"N/A" }}</strong>
+                            {% endwith %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <div class="info-box-title">TOP INFLUENCERS</div>
+                        <div class="info-box-content">
+                            {% if salient_products %}
+                                Their purchase of <strong>{{ salient_products.0.product_name }}</strong> 
+                                had the strongest influence on the top recommendation
+                                ({{ salient_products.0.saliency|floatformat:1 }}% saliency).
+                            {% else %}
+                                No influencing factors identified.
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-box-title">RECENCY BIAS</div>
+                        <div class="info-box-content">
+                            The most recent order received 
+                            <strong>
+                                {% with latest_order=order_details|last %}
+                                    {% if latest_order %}
+                                        {% widthratio latest_order.weight 1 100 as recency_weight %}
+                                        {{ recency_weight|floatformat:0 }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                {% endwith %}
+                            </strong> 
+                            of the model's attention, confirming recency matters.
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">No insights available</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

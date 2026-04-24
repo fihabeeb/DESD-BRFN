@@ -48,12 +48,28 @@ def extract_temporal_features(timestamp):
 
 def get_user_orders():
     user_orders = defaultdict(list)
-    order_items = OrderItem.objects.filter(
+    order_items_query = OrderItem.objects.filter(
         producer_order__payment__payment_status="paid"
     ).exclude(
         producer_order__payment__user__customer_profile__id__range=(1,5)
     ).select_related("product", "producer_order__payment__user"
     ).order_by("producer_order__payment__created_at")
+    
+    print(f"DEBUG: Raw OrderItem query count: {order_items_query.count()}")
+    
+    all_users = set()
+    all_orders = set()
+    all_products = set()
+    for item in order_items_query:
+        all_users.add(item.producer_order.payment.user.id)
+        all_orders.add(item.producer_order.payment.id)
+        all_products.add(item.product.id)
+    print(f"DEBUG: Unique users in query: {len(all_users)}")
+    print(f"DEBUG: Unique orders in query: {len(all_orders)}")
+    print(f"DEBUG: Unique products in query: {len(all_products)}")
+    
+    order_items = list(order_items_query)
+    print(f"DEBUG: Order items evaluated: {len(order_items)}")
     
     current_user, current_order, products = None, None, []
     for item in order_items:
@@ -63,6 +79,8 @@ def get_user_orders():
         product_id = item.product.id
         if user is None: continue
         if current_user != user.id:
+            if current_user and current_order and products:
+                user_orders[current_user].append((current_order, timestamp, list(set(products))))
             current_user, current_order, products = user.id, None, []
         if current_order != order_id:
             if current_order and products:
@@ -72,6 +90,10 @@ def get_user_orders():
             if product_id not in products: products.append(product_id)
     if current_user and current_order and products:
         user_orders[current_user].append((current_order, timestamp, products))
+    
+    print(f"DEBUG: Users in user_orders dict: {len(user_orders)}")
+    for uid, os in list(user_orders.items())[:3]:
+        print(f"DEBUG: User {uid} has {len(os)} orders")
     return dict(user_orders)
 
 
@@ -81,9 +103,14 @@ def build_sequences_with_sampling(user_orders, product_to_idx, other_token, all_
     X_prod, X_time, y_labels, user_ids = [], [], [], []
     all_pids = list(all_pids)
     
+    debug_stats = {'skip_no_orders': 0, 'skip_no_pos_idx': 0, 'skip_no_neg_pool': 0, 'total_orders_checked': 0}
+    
     for uid, orders in user_orders.items():
-        if len(orders) < 2: continue
+        if len(orders) < 2:
+            debug_stats['skip_no_orders'] += 1
+            continue
         for i in range(len(orders) - 1):
+            debug_stats['total_orders_checked'] += 1
             ctx = orders[:i+1]; tgt = orders[i+1]
             ctx_prods, ctx_times = [], []
             for _, ts, ps in ctx[-max_hist:]:
@@ -97,15 +124,14 @@ def build_sequences_with_sampling(user_orders, product_to_idx, other_token, all_
             
             pos_idx = [product_to_idx.get(p, other_token) for p in tgt[2] if p in product_to_idx]
             pos_idx = [p for p in pos_idx if p >= 2]
-            if not pos_idx: continue
+            if not pos_idx:
+                debug_stats['skip_no_pos_idx'] += 1
+                continue
             
             neg_pool = [p for p in all_pids if p not in tgt[2]]
-            if len(neg_pool) >= num_neg:
-                negs = np.random.choice(neg_pool, num_neg, replace=False)
-            else:
-                negs = neg_pool
-            neg_idx = [product_to_idx.get(p, other_token) for p in negs if p in product_to_idx]
-            neg_idx = [p for p in neg_idx if p >= 2][:num_neg]
+            if len(neg_pool) < 1:
+                debug_stats['skip_no_neg_pool'] += 1
+                continue
             
             for pidx in pos_idx:
                 X_prod.append(ctx_prods)
@@ -113,12 +139,15 @@ def build_sequences_with_sampling(user_orders, product_to_idx, other_token, all_
                 y_labels.append(pidx)
                 user_ids.append(uid)
     
+    print(f"DEBUG: {debug_stats}")
+    print(f"DEBUG: all_pids count = {len(all_pids)}")
+    
     return (np.array(X_prod, dtype=np.int32), np.array(X_time, dtype=np.float32),
             np.array(y_labels, dtype=np.int32), user_ids)
 
 
-def build_model(num_classes=160, seq_len=15, items_per_order=5, 
-                vocab_size=162, lstm_units=64, n_clusters=8, dropout=0.2):
+def build_model(num_classes=NUM_CLASSES, seq_len=MAX_ORDER_HISTORY, items_per_order=MAX_ITEMS_PER_ORDER, 
+                vocab_size=VOCAB_SIZE, lstm_units=64, n_clusters=8, dropout=DROPOUT):
     product_ids = keras.Input(shape=(seq_len, items_per_order,), name="product_input")
     temporal = keras.Input(shape=(seq_len, 5), name="time_input")
     user_cluster = keras.Input(shape=(1,), name="user_cluster")
@@ -198,13 +227,28 @@ def train_v5_1():
     
     print("\n[1] Loading orders...")
     user_orders = get_user_orders()
-    print(f"Users: {len(user_orders)}")
+    print(f"DEBUG: Users loaded: {len(user_orders)}")
+    
+    total_orders = sum(len(orders) for orders in user_orders.values())
+    print(f"DEBUG: Total user orders: {total_orders}")
+    
+    all_products = set()
+    for orders in user_orders.values():
+        for _, _, ps in orders:
+            all_products.update(ps)
+    print(f"DEBUG: Unique products in user_orders: {len(all_products)}")
+    
+    users_with_2plus = sum(1 for orders in user_orders.values() if len(orders) >= 2)
+    print(f"DEBUG: Users with 2+ orders: {users_with_2plus}")
     
     print("\n[2] Building mappings...")
     counter = Counter()
     for os in user_orders.values():
         for _, _, ps in os: counter.update(ps)
+    print(f"DEBUG: Product frequency counter items: {len(counter)}")
+    print(f"DEBUG: Top 10 products: {counter.most_common(10)}")
     top = {p for p, _ in counter.most_common(160)}
+    print(f"DEBUG: Products in top 160: {len(top)}")
     p2i = {p: i+2 for i, p in enumerate(sorted(top))}
     p2i[0] = 0
     i2p = {i+2: p for i, p in enumerate(sorted(top))}
@@ -221,7 +265,7 @@ def train_v5_1():
     u2c, n_c = get_clusters(user_orders, p2i)
     print(f"Clusters: {n_c}")
     
-    model = build_model(160, MAX_ORDER_HISTORY, MAX_ITEMS_PER_ORDER, VOCAB_SIZE, 64, n_c, DROPOUT)
+    model = build_model(NUM_CLASSES, MAX_ORDER_HISTORY, MAX_ITEMS_PER_ORDER, VOCAB_SIZE, 64, n_c, DROPOUT)
     model.summary()
     
     idx = np.arange(len(Xp))
@@ -242,7 +286,7 @@ def train_v5_1():
           callbacks=[keras.callbacks.EarlyStopping(
               "val_loss", 
               patience=5, 
-              min_delta=0.01,
+              min_delta=0.001,
               restore_best_weights=True
           )],
           verbose=1)
