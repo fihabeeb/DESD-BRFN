@@ -20,3 +20,14 @@ DESD_BRFN/ml/recommendation/old.py
 DESD_BRFN/ml/recommendation/final/recommendation_model(syn_orders2).keras
 DESD_BRFN/ml/recommendation/arc/*
 
+DESD_BRFN/ml/recommendation/doc.md
+DESD_BRFN/ml/recommendation/final/diagrams/*
+DESD_BRFN/ml/recommendation/final/*
+
+DESD_BRFN/ml/recommendation/docv6.md
+DESD_BRFN/ml/recommendation/docv5.1.md
+DESD_BRFN/ml/recommendation/README.md
+DESD_BRFN/recommendation_system.ipynb
+DESD_BRFN/products/management/commands/benchmark_models.py
+DESD_BRFN/orders/management/commands/run_model_explainer.py
+DESD_BRFN/orders/management/commands/run_markov_test.py

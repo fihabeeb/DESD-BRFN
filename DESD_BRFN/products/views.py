@@ -119,64 +119,43 @@ def product_list(request):
 
     # recommend system
     recommended_products = []
-    user_purchase_history = []
+    personalized_products = []
+    attention_data = {}
     if request.user.is_authenticated:
         try:
-            from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
-
+            from ml.recommendation.sigmoid_service_v5_1 import LSTMServiceV5_1
             
-            # Get user's purchase history
-            from orders.models import OrderItem, OrderPayment
-            # Fetch user's purchase history ordered by time
-            # user_orders = OrderPayment.objects.filter(
-            #     user=request.user,
-            #     payment_status='paid'
-            # ).order_by('created_at')
+            recommendation_service = LSTMServiceV5_1()
+            recommendation_service.load_model()
             
-            # Extract product IDs from order items
-            order_items = OrderItem.objects.filter(
-                producer_order__payment__user=request.user,
-                producer_order__payment__payment_status="paid",
-            ).select_related('product').order_by('-producer_order__payment__created_at')
-            # for order in order_items:
-                # print(order.producer_order.payment.created_at)
+            result = recommendation_service.get_predictions_with_explanation(
+                user_id=request.user.id,
+                top_k=6
+            )
+            # from ml.recommendation.sigmoid_service_v5 import LSTMServiceV5
             
-            user_purchase_history = []  # List of (product_id, timestamp) tuples
-
-            for item in order_items:
-                # Get the timestamp from the payment
-                timestamp = item.producer_order.payment.created_at
-                
-                # Repeat product ID based on quantity, each with the same timestamp
-                for _ in range(item.quantity):
-                    user_purchase_history.append((item.product.id, timestamp))
-
-            # Sort by timestamp to ensure chronological order
-            # user_purchase_history.sort(key=lambda x: x[1])
+            # recommendation_service = LSTMServiceV5()
+            # recommendation_service.load_model()
             
-            # Get recommendations if user has purchase history
-            if user_purchase_history:
-                recommendation_service = LSTMServiceSigmoid()
-                recommended_products = recommendation_service.get_recommendations(
-                    user_id=request.user.id,
-                    purchase_history_with_timestamps=user_purchase_history,
-                    top_k=6  # Get top 6 recommendations
-                )
-                # recommendation_service = LSTMSAttention()
-                # recommended_products = recommendation_service.get_recommendations(
-                #     user_id=request.user.id,
-                #     purchase_history_with_timestamps=user_purchase_history,
-                #     top_k=6  # Get top 6 recommendations
-                # )
-                
-                # Log for debugging (optional)
-                print(f"Generated {len(recommended_products)} recommendations for user {request.user.id}")
+            # result = recommendation_service.get_recommendations(
+            #     user_id=request.user.id,
+            #     top_k=6
+            # )
+            
+            recommended_products = result.get('recommendations', [])
+            attention_data = {
+                'weights': result.get('attention_weights', []),
+                'order_details': result.get('order_details', []),
+            }
+            num_orders = result.get('num_orders', 0)
+            
+            print(f"Generated {len(recommended_products)} recommendations for user {request.user.id}")
+            print(f"User has {num_orders} orders in history")
 
         except Exception as e:
             print(f"Recommendation error for user {request.user.id}: {e}")
             recommended_products = []
-
-
+            personalized_products = []
 
     # products = products.order_by(category_id=category_id)
     context = {
@@ -185,8 +164,10 @@ def product_list(request):
         'current_categories': category_id,
         'search_query': search_query,
         'recommended_products': recommended_products,
-        'user_purchase_history': user_purchase_history[:10],  # Last 10 purchases for display
+        'personalized_products': personalized_products,
+        'attention_data': attention_data,
         'has_recommendations': bool(recommended_products),
+        'has_attention': bool(attention_data),
         'now': now,
     }
     return render(request, 'products/product_list.html', context)

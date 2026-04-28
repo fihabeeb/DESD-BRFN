@@ -62,3 +62,42 @@ Restoring model weights from the end of the best epoch: 24.
 Validation: loss=0.0162, binary_accuracy=0.9902, precision=0.0705, recall=0.1082
 Mean AP (per-class): 0.0409
 Label Ranking AP: 0.1022
+
+
+
+
+# 24/4
+==================================================
+EVALUATION (V5)
+==================================================
+
+Hit Rates:
+  @1:  0.0234
+  @3:  0.0580
+  @5:  0.0851
+  @10: 0.1462
+
+Top-K Accuracy:
+  Top-1: 0.0234
+  Top-3: 0.0580
+  Top-5: 0.0851
+  Top-10: 0.1462
+
+
+==================================================
+EVALUATION (v5.1)
+==================================================
+
+Sample attention weights (first 5): [0.00689181 0.00669269 0.00643798 0.00603998 0.00943034]
+
+Hit Rates:
+  @1:  0.0339
+  @3:  0.0796
+  @5:  0.1258
+  @10: 0.1888
+
+Top-K Accuracy:
+  Top-1: 0.0339
+  Top-3: 0.0796
+  Top-5: 0.1258
+  Top-10: 0.1888

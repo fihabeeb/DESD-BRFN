@@ -180,6 +180,7 @@ class Address(models.Model):
                 needs_geocoding = old_postcode != self.post_code
             
             if needs_geocoding:
+                # pass # for testing
                 geocode_address_async.delay(self.pk)
 
 

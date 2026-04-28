@@ -51,12 +51,12 @@ class Command(BaseCommand):
             'dairy': ['Milk', 'Cheese', 'Yogurt', 'Eggs', 'Butter & Cream'],
             'meat': ['Poultry', 'Beef', 'Goat', 'Lamb', 'Game'],
             'preserves': ['Jams', 'Pickles', 'Chutneys', 'Fermented Foods'],
-            'herbs_spices': ['Fresh Herbs', 'Dried Herbs', 'Spices', 'Teas'],
+            'Herbs Spices': ['Fresh Herbs', 'Dried Herbs', 'Spices', 'Teas'],
             'mushrooms': ['Fresh Mushrooms', 'Dried Mushrooms', 'Mushroom Products'],
             'beverages': ['Juices', 'Cordials', 'Fermented Drinks', 'Infusions'],
             'snacks': ['Nuts', 'Dried Fruits', 'Seeds', 'Healthy Snacks'],
             'grains': ['Flour', 'Oats', 'Rice Alternatives', 'Pasta'],
-            'honey_bee': ['Honey', 'Beeswax Products', 'Propolis'],
+            'Honey Bee': ['Honey', 'Beeswax Products', 'Propolis'],
         }
         
         for main_cat, subcats in main_categories.items():
@@ -209,7 +209,7 @@ class Command(BaseCommand):
         
         for name, price, unit in herb_products:
             producer_idx = random.randint(0, len(producers)-1)
-            add_product(name, 'herbs_spices', producers[producer_idx], price, unit, is_organic=random.choice([True, False]))
+            add_product(name, 'Herbs Spices', producers[producer_idx], price, unit, is_organic=random.choice([True, False]))
         
         # 7. MUSHROOMS - 20 products
         self.stdout.write("Creating mushrooms...")
@@ -336,7 +336,7 @@ class Command(BaseCommand):
         
         for name, price, unit in honey_products:
             producer_idx = random.randint(0, len(producers)-1)
-            add_product(name, 'honey_bee', producers[producer_idx], price, unit, is_organic=random.choice([True, False]))
+            add_product(name, 'Honey Bee', producers[producer_idx], price, unit, is_organic=random.choice([True, False]))
         
         self.stdout.write(f"Total products generated: {len(products)}")
         return products
