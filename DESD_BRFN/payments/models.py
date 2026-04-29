@@ -43,15 +43,13 @@ class PaymentSettlement(models.Model):
 
     # settlements details
     settlement_status = models.CharField(max_length=20, choices=SETTLEMENT_STATUS_CHOICE, default='pending')
-    payment_reference = models.CharField()
-    
-    paid_at = models.DateTimeField(null=True, blank=True)
-
+    payment_reference = models.CharField(max_length=255, blank=True, default='')
 
     # Tracking
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    processed_at = models.DateTimeField(null=True, blank=True) # when completed
+    processed_at = models.DateTimeField(null=True, blank=True) # when processing starts
+    paid_at = models.DateTimeField(null=True, blank=True) # when completed
 
     '''
     table properties
@@ -120,7 +118,7 @@ class PaymentSettlement(models.Model):
         self.settlement_status='processing'
         self.save()
     
-    def mark_as_completed(self):
+    def mark_as_completedok(self):
         self.settlement_status='completed'
         self.paid_at = timezone.now()
         self.save()

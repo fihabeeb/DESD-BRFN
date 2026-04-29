@@ -10,6 +10,8 @@ from django.http import HttpResponse, JsonResponse
 from django.template.response import TemplateResponse
 from django.utils import timezone
 from django.db.models import Sum
+from django.core.exceptions import ValidationError
+
 from decimal import Decimal
 import csv
 from reportlab.lib import colors
@@ -20,9 +22,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from .models import PaymentSettlement, SettlementOrder
 from orders.models import OrderProducer
 from mainApp.models import ProducerProfile
+from .tasks import complete_old_settlements
 
 '''
-needs testing!?!?!?!?
+should be integrity safe 29/4
 '''
 
 class DateRangeFilter(SimpleListFilter):
@@ -68,7 +71,51 @@ class PaymentSettlementAdmin(admin.ModelAdmin):
     search_fields = ['producer__business_name', 'payment_reference']
     readonly_fields = ['total_orders', 'total_subtotal', 'total_commission', 'total_payout']
     
-    actions = ['view_financial_report']
+    actions = ['complete_14_day_settlements']
+
+    def save_model(self, request, obj, form, change):
+        obj.full_clean()
+        return super().save_model(request, obj, form, change)
+    
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        # Remove the default 'delete_selected' action
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+    
+    def delete_model(self, request, obj):
+        if obj.orders.exists():
+            from django.contrib import messages
+            messages.error(
+                request,
+                f'Cannot delete settlement #{obj.id}: It has {obj.orders.count()} associated orders. '
+                'Settlement orders use PROTECT constraint.'
+            )
+            return
+        obj.delete()
+
+    def delete_queryset(self, request, queryset):
+        """Bulk delete with protection checks"""
+        deletable = []
+        protected = 0
+        
+        for settlement in queryset:
+            if settlement.orders.exists():
+                protected += 1
+            else:
+                deletable.append(settlement.id)
+        
+        if deletable:
+            PaymentSettlement.objects.filter(id__in=deletable).delete()
+            self.message_user(request, f'Deleted {len(deletable)} settlements.')
+        
+        if protected:
+            self.message_user(
+                request, 
+                f'Skipped {protected} settlements with existing orders.', 
+                level='WARNING'
+            )
 
     def view_orders_button(self, obj):
         """Display a button to view orders for this settlement"""
@@ -81,11 +128,40 @@ class PaymentSettlementAdmin(admin.ModelAdmin):
     
     def view_financial_report(self, request, queryset):
         """Admin action to view financial report for selected settlements"""
+        if queryset is None:
+            # Called from custom template without queryset
+            return redirect('admin:financial-report')
         # Pass selected settlement IDs to the financial report
         selected_ids = ','.join(str(settlement.id) for settlement in queryset)
         return redirect(f'financial-report/?settlement_ids={selected_ids}')
     view_financial_report.short_description = "View Financial Report for Selected Settlements"
-    
+
+    def complete_14_day_settlements(self, request, queryset):
+        """
+        Admin action to complete settlements that ended 14+ days ago.
+        For demo purposes - manually triggers completion check.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("COMPLETE_14_DAY action called")
+        
+        completed_count = complete_old_settlements()
+        logger.info(f"COMPLETE_14_DAY: completed_count = {completed_count}")
+
+        if completed_count > 0:
+            self.message_user(
+                request,
+                f'Successfully completed {completed_count} settlement(s) that ended 14+ days ago.'
+            )
+        else:
+            self.message_user(
+                request,
+                'No settlements found that qualify for completion (period must have ended 14+ days ago).',
+                level='INFO'
+            )
+
+    complete_14_day_settlements.short_description = "Complete settlements from 14+ days ago"
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -180,6 +256,21 @@ class PaymentSettlementAdmin(admin.ModelAdmin):
     
     def financial_report_view(self, request):
         """Main financial report view"""
+        # Handle admin actions (POST)
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            if action:
+                actions = self.get_actions(request)
+                if action in actions:
+                    action_func = actions[action][0]
+                    response = action_func(self, request, None)
+                    if response:
+                        return response
+                    # Redirect back to the financial report after action
+                    return redirect('admin:financial-report')
+            # No action selected or action not found - redirect back
+            return redirect('admin:financial-report')
+        
         # Handle export formats
         format_type = request.GET.get('format')
         if format_type == 'csv':
@@ -254,7 +345,10 @@ class PaymentSettlementAdmin(admin.ModelAdmin):
         
         # Verify commission calculations
         verification = self.verify_commission_calculations(settlements)
-        
+
+        # Add admin actions context for custom template
+        actions = self.get_actions(request)
+
         context = {
             'title': 'Financial Report',
             'settlements': settlements,
@@ -270,7 +364,20 @@ class PaymentSettlementAdmin(admin.ModelAdmin):
             'current_filters': request.GET.urlencode(),
             'selected_date_range': request.GET.get('date_range', ''),
         }
-        
+
+        # Add actions to context if they exist
+        if actions:
+            # Build choices manually: actions is dict with {'name': (func, name, description), ...}
+            action_choices = []
+            for name, action_tuple in actions.items():
+                func, action_name, description = action_tuple
+                action_choices.append((action_name, description))
+            
+            context['has_actions'] = True
+            context['action_choices'] = action_choices
+        else:
+            context['has_actions'] = False
+
         return TemplateResponse(request, self.change_list_template, context)
     
     def calculate_running_totals(self, settlements):
