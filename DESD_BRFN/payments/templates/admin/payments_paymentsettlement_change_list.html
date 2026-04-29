@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools %}
+    <div class="object-tools">
+        {{ block.super }}
+        {% if financial_report_url %}
+            <a href="{{ financial_report_url }}" class="btn btn-primary" style="margin-left: 10px; background-color: #417690; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 13px;">
+                Financial Report
+            </a>
+        {% endif %}
+    </div>
+{% endblock %}
