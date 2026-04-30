@@ -49,6 +49,8 @@ services:
       - ML_ENCODER_PATH=/app/ml/encoders.pkl
       - RECOMMENDATION_MODEL_PATH=/app/ml/recommendation/final/sigmoid_lstm.keras
       - RECOMMENDATION_MAPPINGS_PATH=/app/ml/recommendation/final/sigmoid_mappings.pkl
+      - V5_1_MODEL_PATH=/app/ml/recommendation/final/sigmoid_v5_1.keras
+      - V5_1_MAPPINGS_PATH=/app/ml/recommendation/final/sigmoid_v5_1_mappings.pkl
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 30s
