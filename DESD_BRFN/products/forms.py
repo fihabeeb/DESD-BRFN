@@ -24,8 +24,8 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'name', 'description', 'category', 'price', 'unit', 
-            'stock_quantity', 'availability', 'is_organic',
+            'name', 'description', 'category', 'price', 'unit',
+            'stock_quantity', 'low_stock_threshold', 'availability', 'is_organic',
             'season_start', 'season_end', 'harvest_date', 'image',
             'allergen_list', 'allergen_statement',
         ]
@@ -61,6 +61,7 @@ class ProductForm(forms.ModelForm):
         self.fields['image'].required = False
         self.fields['allergen_list'].required = False
         self.fields['allergen_statement'].required = False
+        self.fields['low_stock_threshold'].required = False
         
         # Add CSS classes
         for field in self.fields:
@@ -125,6 +126,10 @@ class ProductForm(forms.ModelForm):
         # Set the producer
         if self.producer:
             product.producer = self.producer
+
+        # Fall back to model default if threshold left blank
+        if not product.low_stock_threshold:
+            product.low_stock_threshold = 10
         
         # Auto-set availability based on season if not manually set
         if not product.availability and product.season_start and product.season_end:

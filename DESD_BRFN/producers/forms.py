@@ -206,9 +206,13 @@ class ProducerRegistrationForm(UserCreationForm):
                     #     latitude=lat,
                     #     longitude=lon,
                     # )
-                lat, lon = geocode_postcode(user.post_code)
+                lat, lon = geocode_postcode(self.cleaned_data['farm_post_code'])
 
-                    # Create farm address (for producer location)
+                from mainApp.models import ProducerProfile
+                profile, _ = ProducerProfile.objects.get_or_create(user=user)
+                profile.business_name = self.cleaned_data['business_name']
+                profile.save()
+
                 Address.objects.create(
                     user=user,
                     address_line1=self.cleaned_data['farm_address_line1'],

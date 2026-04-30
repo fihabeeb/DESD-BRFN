@@ -124,6 +124,13 @@
                                 <span class="text-gray-300 text-sm">
                                     Total: £{{ order_info.total_amount }}
                                 </span>
+                                <form method="post" action="{% url 'mainApp:orders:reorder' order_info.order.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors">
+                                        Reorder
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

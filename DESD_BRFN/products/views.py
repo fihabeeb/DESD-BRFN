@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Product, ProductCategory
+from .models import Product, ProductCategory, ProductReview
 from django.db.models import Case, When, Value, BooleanField, Q, F
 from django.contrib.postgres.search import TrigramSimilarity
 from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
@@ -254,7 +254,62 @@ def product_detail(request, product_id):
         'active_deal': active_deal,  # TC-019
     }
 
+    reviews = product.reviews.select_related('customer').all()
+    user_has_purchased = False
+    user_review = None
+    if request.user.is_authenticated:
+        from orders.models import OrderItem
+        user_has_purchased = OrderItem.objects.filter(
+            product=product,
+            producer_order__payment__user=request.user,
+            producer_order__payment__payment_status='paid',
+            producer_order__order_status='delivered',
+        ).exists()
+        user_review = reviews.filter(customer=request.user).first()
+
+    context.update({
+        'reviews': reviews,
+        'user_has_purchased': user_has_purchased,
+        'user_review': user_review,
+    })
+
     return render(request, 'products/product_detail.html', context)
+
+
+@login_required
+def submit_review(request, product_id):
+    """TC-024: Submit or update a review for a purchased product."""
+    product = get_object_or_404(Product, id=product_id)
+
+    from orders.models import OrderItem
+    has_purchased = OrderItem.objects.filter(
+        product=product,
+        producer_order__payment__user=request.user,
+        producer_order__payment__payment_status='paid',
+        producer_order__order_status='delivered',
+    ).exists()
+
+    if not has_purchased:
+        messages.error(request, "You can only review products from delivered orders.")
+        return redirect('mainApp:products:product_detail', product_id=product_id)
+
+    if request.method == 'POST':
+        rating = request.POST.get('rating')
+        title = request.POST.get('title', '').strip()
+        body = request.POST.get('body', '').strip()
+
+        if not rating or not rating.isdigit() or int(rating) not in range(1, 6):
+            messages.error(request, "Please select a rating between 1 and 5.")
+            return redirect('mainApp:products:product_detail', product_id=product_id)
+
+        ProductReview.objects.update_or_create(
+            product=product,
+            customer=request.user,
+            defaults={'rating': int(rating), 'title': title, 'body': body},
+        )
+        messages.success(request, "Your review has been submitted.")
+
+    return redirect('mainApp:products:product_detail', product_id=product_id)
 
 
 # =============================================================================

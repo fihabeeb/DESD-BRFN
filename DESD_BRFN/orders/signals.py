@@ -40,15 +40,16 @@ def handle_producer_order_created(sender, instance, created, **kwargs):
     Handle new OrderProducer creation
     """
     if created:
+        logger.info(f"OrderProducer #{instance.id} created for OrderPayment #{instance.payment.id}")
         if instance.payment.shipping_address_id:
-            producer_lat, producer_long = instance.producer.user.get_default_address_coordinates()
-            user_lat, user_long = instance.payment.shipping_address_id.get_coordinates()
-
-            distance = haversine_miles(producer_lat, producer_long, user_lat, user_long)
-
-            instance.food_mile_distance = distance
-
-            logger.info(f"OrderProducer #{instance.id} created for OrderPayment #{instance.payment.id}")
+            try:
+                producer_lat, producer_long = instance.producer.user.get_default_address_coordinates()
+                user_lat, user_long = instance.payment.shipping_address_id.get_coordinates()
+                if all(v is not None for v in (producer_lat, producer_long, user_lat, user_long)):
+                    instance.food_mile_distance = haversine_miles(producer_lat, producer_long, user_lat, user_long)
+                    instance.save(update_fields=['food_mile_distance'])
+            except Exception as e:
+                logger.warning(f"Could not calculate food miles for OrderProducer #{instance.id}: {e}")
 
 
 @receiver(post_save, sender=OrderItem)

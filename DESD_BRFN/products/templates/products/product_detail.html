@@ -262,5 +262,69 @@
     </div>
     {% endif %}
 
+    <!-- TC-024: Reviews -->
+    <div class="detail-wrapper" style="padding-top:0;margin-top:1.5rem;">
+        <div class="profile-card" style="padding:1.25rem;">
+            <div class="profile-card-title"><i class="bi bi-star-half"></i> Customer Reviews</div>
+
+            {% if reviews %}
+                <div style="margin-top:1rem;display:flex;flex-direction:column;gap:1rem;">
+                {% for review in reviews %}
+                    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:1rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                            <strong>{{ review.customer.get_full_name|default:review.customer.username }}</strong>
+                            <span style="color:#f59e0b;font-size:1rem;">
+                                {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+                            </span>
+                        </div>
+                        {% if review.title %}<p style="font-weight:600;margin-bottom:0.25rem;">{{ review.title }}</p>{% endif %}
+                        {% if review.body %}<p style="color:#4b5563;font-size:0.875rem;">{{ review.body }}</p>{% endif %}
+                        <p style="color:#9ca3af;font-size:0.75rem;margin-top:0.5rem;">{{ review.created_at|date:"F j, Y" }}</p>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p style="color:#9ca3af;margin-top:0.75rem;">No reviews yet. Be the first to review this product.</p>
+            {% endif %}
+
+            {% if user.is_authenticated and user_has_purchased and not user_review %}
+            <div style="margin-top:1.5rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
+                <h4 style="font-weight:600;margin-bottom:0.75rem;">Write a Review</h4>
+                <form method="post" action="{% url 'mainApp:products:submit_review' product.id %}">
+                    {% csrf_token %}
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.3rem;">Rating</label>
+                        <select name="rating" required style="border:1px solid #d1d5db;border-radius:6px;padding:0.4rem 0.75rem;">
+                            <option value="">Select rating</option>
+                            {% for i in "12345" %}
+                            <option value="{{ forloop.counter }}">{{ forloop.counter }} star{{ forloop.counter|pluralize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.3rem;">Title (optional)</label>
+                        <input type="text" name="title" maxlength="255"
+                            style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.4rem 0.75rem;"
+                            placeholder="Summarise your experience">
+                    </div>
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.3rem;">Review (optional)</label>
+                        <textarea name="body" rows="3"
+                            style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.4rem 0.75rem;"
+                            placeholder="Share your thoughts..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-add-cart" style="padding:0.5rem 1.25rem;">
+                        <i class="bi bi-check-circle"></i> Submit Review
+                    </button>
+                </form>
+            </div>
+            {% elif user.is_authenticated and user_review %}
+            <p style="color:#059669;margin-top:0.75rem;font-size:0.875rem;"><i class="bi bi-check-circle"></i> You have reviewed this product.</p>
+            {% elif user.is_authenticated and not user_has_purchased %}
+            <p style="color:#9ca3af;margin-top:0.75rem;font-size:0.875rem;">Purchase and receive this product to leave a review.</p>
+            {% endif %}
+        </div>
+    </div>
+
 </div>
 {% endblock %}

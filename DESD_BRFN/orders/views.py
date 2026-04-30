@@ -152,7 +152,7 @@ def create_checkout_session(request):
     # Build line items for Stripe
     line_items = []
     for cart_item in cart.items.select_related('product').all():
-        price_in_cents = int(cart_item.product.price * 100)#.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        price_in_cents = int(cart_item.unit_price * 100)
         line_items.append({
             'price_data': {
                 'currency': 'gbp',
@@ -237,7 +237,7 @@ def create_checkout_session(request):
                         producer_order=producer_order,
                         product=cart_item.product,
                         product_name=cart_item.product.name,
-                        product_price=cart_item.product.price,
+                        product_price=cart_item.unit_price,
                         quantity=cart_item.quantity,
                         unit=cart_item.product.unit,
                     )
@@ -272,6 +272,11 @@ def success(request):
     """Handle successful payment."""
     session_id = request.GET.get('session_id')
     order = OrderPayment.objects.filter(stripe_session_id=session_id).first()
+
+    try:
+        request.user.customer_profile.cart.items.all().delete()
+    except Exception:
+        pass
 
     return render(request, 'orders/success.html', {'order': order})
     
@@ -427,6 +432,39 @@ def order_history(request):
     }
     
     return render(request, "orders/profile/order_history.html", context)
+
+
+@login_required
+def reorder(request, order_id):
+    """Add all items from a past order back into the current cart."""
+    from customers.models import CartItem
+    from django.contrib import messages
+
+    order = get_object_or_404(OrderPayment, id=order_id, user=request.user)
+    cart = request.user.customer_profile.cart
+
+    added, unavailable = [], []
+    for producer_order in order.producer_orders.prefetch_related('order_items__product'):
+        for item in producer_order.order_items.all():
+            product = item.product
+            if product and product.availability == 'available' and product.stock_quantity > 0 and product.is_active:
+                cart_item, created = CartItem.objects.get_or_create(
+                    cart=cart, product=product,
+                    defaults={'quantity': item.quantity}
+                )
+                if not created:
+                    cart_item.quantity += item.quantity
+                    cart_item.save(update_fields=['quantity'])
+                added.append(item.product_name)
+            else:
+                unavailable.append(item.product_name)
+
+    if added:
+        messages.success(request, f"{len(added)} item(s) added to your cart.")
+    if unavailable:
+        messages.warning(request, f"{len(unavailable)} item(s) are no longer available: {', '.join(unavailable)}.")
+
+    return redirect('mainApp:customers:cart')
 
 
 # =============================================================================

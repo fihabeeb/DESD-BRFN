@@ -11,6 +11,7 @@ urlpatterns = [
     path('webhook/stripe/', views.stripe_webhook, name='stripe_webhook'),
 
     path('order-history/', views.order_history, name="order_history"),
+    path('reorder/<int:order_id>/', views.reorder, name='reorder'),
 
     # TC-018: Recurring orders management
     path('recurring/', views.recurring_orders_list, name='recurring_list'),

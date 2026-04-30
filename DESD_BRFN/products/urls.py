@@ -7,6 +7,9 @@ urlpatterns = [
     path('products/add/', views.add_product, name='add_product'),
     path('products/<int:product_id>/', views.product_detail, name='product_detail'),
 
+    # TC-024: Reviews
+    path('products/<int:product_id>/review/', views.submit_review, name='submit_review'),
+
     # TC-019: Surplus deals
     path('surplus/', views.surplus_deals, name='surplus_deals'),
 

@@ -219,7 +219,7 @@ def addproduct_view(request):
             return redirect('mainApp:producers:myproduct')  # or 'producer_product_detail' with product.id
         else:
             # Form errors will be displayed in template
-            messages.error(request, 'Please correct the errors below.')
+            messages.error(request, form.errors)
     else:
         # Pre-populate with defaults if needed
         initial_data = {
@@ -327,14 +327,14 @@ def incoming_orders_view(request):
     Only shows this producer's items within each order.
     """
     producer_profile = request.user.producer_profile
-    
+
     if not producer_profile:
         logger.warning(f"Producer profile missing for user {request.user.id}")
         return redirect('mainApp:home')
-    
+
     # Get status filter from request
     status_filter = request.GET.get('status', '')
-    
+
     # Get all OrderProducer records for this producer
     producer_orders = OrderProducer.objects.filter(
         producer=producer_profile
@@ -356,16 +356,16 @@ def incoming_orders_view(request):
         'delivered': producer_orders.filter(order_status='delivered').count(),
         'cancelled': producer_orders.filter(order_status='cancelled').count(),
         # 'total_revenue': sum(
-        #     data['producer_subtotal'] for data in orders_data 
+        #     data['producer_subtotal'] for data in orders_data
         #     if data['order'].order_status == 'delivered'
         # ),
         'total_revenue': revenue
     }
-    
+
     # Apply status filter if provided
     if status_filter:
         producer_orders = producer_orders.filter(order_status=status_filter)
-    
+
     # Build orders data with items and subtotals
     orders_data = []
     for producer_order in producer_orders:
@@ -373,10 +373,10 @@ def incoming_orders_view(request):
         order_items = OrderItem.objects.filter(
             producer_order=producer_order
         ).select_related('product')
-        
+
         # Calculate subtotal for this producer's items
         producer_subtotal = sum(item.line_total for item in order_items)
-        
+
         orders_data.append({
             'order': producer_order,
             'items': order_items,
@@ -387,17 +387,17 @@ def incoming_orders_view(request):
             'delivery_date': producer_order.delivered_by,
             'customer_note': producer_order.customer_note,
         })
-    
+
     # Pagination
     paginator = Paginator(orders_data, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     available_status_choices = [
-        choice for choice in OrderProducer.ORDER_STATUS_CHOICES 
+        choice for choice in OrderProducer.ORDER_STATUS_CHOICES
         if choice[0] != 'pending'
     ]
-    
+
     context = {
         'page_obj': page_obj,
         'producer': producer_profile,
@@ -405,7 +405,7 @@ def incoming_orders_view(request):
         'current_status': status_filter,
         'stats': stats,
     }
-    
+
     return render(request, 'producers/orders/incoming_orders.html', context)
 
 @login_required
@@ -415,27 +415,27 @@ def update_order_status(request, order_id):
     Update the status of a producer's order (e.g., confirmed, preparing, ready)
     """
     producer_profile = request.user.producer_profile
-    
+
     # Get the producer order (ensure it belongs to this producer)
     producer_order = get_object_or_404(
-        OrderProducer, 
-        id=order_id, 
+        OrderProducer,
+        id=order_id,
         producer=producer_profile
     )
-    
+
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        
+
         if new_status in dict(OrderProducer.ORDER_STATUS_CHOICES):
             producer_order.order_status = new_status
             producer_order.save()
-            
+
             # Log the status change
             logger.info(f"Producer {producer_profile.id} updated order {order_id} to {new_status}")
-            
+
             # You could add notification here
             # send_order_status_notification(producer_order)
-    
+
     return redirect('mainApp:producers:incoming_orders')
 
 
@@ -450,20 +450,20 @@ def order_detail(request, order_id):
     print(producer_profile)
 
     producer_order = get_object_or_404(
-        OrderProducer, 
-        id=order_id, 
+        OrderProducer,
+        id=order_id,
         producer=producer_profile
     )
     print(producer_order)
-    
+
     # Get all items for this order
     order_items = OrderItem.objects.filter(
         producer_order=producer_order
     ).select_related('product')
-    
+
     # Calculate subtotal
     producer_subtotal = sum(item.line_total for item in order_items)
-    
+
     context = {
         'producer_order': producer_order,
         'order_payment': producer_order.payment,
@@ -471,7 +471,7 @@ def order_detail(request, order_id):
         'producer_subtotal': producer_subtotal,
         'status_choices': OrderProducer.ORDER_STATUS_CHOICES,
     }
-    
+
     return render(request, 'producers/orders/details/order_details.html', context)
 
 
@@ -528,7 +528,7 @@ def personal_info_view(request):
         logout(request)
         messages.success(request, "Your account has been deleted successfully. We're sorry to see you go!")
         return redirect("mainApp:home")
-    
+
     # GET OR CREATE PRODUCER PROFILE
     try:
         profile = ProducerProfile.objects.get(user=user)
@@ -538,35 +538,35 @@ def personal_info_view(request):
         logger.info(f"Creating missing profile for user {user.username}")
         profile = ProducerProfile.objects.create(user=user)
         messages.info(request, "Producer profile was created. Please complete your farm details.")
-    
+
     # GET ADDRESSES
     all_addresses = user.addresses.all().order_by('-is_default', '-created_at')
-    
+
     # default address for producer is always farm type.
     default_address = all_addresses.filter(is_default=True).first()
     if not default_address:
         # Try to get any address
         default_address = all_addresses.first()
-    
+
     # Get other addresses
     other_addresses = all_addresses.exclude(id=default_address.id)
-    
+
     # PROCESS FORM
     if request.method == "POST":
         form = ProducerPersonalInfoForm(request.POST, user=user)
-        
+
         if form.is_valid():
             try:
                 user = form.save()
-                
+
                 # Handle session after password change
                 if form.cleaned_data.get('password1'):
                     update_session_auth_hash(request, user)
                     messages.success(request, "Password updated successfully!")
-                
+
                 messages.success(request, "Your information has been updated successfully!")
                 return redirect("mainApp:producers:personal_info")
-                
+
             except Exception as e:
                 logger.error(f"Error updating producer info: {e}", exc_info=True)
                 messages.error(request, "An error occurred while updating your information. Please try again.")
@@ -579,7 +579,7 @@ def personal_info_view(request):
                     else:
                         field_label = field.replace('_', ' ').title()
                         messages.error(request, f"{field_label}: {error}")
-    
+
     else:
         # GET request - populate initial data for form
         initial_data = {
@@ -588,9 +588,9 @@ def personal_info_view(request):
             "phone_number": user.phone_number,
             "business_name": profile.business_name if profile else '',
         }
-        
+
         form = ProducerPersonalInfoForm(user=user, initial=initial_data)
-    
+
     context = {
         'form': form,
         'user': user,
@@ -599,7 +599,7 @@ def personal_info_view(request):
         'default_address': default_address,
         'other_addresses': other_addresses,
     }
-    
+
     return render(request, "profile/manage/personal_info.html", context)
 
 
@@ -615,7 +615,7 @@ def producer_profile_view(request):
         user=request.user,
         payment_status='paid'
     ).order_by('-created_at').first()
-    
+
     # stats card------------
     orderThisMonth = producer_profile.total_order_this_month
     total_orders_count = producer_profile.total_active_orders
@@ -642,7 +642,7 @@ def producer_profile_view(request):
             'global_notes': latest_order.global_delivery_notes,
             'producers': []
         }
-        
+
         # Get all producer orders for this payment
         producer_orders = latest_order.producer_orders.select_related(
             'producer'
@@ -654,13 +654,13 @@ def producer_profile_view(request):
             producer_data = {
                 'producer': producer_order.producer,
                 'business_name': producer_order.producer.business_name if producer_order.producer else 'Unknown',
-                'status': producer_order.get_order_status_display(),  
+                'status': producer_order.get_order_status_display(),
                 'subtotal': producer_order.producer_subtotal,
                 'delivery_date': producer_order.delivered_by,
                 'customer_note': producer_order.customer_note,
                 'items': []
             }
-            
+
             # Get items for this producer order
             for item in producer_order.order_items.all():
                 producer_data['items'].append({
@@ -672,9 +672,9 @@ def producer_profile_view(request):
                     'line_total': item.line_total,
                     'unit': item.unit
                 })
-            
+
             order_data['producers'].append(producer_data)
-    
+
     context = {
         'stats': stats_card,
         'latest_order': latest_order,

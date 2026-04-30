@@ -101,8 +101,8 @@ def _send_recurring_notification(recurring_order, instance):
                 f"Your recurring order (#{recurring_order.id}) is scheduled for "
                 f"{instance.scheduled_date.strftime('%A, %d %B %Y')}.\n\n"
                 f"You have {days_until} day(s) to review or modify this order.\n\n"
-                f"Log in at FarmDirect to make any changes.\n\n"
-                f"Thank you,\nThe FarmDirect Team"
+                f"Log in at Bristol Regional Food Network to make any changes.\n\n"
+                f"Thank you,\nThe Bristol Regional Food Network Team"
             ),
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@farmdirect.com'),
             recipient_list=[user.email],

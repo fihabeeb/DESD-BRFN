@@ -128,9 +128,17 @@ class CartItem(models.Model):
 
         if self.product:
             if not self.product_name:
-                self.product_name = self.product.pygame.freetype.name
+                self.product_name = self.product.name
             if self.unit_price is None:
-                self.unit_price = self.product.price
+                try:
+                    from django.utils import timezone as tz
+                    deal = self.product.surplus_deal
+                    if deal.is_active and deal.expires_at > tz.now():
+                        self.unit_price = deal.discounted_price
+                    else:
+                        self.unit_price = self.product.price
+                except Exception:
+                    self.unit_price = self.product.price
         super().save(*args, **kwargs)
 
 

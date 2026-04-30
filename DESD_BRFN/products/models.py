@@ -220,9 +220,14 @@ class Product(models.Model):
         return self.availability == 'available'
 
 
+    low_stock_threshold = models.PositiveIntegerField(
+        default=10,
+        help_text="Show a low-stock warning when stock falls at or below this level"
+    )
+
     @property
     def is_low_stock(self):
-        return 0 < self.stock_quantity < 10
+        return 0 < self.stock_quantity <= self.low_stock_threshold
 
 
     def get_food_miles(self, user_lat, user_long):
@@ -388,8 +393,32 @@ class Allergen(models.Model):
     def get_name_display(self):
         return self.display_name
 
-# class ProductReview(models.Model):
-#     # TODO
+class ProductReview(models.Model):
+    """TC-024: Customer reviews for purchased products."""
+
+    RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]
+
+    product = models.ForeignKey(
+        'Product',
+        on_delete=models.CASCADE,
+        related_name='reviews',
+    )
+    customer = models.ForeignKey(
+        'mainApp.RegularUser',
+        on_delete=models.CASCADE,
+        related_name='product_reviews',
+    )
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    title = models.CharField(max_length=255, blank=True)
+    body = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['product', 'customer']]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.rating}★ {self.product.name} by {self.customer.username}"
 
 
 

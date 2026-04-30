@@ -107,12 +107,18 @@ a { text-decoration: none; }
                                 {% if form.unit.errors %}<div class="text-danger small mt-1">{{ form.unit.errors.0 }}</div>{% endif %}
                                 <small class="text-muted">e.g., kg, dozen, each</small>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label>Stock Quantity *</label>
                                 {{ form.stock_quantity }}
                                 {% if form.stock_quantity.errors %}<div class="text-danger small mt-1">{{ form.stock_quantity.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label>Low Stock Alert Threshold</label>
+                                {{ form.low_stock_threshold }}
+                                {% if form.low_stock_threshold.errors %}<div class="text-danger small mt-1">{{ form.low_stock_threshold.errors.0 }}</div>{% endif %}
+                                <small class="text-muted">Warn when stock drops to this level (default: 10)</small>
+                            </div>
+                            <div class="col-md-4">
                                 <label>Availability Status</label>
                                 {{ form.availability }}
                                 {% if form.availability.errors %}<div class="text-danger small mt-1">{{ form.availability.errors.0 }}</div>{% endif %}
