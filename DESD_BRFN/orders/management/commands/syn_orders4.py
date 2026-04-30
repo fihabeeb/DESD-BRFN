@@ -216,6 +216,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **kwargs):
+        if OrderPayment.objects.count() > 100:
+            self.stdout.write(self.style.WARNING(
+                'OrderPayment has more than 100 records – assuming already seeded. Exiting.'
+            ))
+            return
+
         seed = kwargs.get('seed', DEFAULT_SEED)
         random.seed(seed)
         np.random.seed(seed)
@@ -351,16 +357,54 @@ class Command(BaseCommand):
                     if not producer:
                         continue
 
-                    # random completion date since order is created
-                    days_since_order_created_at=random.randint(4,10)
-                    completed_at= (created_at + timedelta(days=days_since_order_created_at))
-                    
+                    # Calculate how many days ago the order was placed
+                    now = timezone.now()
+                    order_age_days = (now - created_at).days
+
+                    # Define possible statuses and their probabilities based on order age
+                    possible_statuses = ['confirmed', 'preparing', 'ready', 'delivered']
+                    if order_age_days < 4:
+                        # Too recent for standard 4-10 day delivery window
+                        weights = [0.2, 0.4, 0.3, 0.1]  
+                    elif 4 <= order_age_days <= 10:
+                        # Within standard delivery window
+                        weights = [0.00, 0.1, 0.1, 0.8]  
+                    else:
+                        # Older than max delivery window
+                        weights = [0.0, 0.00, 0.05, 0.95]
+
+                    # Randomly select status
+                    order_status = random.choices(possible_statuses, weights=weights, k=1)[0]
+
+                    # Only calculate completed_at for delivered orders
+                    completed_at = None
+                    if order_status == 'delivered':
+                        # Cap to end of order's creation week (Sunday) and current time
+                        days_until_week_end = 6 - created_at.weekday()
+                        latest_completed_at = min(created_at + timedelta(days=days_until_week_end), now)
+                        max_days_since = (latest_completed_at - created_at).days
+
+                        min_days = 4
+                        max_days = min(10, max_days_since) if max_days_since >= 4 else max_days_since
+
+                        if max_days >= min_days:
+                            days_since = random.randint(min_days, max_days)
+                        elif max_days_since > 0:
+                            days_since = random.randint(1, max_days_since)
+                        else:
+                            days_since = 0
+
+                        completed_at = created_at + timedelta(days=days_since)
+                        if completed_at > now:
+                            completed_at = now
+
+                    # Create OrderProducer with dynamic status
                     if producer.id not in producer_map:
                         producer_map[producer.id] = OrderProducer.objects.create(
                             payment=order,
                             producer=producer,
                             producer_subtotal=Decimal("0.00"),
-                            order_status='delivered',
+                            order_status=order_status,
                             created_at=created_at,
                             completed_at=completed_at
                         )
