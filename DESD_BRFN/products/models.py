@@ -252,6 +252,10 @@ class Product(models.Model):
             return "No common allergens"
         
         return f"Contatins: {', '.join([a.get_name_display() for a in allergen_list])}"
+    
+# =============================================================================
+# Product category
+# =============================================================================
 
 class ProductCategory(models.Model):
     '''

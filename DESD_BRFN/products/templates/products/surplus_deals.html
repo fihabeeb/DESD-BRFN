@@ -1,94 +1,108 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'products/surplus_deals.css' %}">
+{% endblock %}
 
 {% block title %}Surplus Deals — FarmDirect{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 py-8">
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Surplus Deals</h1>
-    <p class="text-sm text-gray-500 mt-1">Fresh produce at reduced prices — act fast before they expire!</p>
+<div class="surplus-wrapper">
+  <div class="surplus-header">
+    <h1>Surplus Deals</h1>
+    <p>Fresh produce at reduced prices — act fast before they expire!</p>
   </div>
 
   {% if not deals %}
-  <div class="text-center py-20 bg-white rounded-2xl border border-gray-100">
-    <p class="text-gray-400 text-lg">No surplus deals available right now.</p>
-    <p class="text-gray-400 text-sm mt-1">Check back soon — producers add new deals regularly.</p>
+  <div class="surplus-empty">
+    <i class="bi bi-emoji-frown"></i>
+    <p>No surplus deals available right now.</p>
+    <p>Check back soon — producers add new deals regularly.</p>
     <a href="{% url 'mainApp:products:product_list' %}"
-       class="inline-block mt-4 px-5 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+       class="btn-login-prompt">
       Browse All Products
     </a>
   </div>
   {% else %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+  <div class="deals-grid">
     {% for deal in deals %}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-
-      <!-- Discount badge -->
-      <div class="relative">
+    <a href="{% url 'mainApp:products:product_detail' deal.product_id %}" class="deal-card"> 
+      <!-- Image area -->
+      <div class="deal-image">
         {% if deal.product.image %}
-        <img src="{{ deal.product.image.url }}" alt="{{ deal.product.name }}"
-             class="w-full h-44 object-cover">
+          <img src="{{ deal.product.image.url }}" alt="{{ deal.product.name }}">
         {% else %}
-        <div class="w-full h-44 bg-gradient-to-br from-orange-50 to-green-50 flex items-center justify-center">
-          <span class="text-4xl">🌿</span>
-        </div>
+          <div class="no-image">
+            <span>🌿</span>
+          </div>
         {% endif %}
-        <span class="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+        <span class="discount-badge">
           {{ deal.discount_percent }}% OFF
         </span>
       </div>
-
-      <div class="p-4">
-        <h2 class="font-semibold text-gray-900 mb-0.5">{{ deal.product.name }}</h2>
-        <p class="text-xs text-gray-400 mb-2">by {{ deal.product.producer.business_name }}</p>
-
-        <!-- Pricing -->
-        <div class="flex items-baseline gap-2 mb-2">
-          <span class="text-xl font-bold text-green-700">£{{ deal.discounted_price }}</span>
-          <span class="text-sm line-through text-gray-400">£{{ deal.original_price }}</span>
-          <span class="text-xs text-gray-500">/ {{ deal.product.unit }}</span>
+      
+      <!-- Card body -->
+      <div class="deal-body">
+        <h2>{{ deal.product.name }}</h2>
+        <div class="deal-producer">
+          <i class="bi bi-shop"></i> {{ deal.product.producer.business_name }}
         </div>
-
+        
+        <div class="deal-price">
+          <span>£{{ deal.discounted_price }}</span>
+          <span class="original-price">£{{ deal.original_price }}</span>
+          <span class="unit">/ {{ deal.product.unit }}</span>
+        </div>
+        
         {% if deal.note %}
-        <p class="text-xs text-gray-600 italic mb-2">"{{ deal.note }}"</p>
+        <p class="deal-note">"{{ deal.note }}"</p>
         {% endif %}
-
+        
         {% if deal.best_before_date %}
-        <p class="text-xs text-amber-600 mb-2">Best before: {{ deal.best_before_date|date:"d M Y" }}</p>
+        <div class="deal-meta">
+          <i class="bi bi-calendar-x"></i>
+          Best before: {{ deal.best_before_date|date:"d M Y" }}
+        </div>
         {% endif %}
-
-        <!-- Expiry countdown -->
-        <p class="text-xs text-red-500 mb-3"
-           data-expires="{{ deal.expires_at|date:'c' }}">
+        
+        <div class="deal-meta">
+          <i class="bi bi-clock"></i>
           Expires: {{ deal.expires_at|date:"d M Y, H:i" }}
-        </p>
-
-        <!-- Allergens -->
+        </div>
+        
         {% if deal.product.has_allergens %}
-        <p class="text-xs text-gray-400 mb-3">{{ deal.product.allergen_notes }}</p>
+        <div class="deal-meta">
+          <i class="bi bi-exclamation-circle"></i>
+          {{ deal.product.allergens_notes }}
+        </div>
         {% else %}
-        <p class="text-xs text-gray-400 mb-3">No common allergens</p>
+        <div class="deal-meta">
+          <i class="bi bi-check-circle"></i>
+          No common allergens
+        </div>
         {% endif %}
-
-        <!-- Add to cart -->
-        {% if request.user.is_authenticated %}
+      </div>
+      
+      <!-- Footer with button -->
+      {% if request.user.is_authenticated %}
+      <div class="deal-footer">
         <form method="post" action="{% url 'mainApp:customers:add_to_cart' deal.product.id %}">
           {% csrf_token %}
           <input type="hidden" name="quantity" value="1">
-          <button type="submit"
-            class="w-full py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors">
-            Add to Cart
+          <button type="submit" class="btn-add-deal">
+            <i class="bi bi-cart-plus"></i> Add to Cart
           </button>
         </form>
-        {% else %}
-        <a href="{% url 'mainApp:customers:login' %}"
-           class="block w-full py-2 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors">
-          Log in to buy
-        </a>
-        {% endif %}
       </div>
-    </div>
+      {% else %}
+      <div class="deal-footer">
+        <a href="{% url 'mainApp:customers:login' %}?next={% url 'mainApp:products:surplus_deals' %}" 
+           class="btn-login-prompt">
+          <i class="bi bi-box-arrow-in-right"></i> Log in to buy
+        </a>
+      </div>
+      {% endif %}
+    </a>
     {% endfor %}
   </div>
   {% endif %}

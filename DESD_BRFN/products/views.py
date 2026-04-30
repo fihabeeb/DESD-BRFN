@@ -5,10 +5,13 @@ from .models import Product, ProductCategory
 from django.db.models import Case, When, Value, BooleanField, Q, F
 from django.contrib.postgres.search import TrigramSimilarity
 from mainApp.utils import haversine_miles, BRISTOL_LAT, BRISTOL_LON
+from mainApp.decorators import producer_required
+
 from django.utils import timezone
 
 
 @login_required
+@producer_required
 def add_product(request):
     '''
     Allow producer to list new products
