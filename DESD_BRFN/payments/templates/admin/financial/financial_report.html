@@ -1,5 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
+{% load admin_list %}
 
 {% block extrastyle %}
 <style>
@@ -148,6 +149,21 @@
 {% endblock %}
 
 {% block content %}
+{% if has_actions %}
+<div class="actions" style="margin-bottom: 20px;">
+    <form method="post" action="">
+        {% csrf_token %}
+        <select name="action">
+            <option value="" selected>---------</option>
+            {% for choice in action_choices %}
+                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="button" name="index" value="0">Go</button>
+    </form>
+</div>
+{% endif %}
+
 <div class="financial-report">
     
     <!-- Filter Bar -->
@@ -289,8 +305,8 @@
                         </span>
                     </td>
                     <td>
-                        <a href="{% url 'admin:settlement-orders-view' settlement.id %}" class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;">View Details</a>
-                        <button onclick="auditOrder('{{ settlement.id }}')" class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;">Audit</button>
+                        <a href="{% url 'admin:payments_paymentsettlement_orders' settlement.id %}" class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;">View Details</a>
+                        <!-- <button onclick="auditOrder('{{ settlement.id }}')" class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;">Audit</button> -->
                         <a href="{% url 'admin:payments_paymentsettlement_change' settlement.id %}" class="btn btn-info" style="font-size: 12px; padding: 4px 8px;">Edit</a>
                     </td>
                 </tr>

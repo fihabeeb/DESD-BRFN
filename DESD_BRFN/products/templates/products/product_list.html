@@ -16,30 +16,41 @@
 
 <!-- Personalized Recommendations -->
 {% if user.is_authenticated and has_recommendations %}
-<div class="container mt-4 mb-2">
-    <div class="recommendations-bar">
-        <div class="recommendations-header">
-            <i class="bi bi-stars text-warning"></i>
-            <strong>Personalised for You</strong>
-            {% if user_purchase_history %}<span class="text-muted" style="font-size:0.8rem;">based on your recent purchases</span>{% endif %}
+<div class="recommendations-section">
+    <div class="recommendations-header">
+        <div class="recommendations-header-content">
+            <!-- <i class="bi bi-stars text-warning"></i> -->
+            <div class="recommendations-title-wrapper">
+                <strong class="recommendations-title">Personalised for You</strong>
+                <span class="recommendations-subtitle">based on your recent purchase patterns, you may like...</span>
+            </div>
         </div>
-        <div class="recommendations-scroll">
-            {% for rec in recommended_products %}
-            <a href="{% url 'mainApp:interactions:recommendation_click' rec.product.id %}" class="rec-card">
+    </div>
+
+    <div class="recommendations-scroll">
+        {% for rec in recommended_products %}
+        <a href="{% url 'mainApp:products:product_detail' rec.product.id %}" class="recommendation-card">
+            <div class="recommendation-card-image">
                 {% if rec.product.image %}
                     <img src="{{ rec.product.image.url }}" alt="{{ rec.product.name }}" loading="lazy">
                 {% else %}
-                    <div class="rec-card-placeholder"><i class="bi bi-image"></i></div>
+                    <div class="recommendation-card-placeholder">
+                        <i class="bi bi-image"></i>
+                    </div>
                 {% endif %}
-                <div class="rec-card-body">
-                    <!-- <div class="rec-match">{{ rec.confidence }} match</div> -->
-                    <!-- <div class="rec-match">{{ rec.score }}</div> -->
-                    <div class="rec-name">{{ rec.product.name }}</div>
-                    <div class="rec-price">£{{ rec.product.price }}</div>
+                <div class="recommendation-match-badge">{{ rec.confidence }}</div>
+            </div>
+            <div class="recommendation-card-body">
+                <div class="recommendation-name">{{ rec.product.name|truncatechars:40 }}</div>
+                <div class="recommendation-price">£{{ rec.product.price|floatformat:2 }}</div>
+                {% if rec.product.producer %}
+                <div class="recommendation-producer">
+                    <i class="bi bi-building"></i> {{ rec.product.producer.business_name|truncatechars:25 }}
                 </div>
-            </a>
-            {% endfor %}
-        </div>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
     </div>
 </div>
 {% endif %}

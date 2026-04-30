@@ -201,23 +201,23 @@
         {% if user_role == "producer" %}
         <div class="profile-stats">
             <div class="profile-stat-card">
-                <div class="profile-stat-num">{{ stats.totalSales|default:"0" }}</div>
-                <div class="profile-stat-label">Total Sales Made</div>
+                <div class="profile-stat-num">{{ stats.ordersThisMonth|default:"0" }}</div>
+                <div class="profile-stat-label">Orders Receive This Month</div>
+            </div>
+            <div class="profile-stat-card">
+                <div class="profile-stat-num">{{ stats.unfinishedOrders|default:"0" }}</div>
+                <div class="profile-stat-label">Orders Uncompleted</div>
             </div>
             <div class="profile-stat-card">
                 <div class="profile-stat-num">{{ stats.uniqueCustomers|default:"0" }}</div>
-                <div class="profile-stat-label">Unique Customers Helped</div>
+                <div class="profile-stat-label">Unique Customers Reached All Time</div>
             </div>
             <div class="profile-stat-card">
-                <div class="profile-stat-num">Extra</div>
-                <div class="profile-stat-label">Card</div>
-            </div>
-            <div class="profile-stat-card">
-                <div class="profile-stat-num">Extra</div>
-                <div class="profile-stat-label">Card</div>
+                <div class="profile-stat-num">{{ stats.activeProducts|default:"0" }}</div>
+                <div class="profile-stat-label">Available Products</div>
             </div>
         </div>
-        {% elif user_role == "customer" %}
+        {% elif user_role == "customer" or user_role == "community_member" or user_role == "restaurant"%}
             <div class="profile-stats">
             <div class="profile-stat-card">
                 <div class="profile-stat-num">{{ stats.totalOrders|default:"0" }}</div>
@@ -228,12 +228,12 @@
                 <div class="profile-stat-label">Unique Farms Supported</div>
             </div>
             <div class="profile-stat-card">
-                <div class="profile-stat-num">Extra</div>
-                <div class="profile-stat-label">Card</div>
+                <div class="profile-stat-num">{{ stats.avgFoodMile|default:"0.0" }} miles</div>
+                <div class="profile-stat-label">Average Food Mile Per Order</div>
             </div>
             <div class="profile-stat-card">
-                <div class="profile-stat-num">Extra</div>
-                <div class="profile-stat-label">Card</div>
+                <div class="profile-stat-num">£ {{ stats.monthlySpending|default:"0" }}</div>
+                <div class="profile-stat-label">Spent This Month</div>
             </div>
         </div>
         {% endif %}

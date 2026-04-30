@@ -6,18 +6,22 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 
 from mainApp.models import CustomerProfile
-from ml import predictor
-from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
+from ml.recommendation.sigmoid_service_v5_1 import LSTMServiceV5_1
 from orders.models import OrderItem
 
 ML_SERVICE_URL = os.environ.get("ML_SERVICE_URL", "http://ml-service:8001")
+from products.models import Product
+from .gradcam import generate_gradcam, overlay_heatmap, to_base64
 
 
 def insights_index(request):
     return render(request, "admin/insights/index.html")
 
-
 def recommendation_insights(request):
+    """
+    XAI page for V5.1 recommendation transparency.
+    Shows recommendations + attention weights + product saliency.
+    """
     context = {}
 
     if request.method == "POST":
@@ -29,35 +33,38 @@ def recommendation_insights(request):
             messages.error(request, "Customer not found.")
             return render(request, "admin/insights/recommendation.html", context)
 
-        items = (
-            OrderItem.objects
-            .filter(
-                producer_order__payment__user=customer.user,
-                producer_order__payment__payment_status="paid",
-            )
-            .select_related("product", "producer_order__payment")
-            .order_by("producer_order__payment__created_at")
+        service = LSTMServiceV5_1()
+        service.load_model()
+
+        TOP_K = 10
+        result = service.get_predictions_with_explanation(
+            user_id=customer.user.id,
+            top_k=TOP_K
         )
 
-        purchase_history = [
-            (item.product.id, item.producer_order.payment.created_at)
-            for item in items
-            if item.product
-        ]
+        salient_products = []
+        if result.get('recommendations'):
+            top_rec = result['recommendations'][0]
+            if hasattr(top_rec.get('product'), 'id'):
+                salient_products = service.get_product_saliency(
+                    customer.user.id,
+                    top_rec['product'].id
+                )
 
-        service = LSTMServiceSigmoid()
-        recommendations = service.get_recommendations(
-            customer.user.id, purchase_history, top_k=5
-        )
+        recommendations = result.get('recommendations', [])
+        # Add display_score (percentage) for the score bars
+        for rec in recommendations:
+            rec['display_score'] = rec['score'] * 100
 
-        context.update(
-            {
-                "customer": customer,
-                "purchase_history": items,
-                "recommendations": recommendations,
-                "sequence_used": [pid for pid, _ in purchase_history[-service.sequence_length:]],
-            }
-        )
+        context.update({
+            "customer": customer,
+            "TOP_K_used": TOP_K,
+            "recommendations": recommendations,
+            "attention_weights": result.get('attention_weights', []),
+            "order_details": result.get('order_details', []),
+            "num_orders": result.get('num_orders', 0),
+            "salient_products": salient_products,
+        })
 
     return render(request, "admin/insights/recommendation.html", context)
 

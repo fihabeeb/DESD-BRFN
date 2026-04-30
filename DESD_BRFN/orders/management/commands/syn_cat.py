@@ -38,17 +38,17 @@ class Command(BaseCommand):
             # Breakfast pattern
             ['dairy', 'bakery', 'fruits', 'dairy'],
             # Cooking pattern
-            ['vegetables', 'meat', 'herbs_spices', 'vegetables'],
+            ['vegetables', 'meat', 'Herbs Spices', 'vegetables'],
             # Healthy snacking
             ['fruits', 'snacks', 'fruits', 'dairy'],
             # Baking pattern
             ['bakery', 'dairy', 'fruits', 'bakery'],
             # Weekend cooking
-            ['meat', 'vegetables', 'herbs_spices', 'beverages'],
+            ['meat', 'vegetables', 'Herbs Spices', 'beverages'],
             # Quick meals
             ['vegetables', 'dairy', 'bakery', 'fruits'],
             # Gourmet cooking
-            ['mushrooms', 'meat', 'herbs_spices', 'beverages'],
+            ['mushrooms', 'meat', 'Herbs Spices', 'beverages'],
             # Family meals
             ['vegetables', 'meat', 'dairy', 'vegetables', 'bakery'],
         ]
@@ -235,7 +235,7 @@ class Command(BaseCommand):
         # Cross-category associations (e.g., strawberries + cream)
         complementary_pairs = [
             ('fruits', 'dairy'), ('vegetables', 'meat'), ('bakery', 'dairy'),
-            ('herbs_spices', 'vegetables'), ('fruits', 'bakery'), ('meat', 'herbs_spices')
+            ('Herbs Spices', 'vegetables'), ('fruits', 'bakery'), ('meat', 'Herbs Spices')
         ]
         
         for cat1, cat2 in complementary_pairs:

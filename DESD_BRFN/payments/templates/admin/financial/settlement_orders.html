@@ -164,7 +164,7 @@
                     <td>£{{ order.payout|floatformat:2 }}</td>
                     <td>{{ order.status }}</td>
                     <td>
-                        <a href="{% url 'admin:order-audit' order.order_producer_id %}" 
+                        <a href="{% url 'admin:payments_paymentsettlement_order_audit' order.order_producer_id %}" 
                            class="btn btn-info" 
                            target="_blank"
                            style="font-size: 12px; padding: 4px 8px;">

@@ -16,15 +16,104 @@ from orders.models import OrderProducer
 
 logger = logging.getLogger(__name__)
 
+
+def transition_pending_to_processing():
+    """
+    Find pending settlements where the period has ended (week_end < today)
+    and transition them to 'processing' status with processed_at timestamp.
+    Returns count of transitioned settlements.
+    """
+    from django.utils import timezone
+
+    today = timezone.now().date()
+
+    # Find pending settlements where period has ended
+    pending_settlements = PaymentSettlement.objects.filter(
+        settlement_status='pending',
+        week_end__lt=today
+    )
+
+    transitioned_count = 0
+    for settlement in pending_settlements:
+        try:
+            settlement.settlement_status = 'processing'
+            settlement.processed_at = timezone.now()
+            settlement.save()
+            transitioned_count += 1
+            logger.info(
+                f"Transitioned settlement #{settlement.id} for "
+                f"{settlement.producer.business_name} to 'processing' "
+                f"(week ended {settlement.week_end})"
+            )
+        except Exception as e:
+            logger.error(f"Failed to transition settlement #{settlement.id}: {e}", exc_info=True)
+
+    return transitioned_count
+
+
+def complete_old_settlements():
+    """
+    Find settlements where the period ended 14+ days ago (2 calendar weeks)
+    and mark them as completed. Uses week_end to determine eligibility.
+    Returns count of completed settlements.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+
+    cutoff_date = timezone.now().date() - timedelta(days=14)
+    logger.info(f"COMPLETE_OLD_SETTLEMENTS called, cutoff_date={cutoff_date}")
+
+    # Find processing settlements where period ended 14+ days ago
+    old_settlements = PaymentSettlement.objects.filter(
+        settlement_status='processing',
+        week_end__lt=cutoff_date
+    )
+    logger.info(f"Found {old_settlements.count()} qualifying settlements")
+    
+    completed_count = 0
+    for settlement in old_settlements:
+        try:
+            settlement.mark_as_completedok()
+            completed_count += 1
+            logger.info(
+                f"Marked settlement #{settlement.id} for "
+                f"{settlement.producer.business_name} as completed "
+                f"(week_end was {(timezone.now().date() - settlement.week_end).days} days ago)"
+            )
+        except Exception as e:
+            logger.error(f"Failed to complete settlement #{settlement.id}: {e}", exc_info=True)
+
+    if completed_count > 0:
+        logger.info(f"Completed {completed_count} old settlements")
+
+    return completed_count
+
+
 @shared_task
 def process_weekly_settlements():
     '''
     Task to create the weekly settlements for all producers
     Runs weekly via celery beat
 
-    running this task in the middle week still contrains it to the current period 
+    running this task in the middle week still contrains it to the current period
     (Monday 00:00 to Sunday 11:59)
+
+    Settlement workflow:
+    - pending: Current week, orders being collected
+    - processing: Following week starts, 14-day timer begins
+    - completed: 14 days after processing started
     '''
+    # Step 1: Transition pending → processing (period ended)
+    transitioned = transition_pending_to_processing()
+    if transitioned > 0:
+        logger.info(f"Transitioned {transitioned} settlements to 'processing'")
+
+    # Step 2: Complete old settlements (14+ days processing)
+    completed = complete_old_settlements()
+    if completed > 0:
+        logger.info(f"Completed {completed} settlements")
+
+    # Step 3: Process new settlements
     # Get all unsettled delivered orders
     unsettled_orders = OrderProducer.objects.filter(
         order_status='delivered',
@@ -107,13 +196,23 @@ def process_producer_settlement(producer_id, week_start, week_end):
             producer=producer,
             week_start=week_start_date,
             week_end=week_end_date,
+            defaults={'settlement_status': 'pending'}
         )
 
         if created:
-            logger.info(f"Created new settlement for {producer.business_name}")
+            logger.info(f"Created settlement #{settlement.id} for {producer.business_name} with status 'pending'")
         else:
-            logger.info(f"Found existing settlement #{settlement.id} for {producer.business_name}")
-        
+            logger.info(f"Found settlement #{settlement.id} for {producer.business_name} (status: {settlement.settlement_status})")
+
+        # Skip if already completed
+        if settlement.settlement_status == 'completed':
+            logger.info(f"Settlement #{settlement.id} already completed, skipping")
+            return {
+                'status': 'already_completed',
+                'settlement_id': settlement.id,
+                'producer': producer.business_name
+            }
+
         completed_orders = OrderProducer.objects.filter(
             producer=producer,
             order_status='delivered',
@@ -129,23 +228,36 @@ def process_producer_settlement(producer_id, week_start, week_end):
                 'settlement': settlement.id if not created else None
             }
         
+        # Transition pending → processing if period ended
+        if settlement.settlement_status == 'pending':
+            if timezone.now().date() > settlement.week_end:
+                settlement.settlement_status = 'processing'
+                settlement.processed_at = timezone.now()
+                settlement.save()
+                logger.info(f"Settlement #{settlement.id} transitioned to 'processing'")
+            else:
+                logger.info(f"Settlement #{settlement.id} still pending (period active), skipping")
+                return {
+                    'status': 'pending',
+                    'settlement_id': settlement.id,
+                    'producer': producer.business_name
+                }
+        
         with transaction.atomic():
             # Calculate totals
             total_orders = completed_orders.count()
             total_subtotal = sum(order.producer_subtotal for order in completed_orders)
             total_commission = sum(order.commission for order in completed_orders)
             total_payout = sum(order.producer_payout for order in completed_orders)
-            
+
             # we do not consider stripe service fee which is
             # 1.5% + 20p for local uk cards
-            
+
             settlement.total_orders += total_orders
             settlement.total_subtotal += total_subtotal
             settlement.total_commission += total_commission
             settlement.total_payout += total_payout
-            settlement.settlement_status = 'processing'
-            settlement.processed_at = timezone.now()
-            
+
             # Create settlement order records and mark orders as settled
             for order in completed_orders:
                 SettlementOrder.objects.create(

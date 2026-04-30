@@ -17,6 +17,7 @@ from producers.forms import ProducerRegistrationForm, ProducerPersonalInfoForm, 
 from django.db.models import Q, Sum
 from mainApp.decorators import producer_required
 from orders.models import OrderPayment, OrderItem, OrderProducer
+from products.models import Product
 
 from django.contrib.auth import logout, update_session_auth_hash
 from mainApp.models import Address
@@ -608,30 +609,28 @@ def producer_profile_view(request):
     """
     Producer dashboard: order history + stats
     """
+    producer_profile = request.user.producer_profile
     # fetch latest order made by the user (NOT INCOMING ORDERS)
     latest_order = OrderPayment.objects.filter(
         user=request.user,
         payment_status='paid'
     ).order_by('-created_at').first()
-
-    # query all orders the producer has.
-    producer_orders = OrderPayment.objects.filter(
-        producer_orders__producer=request.user.producer_profile,
-        payment_status='paid'
-    ).distinct().order_by('-created_at')
     
-    order_data = None
-    total_orders_count = producer_orders.count()
-    unique_customer = OrderPayment.objects.filter(
-        payment_status='paid',
-        producer_orders__producer= request.user.producer_profile,
-    ).values('user_id').distinct().count()
+    # stats card------------
+    orderThisMonth = producer_profile.total_order_this_month
+    total_orders_count = producer_profile.total_active_orders
+    unique_customer = producer_profile.unique_customer_reached
+    active_products = producer_profile.products_active_and_available
+
     stats_card = {
-        'totalSales': total_orders_count,
-        'uniqueCustomers': unique_customer
+        'ordersThisMonth': orderThisMonth,
+        'unfinishedOrders': total_orders_count,
+        'uniqueCustomers': unique_customer,
+        'activeProducts': active_products,
     }
 
     # build data for latest order made by the user.
+    order_data = None
     if latest_order:
         # Build comprehensive order data
         order_data = {
