@@ -1,30 +1,23 @@
-import io
+import os
+import requests as http_client
 
-import numpy as np
-import tensorflow as tf
-from PIL import Image
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 
 from mainApp.models import CustomerProfile
 from ml import predictor
 from ml.recommendation.sigmoid_service import LSTMServiceSigmoid
 from orders.models import OrderItem
-from products.models import Product  # kept in case you use it later
-from .gradcam import generate_gradcam, overlay_heatmap, to_base64
+
+ML_SERVICE_URL = os.environ.get("ML_SERVICE_URL", "http://ml-service:8001")
 
 
 def insights_index(request):
-    """
-    Dashboard-style landing page for the Insights section.
-    """
     return render(request, "admin/insights/index.html")
 
 
 def recommendation_insights(request):
-    """
-    XAI page for explaining the recommendation process.
-    """
     context = {}
 
     if request.method == "POST":
@@ -36,22 +29,25 @@ def recommendation_insights(request):
             messages.error(request, "Customer not found.")
             return render(request, "admin/insights/recommendation.html", context)
 
-        # Fetch purchase history
         items = (
             OrderItem.objects
             .filter(
                 producer_order__payment__user=customer.user,
                 producer_order__payment__payment_status="paid",
             )
-            .select_related("product")
+            .select_related("product", "producer_order__payment")
             .order_by("producer_order__payment__created_at")
         )
 
-        purchase_history = [item.product.id for item in items if item.product]
+        purchase_history = [
+            (item.product.id, item.producer_order.payment.created_at)
+            for item in items
+            if item.product
+        ]
 
         service = LSTMServiceSigmoid()
         recommendations = service.get_recommendations(
-            customer_id, purchase_history, top_k=5
+            customer.user.id, purchase_history, top_k=5
         )
 
         context.update(
@@ -59,7 +55,7 @@ def recommendation_insights(request):
                 "customer": customer,
                 "purchase_history": items,
                 "recommendations": recommendations,
-                "sequence_used": purchase_history[-service.sequence_length :],
+                "sequence_used": [pid for pid, _ in purchase_history[-service.sequence_length:]],
             }
         )
 
@@ -67,42 +63,70 @@ def recommendation_insights(request):
 
 
 def classification_insights(request):
-    """
-    Image classification insights with simple Grad-CAM explanation (condition head only).
-    """
     context = {}
 
     if request.method == "POST" and request.FILES.get("image"):
         image_file = request.FILES["image"]
 
-        # Run existing predictor (quality + labels)
         result = predictor.predict(image_file)
+        if result is None:
+            messages.error(request, "ML service unavailable. Please try again later.")
+            return render(request, "admin/insights/classification.html", context)
+
         context["result"] = result
 
-        # Rewind file pointer and reload image for Grad-CAM
-        image_file.seek(0)
-        img = Image.open(io.BytesIO(image_file.read())).convert("RGB")
-        img_resized = img.resize((128, 128))
-        img_norm = np.array(img_resized) / 255.0
-        img_input = np.expand_dims(img_norm, axis=0)
-
-        # Load model ONLY inside Insights
-        model = tf.keras.models.load_model("ml/best_model.keras")
-
-        # Condition head index based on predicted label ("Healthy" or "Rotten")
-        condition_label = result["labels"]["condition"]
-        cond_classes = list(predictor._encoders["condition"].classes_)
-        cond_index = cond_classes.index(condition_label)
-
-        # Generate Grad-CAM for the predicted condition class
-        heatmap = generate_gradcam(model, img_input, cond_index)
-
-        # Overlay on the original resized image
-        overlay = overlay_heatmap(heatmap, np.array(img_resized))
-
-        # Convert to base64 for template
-        context["original"] = to_base64(np.array(img_resized))
-        context["heatmap"] = to_base64((heatmap * 255).astype("uint8"))
-        context["overlay"] = to_base64(overlay)
+        gradcam = result.get("gradcam")
+        if gradcam:
+            context["original"] = gradcam["original"]
+            context["heatmap"] = gradcam["heatmap"]
+            context["overlay"] = gradcam["overlay"]
 
     return render(request, "admin/insights/classification.html", context)
+
+
+@staff_member_required
+def upload_model(request):
+    """
+    Admin page for uploading a new ML model into the ml-service.
+    Accepts a .keras model file and an optional .pkl mappings/encoders file.
+    """
+    context = {}
+
+    if request.method == "POST":
+        model_type = request.POST.get("model_type")
+        model_file = request.FILES.get("model_file")
+        mappings_file = request.FILES.get("mappings_file")
+
+        if not model_type or not model_file:
+            messages.error(request, "Model type and model file are required.")
+            return render(request, "admin/insights/upload_model.html", context)
+
+        files = {"model_file": (model_file.name, model_file.read(), "application/octet-stream")}
+        if mappings_file:
+            files["mappings_file"] = (mappings_file.name, mappings_file.read(), "application/octet-stream")
+
+        try:
+            response = http_client.post(
+                f"{ML_SERVICE_URL}/models/upload",
+                data={"model_type": model_type},
+                files=files,
+                timeout=60,
+            )
+            response.raise_for_status()
+            data = response.json()
+            messages.success(
+                request,
+                f"Model uploaded and activated (version: {data['version']}).",
+            )
+            context["result"] = data
+        except Exception as e:
+            messages.error(request, f"Upload failed: {e}")
+
+    # Fetch existing versions for display
+    try:
+        resp = http_client.get(f"{ML_SERVICE_URL}/models/versions", timeout=5)
+        context["versions"] = resp.json()
+    except Exception:
+        context["versions"] = {}
+
+    return render(request, "admin/insights/upload_model.html", context)

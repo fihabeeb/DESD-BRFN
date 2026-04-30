@@ -25,7 +25,7 @@
         </div>
         <div class="recommendations-scroll">
             {% for rec in recommended_products %}
-            <a href="{% url 'mainApp:products:product_detail' rec.product.id %}" class="rec-card">
+            <a href="{% url 'mainApp:interactions:recommendation_click' rec.product.id %}" class="rec-card">
                 {% if rec.product.image %}
                     <img src="{{ rec.product.image.url }}" alt="{{ rec.product.name }}" loading="lazy">
                 {% else %}

@@ -1,0 +1,9 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+tensorflow
+numpy
+pillow
+scikit-learn
+opencv-python-headless==4.10.0.84
+python-multipart
+requests

@@ -1,22 +1,18 @@
-import numpy as np
-import tensorflow as tf
-import cv2
 import base64
 from io import BytesIO
+
+import cv2
+import numpy as np
+import tensorflow as tf
 from PIL import Image
 
-# Last convolutional layer from your model summary
 LAST_CONV_LAYER = "conv2d_3"
 
 
 def generate_gradcam(model, img_array, class_index):
-    """
-    Generate a Grad-CAM heatmap for the given class index using the condition head.
-    """
-    # model.output[0] = condition head (since your model has 3 outputs)
     grad_model = tf.keras.models.Model(
         model.inputs,
-        [model.get_layer(LAST_CONV_LAYER).output, model.output[0]]
+        [model.get_layer(LAST_CONV_LAYER).output, model.output[0]],
     )
 
     with tf.GradientTape() as tape:
@@ -41,18 +37,12 @@ def colorize_heatmap(heatmap):
 
 
 def overlay_heatmap(heatmap, image):
-    """
-    Overlay the Grad-CAM heatmap on top of the original image.
-    """
     resized = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
     heatmap_rgb = colorize_heatmap(resized)
     return cv2.addWeighted(image, 0.6, heatmap_rgb, 0.4, 0)
 
 
 def to_base64(img_array):
-    """
-    Convert a NumPy image array (H, W, C) to a base64 PNG string.
-    """
     img = Image.fromarray(img_array)
     buffer = BytesIO()
     img.save(buffer, format="PNG")

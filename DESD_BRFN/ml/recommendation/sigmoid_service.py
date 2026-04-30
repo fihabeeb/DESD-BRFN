@@ -1,23 +1,18 @@
-import pickle
+"""Thin HTTP client — delegates recommendations to the ml-service container."""
+import os
 import logging
-from products.models import Product
-from ml.recommendation.sigmoid_model import recommend_next_items_sigmoid
+import requests
 
 logger = logging.getLogger(__name__)
 
+ML_SERVICE_URL = os.environ.get("ML_SERVICE_URL", "http://ml-service:8001")
+
 
 class LSTMServiceSigmoid:
-    """Service for multi‑label (sigmoid) recommendations."""
+    """Drop-in replacement that calls the ml-service over HTTP."""
 
     _instance = None
-    _model = None
-    _product_to_idx = None
-    _idx_to_product = None
-    _user_to_idx = None
-    _idx_to_user = None
-    _max_seq_len = None
-    _other_token = None
-    _mappings = None
+    _sequence_length = 7
 
     def __new__(cls):
         if cls._instance is None:
@@ -30,97 +25,64 @@ class LSTMServiceSigmoid:
             cls._instance = cls()
         return cls._instance
 
-    def load_model(self,
-                   model_path="ml/recommendation/final/sigmoid_lstm.keras",
-                   mappings_path="ml/recommendation/final/sigmoid_mappings.pkl"):
-        """Load the trained sigmoid model and mappings."""
-        try:
-            from tensorflow.keras.models import load_model
+    def load_model(self):
+        """No-op: model lives in the ml-service container."""
+        pass
 
-            self._model = load_model(model_path)#//, custom_objects={'loss': weighted_binary_crossentropy})
-
-            with open(mappings_path, "rb") as f:
-                self._mappings = pickle.load(f)
-
-            self._product_to_idx = self._mappings["product_to_idx"]
-            self._idx_to_product = self._mappings["idx_to_product"]
-            self._user_to_idx = self._mappings["user_to_idx"]
-            self._idx_to_user = self._mappings["idx_to_user"]
-            self._max_seq_len = self._mappings.get("max_seq_len", 7)
-            self._other_token = self._mappings.get("other_token", 1)
-
-            logger.info("Fixed sigmoid LSTM model loaded successfully")
-            logger.info(f"Max sequence length: {self._max_seq_len}, other_token: {self._other_token}")
-        except Exception as e:
-            logger.error(f"Failed to load fixed sigmoid model: {e}")
-            self._model = None
+    @property
+    def sequence_length(self):
+        return self._sequence_length
 
     def get_recommendations(self, user_id, purchase_history_with_timestamps, top_k=5):
         """
-        Get top‑k product recommendations for quick re‑order.
-
         Args:
-            user_id: int
-            purchase_history_with_timestamps: list of (product_id, datetime) tuples, chronological.
-            top_k: number of recommendations to return
-
+            purchase_history_with_timestamps: list of (product_id, datetime) tuples
         Returns:
-            list of dict: [{'product': Product, 'score': float, 'confidence': str}, ...]
+            list of {'product': Product, 'score': float, 'confidence': str}
         """
-        if not self._model:
-            logger.warning("Model not loaded. Call load_model() first.")
-            return []
+        from products.models import Product
 
         if not purchase_history_with_timestamps:
-            logger.info(f"No purchase history for user {user_id}")
             return []
+
+        payload = {
+            "user_id": user_id,
+            "purchase_history": [
+                {
+                    "product_id": pid,
+                    "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
+                }
+                for pid, ts in purchase_history_with_timestamps
+            ],
+            "top_k": top_k,
+        }
 
         try:
-            # Validate input
-            if not all(isinstance(item, (tuple, list)) and len(item) == 2
-                       for item in purchase_history_with_timestamps):
-                logger.error(f"Invalid purchase history format for user {user_id}")
-                return []
-
-            product_ids = [item[0] for item in purchase_history_with_timestamps]
-            timestamps = [item[1] for item in purchase_history_with_timestamps]
-
-            logger.info(f"Generating recommendations for user {user_id} "
-                        f"from {len(product_ids)} past purchases")
-
-            # Call the fixed sigmoid recommendation function
-            recommendations = recommend_next_items_sigmoid(
-                user_id=user_id,
-                user_history_products=product_ids,
-                user_history_timestamps=timestamps,
-                model=self._model,
-                product_to_idx=self._product_to_idx,
-                idx_to_product=self._idx_to_product,
-                user_to_idx=self._user_to_idx,
-                max_seq_len=self._max_seq_len,
-                top_k=top_k,
-                other_token=self._other_token
+            response = requests.post(
+                f"{ML_SERVICE_URL}/predict/recommendations",
+                json=payload,
+                timeout=15,
             )
-
-            # Fetch actual Product objects
-            recommended_products = []
-            for product_id, probability in recommendations:
-                try:
-                    product = Product.objects.get(id=product_id, availability='available')
-                    recommended_products.append({
-                        'product': product,
-                        'score': probability,
-                        'confidence': f"{probability:.1%}"
-                    })
-                    
-                    print(f"Recommending {product.name} with {probability:.1%} confidence")
-                except Product.DoesNotExist:
-                    logger.warning(f"Product {product_id} not found or unavailable")
-                    continue
-
-            logger.info(f"Returning {len(recommended_products)} recommendations")
-            return recommended_products
-
+            response.raise_for_status()
+            data = response.json()
         except Exception as e:
-            logger.error(f"Error in sigmoid recommendation service: {e}", exc_info=True)
+            logger.error("ml-service recommendation request failed: %s", e)
             return []
+
+        self._sequence_length = data.get("max_seq_len", self._sequence_length)
+
+        results = []
+        for item in data.get("recommendations", []):
+            try:
+                product = Product.objects.get(id=item["product_id"], availability="available")
+                results.append(
+                    {
+                        "product": product,
+                        "score": item["score"],
+                        "confidence": item["confidence"],
+                    }
+                )
+            except Product.DoesNotExist:
+                logger.warning("Recommended product %s not found or unavailable", item["product_id"])
+
+        return results

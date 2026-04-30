@@ -1,0 +1,61 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Upload ML Model</h1>
+<p>Upload a new model file to replace the currently active model in the ML service. The service will hot-reload immediately after upload — no restart required.</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <p class="{% if message.tags %}{{ message.tags }}{% endif %}" style="padding:8px; background:{% if 'error' in message.tags %}#fdd{% else %}#dfd{% endif %}; border:1px solid #ccc; margin-bottom:12px;">
+      {{ message }}
+    </p>
+  {% endfor %}
+{% endif %}
+
+<div style="max-width: 600px; margin-top: 20px;">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div style="margin-bottom: 16px;">
+      <label for="model_type"><strong>Model Type</strong></label><br>
+      <select name="model_type" id="model_type" required style="width:100%; padding:6px; margin-top:4px;">
+        <option value="">— select —</option>
+        <option value="quality">Quality Predictor (produce image classifier)</option>
+        <option value="recommendation">Recommendation (LSTM)</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label for="model_file"><strong>Model File (.keras)</strong></label><br>
+      <input type="file" name="model_file" id="model_file" accept=".keras" required style="margin-top:4px;">
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label for="mappings_file">
+        <strong>Mappings / Encoders File (.pkl)</strong>
+        <span style="font-weight:normal; color:#666;">(required for Recommendation; optional for Quality)</span>
+      </label><br>
+      <input type="file" name="mappings_file" id="mappings_file" accept=".pkl" style="margin-top:4px;">
+    </div>
+
+    <button type="submit" class="button default">Upload &amp; Activate</button>
+  </form>
+</div>
+
+{% if versions %}
+<div style="margin-top: 40px; max-width: 600px;">
+  <h2>Uploaded Versions</h2>
+  {% for model_type, version_list in versions.items %}
+    <h3 style="text-transform:capitalize;">{{ model_type }}</h3>
+    {% if version_list %}
+      <ul>
+        {% for v in version_list %}
+          <li>{{ v }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:#999;">No versions uploaded yet.</p>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
