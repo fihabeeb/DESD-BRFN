@@ -251,6 +251,41 @@ class RegularUser(AbstractUser):
         return self.addresses.filter(address_type='billing', is_default=True).first()
     
     @property
+    def avg_food_miles(self):
+        from orders.models import OrderProducer
+        order_producers = OrderProducer.objects.filter(
+            payment__user=self,
+            food_mile_distance__isnull=False
+        )
+        
+        if not order_producers.exists():
+            return None
+        
+        total_miles = sum(op.food_mile_distance for op in order_producers)
+        count = order_producers.count()
+        
+        return round(total_miles / count, 1) if count > 0 else None
+    
+    # @property
+    # def current_month_spending(self):
+    #     self.orders.current_month_spending
+        
+    #     return self.current_month_spending
+    
+    @property
+    def current_month_spending(self):
+        from orders.models import OrderPayment
+        now = timezone.now()
+        total_spent = OrderPayment.objects.filter(
+            user=self, 
+            payment_status='paid',
+            created_at__year=now.year,
+            created_at__month=now.month
+        ).aggregate(total=models.Sum('total_amount'))['total'] or 0
+        
+        return total_spent
+    
+    @property
     def is_deleted(self):
         return self.deleted_at is not None
     
@@ -368,6 +403,50 @@ class ProducerProfile(models.Model):
         """Get longitude from farm address"""
         farm = self.farm_address
         return farm.longitude if farm else None
+    
+    ## stats property
+    @property
+    def total_active_orders(self):
+        '''returns uncompleted orders'''
+        from orders.models import OrderProducer
+        active_orders = OrderProducer.objects.filter(
+            producer_id=self,
+            payment__payment_status='paid'
+        ).exclude(
+            order_status__in=['delivered', 'cancelled']
+        ).count() or 0
+        return active_orders
+        
+    @property
+    def unique_customer_reached(self):
+        from orders.models import OrderPayment
+        unique_customer = OrderPayment.objects.filter(
+            payment_status='paid',
+            producer_orders__producer= self,
+        ).values('user_id').distinct().count() or 0
+        return unique_customer
+    
+    @property
+    def products_active_and_available(self):
+        from products.models import Product
+        products = Product.objects.filter(
+            producer_id=self,
+            is_active=True,
+            availability='available',
+        ).count()
+        return products
+    
+    @property
+    def total_order_this_month(self):
+        from orders.models import OrderProducer
+        now = timezone.now()
+        months_order = OrderProducer.objects.filter(
+            producer_id=self,
+            payment__payment_status='paid',
+            created_at__year=now.year,
+            created_at__month=now.month
+        ).count() or 0
+        return months_order
     
     def soft_delete(self):
         pass

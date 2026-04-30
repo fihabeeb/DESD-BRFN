@@ -465,13 +465,13 @@
                 <!-- TC-019: Surplus Deals -->
                 <a href="{% url 'mainApp:products:surplus_deals' %}" class="fd-nav-link hide-mobile"
                    style="color:#fb923c;" title="Last-minute deals">
-                    🏷️ Deals
+                    Deals
                 </a>
 
                 <!-- TC-020: Recipes -->
                 <a href="{% url 'mainApp:products:recipe_list' %}" class="fd-nav-link hide-mobile"
                    title="Recipes from local farms">
-                    🍽️ Recipes
+                    Recipes
                 </a>
 
                 <!-- Theme switcher -->
@@ -551,7 +551,7 @@
                             <a href="{% url 'mainApp:producers:myproduct' %}"><i class="bi bi-box-seam"></i> My Products</a>
                             <a href="{% url 'mainApp:producers:incoming_orders' %}"><i class="bi bi-receipt"></i> Incoming Orders</a>
                             <a href="{% url 'mainApp:producers:quality_scan' %}"><i class="bi bi-stars"></i> Quality Scan</a>
-                            <a href="{% url 'mainApp:producers:content' %}">📝 Stories & Recipes</a>
+                            <a href="{% url 'mainApp:producers:content' %}"><i class="bi bi-journal-richtext"></i> Stories & Recipes</a>
                             {% endif %}
                             {% if user.role == 'restaurant' %}
                             <hr>
@@ -633,8 +633,8 @@
             </div>
             <div class="fd-mobile-links">
                 <a href="{% url 'mainApp:products:product_list' %}"><i class="bi bi-basket2"></i> Marketplace</a>
-                <a href="{% url 'mainApp:products:surplus_deals' %}">🏷️ Surplus Deals</a>
-                <a href="{% url 'mainApp:products:recipe_list' %}">🍽️ Recipes</a>
+                <a href="{% url 'mainApp:products:surplus_deals' %}"> Surplus Deals</a>
+                <a href="{% url 'mainApp:products:recipe_list' %}"> Recipes</a>
                 {% if user.is_authenticated %}
                     <a href="{% url 'mainApp:profile' %}"><i class="bi bi-person"></i> My Account</a>
                     <a href="{% url 'mainApp:customers:view_cart' %}"><i class="bi bi-cart3"></i> Cart</a>
@@ -642,7 +642,7 @@
                         <a href="{% url 'mainApp:producers:myproduct' %}"><i class="bi bi-box-seam"></i> My Products</a>
                         <a href="{% url 'mainApp:producers:incoming_orders' %}"><i class="bi bi-receipt"></i> Incoming Orders</a>
                         <a href="{% url 'mainApp:producers:quality_scan' %}"><i class="bi bi-stars"></i> Quality Scan</a>
-                        <a href="{% url 'mainApp:producers:content' %}">📝 Stories & Recipes</a>
+                        <a href="{% url 'mainApp:producers:content' %}"> Stories & Recipes</a>
                     {% endif %}
                     {% if user.role == 'restaurant' %}
                         <a href="{% url 'mainApp:orders:recurring_list' %}"><i class="bi bi-arrow-repeat"></i> Recurring Orders</a>

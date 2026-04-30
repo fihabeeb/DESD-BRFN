@@ -17,7 +17,7 @@ from mainApp.decorators import customer_required
 import re
 import logging
 from django.http import JsonResponse
-from orders.models import OrderItem, OrderPayment
+from orders.models import OrderItem, OrderPayment, OrderProducer
 from django.db import transaction
 from django.db import models
 
@@ -276,9 +276,14 @@ def customer_profile_view(request):
         user=request.user, 
         payment_status='paid'
     ).values('producer_orders__producer').distinct().count()
+    avgFoodMile = request.user.avg_food_miles
+    monthlySpending = request.user.current_month_spending
+
     stats_card = {
         'totalOrders': total_orders_count,
         'farmSupported': farms_supported,
+        'avgFoodMile': avgFoodMile,
+        'monthlySpending': monthlySpending,
     }
 
     order_data = None
