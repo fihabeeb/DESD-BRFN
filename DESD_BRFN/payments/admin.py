@@ -20,7 +20,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from .models import PaymentSettlement, SettlementOrder
 from orders.models import OrderProducer
 from mainApp.models import ProducerProfile
-from mainApp.admin_enforcer import AdminEnforcer
 from .tasks import complete_old_settlements
 
 '''
@@ -60,7 +59,7 @@ class DateRangeFilter(SimpleListFilter):
         return queryset
 
 
-class PaymentSettlementAdmin(AdminEnforcer, admin.ModelAdmin):
+class PaymentSettlementAdmin(admin.ModelAdmin):
     """Main admin class for Payment Settlements with financial reporting (TC-025)"""
 
     change_list_template = 'admin/payments_paymentsettlement_change_list.html'

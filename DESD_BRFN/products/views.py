@@ -126,34 +126,52 @@ def product_list(request):
     attention_data = {}
     if request.user.is_authenticated:
         try:
-            from ml.recommendation.sigmoid_service_v5_1 import LSTMServiceV5_1
+            import os
+            import requests as _req
+            from orders.models import OrderItem
 
-            recommendation_service = LSTMServiceV5_1()
-            recommendation_service.load_model()
+            ml_url = os.environ.get("ML_SERVICE_URL", "http://ml-service:8001")
 
-            result = recommendation_service.get_predictions_with_explanation(
-                user_id=request.user.id,
-                top_k=6
+            order_items = OrderItem.objects.filter(
+                producer_order__payment__user_id=request.user.id,
+                producer_order__payment__payment_status="paid",
+            ).select_related("producer_order__payment").order_by(
+                "producer_order__payment__created_at",
+                "producer_order__id",
             )
-            # from ml.recommendation.sigmoid_service_v5 import LSTMServiceV5
+            purchase_history = [
+                {
+                    "product_id": item.product_id,
+                    "timestamp": item.producer_order.payment.created_at.isoformat(),
+                }
+                for item in order_items
+                for _ in range(item.quantity)
+            ]
 
-            # recommendation_service = LSTMServiceV5()
-            # recommendation_service.load_model()
+            response = _req.post(
+                f"{ml_url}/predict/recommendations/explanation",
+                json={"user_id": request.user.id, "purchase_history": purchase_history, "top_k": 6},
+                timeout=15,
+            )
+            response.raise_for_status()
+            result = response.json()
 
-            # result = recommendation_service.get_recommendations(
-            #     user_id=request.user.id,
-            #     top_k=6
-            # )
-
-            recommended_products = result.get('recommendations', [])
-            attention_data = {
-                'weights': result.get('attention_weights', []),
-                'order_details': result.get('order_details', []),
+            raw_recs = result.get("recommendations", [])
+            product_ids = [r["product_id"] for r in raw_recs]
+            products_by_id = {
+                p.id: p
+                for p in Product.objects.filter(id__in=product_ids, availability="available")
             }
-            num_orders = result.get('num_orders', 0)
+            recommended_products = [
+                {**r, "product": products_by_id[r["product_id"]], "display_score": r["score"] * 100}
+                for r in raw_recs
+                if r["product_id"] in products_by_id
+            ]
 
-            print(f"Generated {len(recommended_products)} recommendations for user {request.user.id}")
-            print(f"User has {num_orders} orders in history")
+            attention_data = {
+                "weights": result.get("attention_weights", []),
+                "order_details": result.get("order_details", []),
+            }
 
         except Exception as e:
             print(f"Recommendation error for user {request.user.id}: {e}")

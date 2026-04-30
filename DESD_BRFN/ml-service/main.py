@@ -13,11 +13,13 @@ from pydantic import BaseModel
 import predictor
 from gradcam import generate_gradcam, overlay_heatmap, colorize_heatmap, to_base64
 from recommendation.sigmoid_service import RecommendationService
+from recommendation.sigmoid_service_v5_1 import LSTMServiceV5_1
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 rec_service = RecommendationService()
+rec_service_v5_1 = LSTMServiceV5_1()
 
 MODELS_BASE = os.environ.get("MODELS_BASE", "ml")
 VERSIONS_DIR = os.path.join(MODELS_BASE, "versions")
@@ -28,6 +30,7 @@ async def lifespan(app: FastAPI):
     os.makedirs(VERSIONS_DIR, exist_ok=True)
     predictor.load()
     rec_service.load_model()
+    rec_service_v5_1.load_model()
     yield
 
 
@@ -45,6 +48,7 @@ def health():
         "quality_model_loaded": predictor._model is not None,
         "recommendation_model_loaded": rec_service.is_loaded(),
         "recommendation_max_seq_len": rec_service.max_seq_len,
+        "recommendation_v5_1_loaded": rec_service_v5_1.is_loaded(),
     }
 
 
@@ -123,6 +127,39 @@ def predict_recommendations(request: RecommendationRequest):
         "recommendations": recommendations,
         "max_seq_len": rec_service.max_seq_len,
     }
+
+
+class ExplanationRequest(BaseModel):
+    user_id: int
+    purchase_history: List[PurchaseItem]
+    top_k: int = 5
+
+
+class SaliencyRequest(BaseModel):
+    user_id: int
+    target_product_id: int
+    purchase_history: List[PurchaseItem]
+
+
+@app.post("/predict/recommendations/explanation")
+def predict_recommendations_explanation(request: ExplanationRequest):
+    history = [{"product_id": item.product_id, "timestamp": item.timestamp} for item in request.purchase_history]
+    return rec_service_v5_1.get_predictions_with_explanation(
+        user_id=request.user_id,
+        purchase_history=history,
+        top_k=request.top_k,
+    )
+
+
+@app.post("/predict/recommendations/saliency")
+def predict_recommendations_saliency(request: SaliencyRequest):
+    history = [{"product_id": item.product_id, "timestamp": item.timestamp} for item in request.purchase_history]
+    salient = rec_service_v5_1.get_product_saliency(
+        user_id=request.user_id,
+        target_product_id=request.target_product_id,
+        purchase_history=history,
+    )
+    return {"salient_products": salient}
 
 
 # ---------------------------------------------------------------------------

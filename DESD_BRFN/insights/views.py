@@ -6,12 +6,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 
 from mainApp.models import CustomerProfile
-from ml.recommendation.sigmoid_service_v5_1 import LSTMServiceV5_1
-from orders.models import OrderItem
 
 ML_SERVICE_URL = os.environ.get("ML_SERVICE_URL", "http://ml-service:8001")
 from products.models import Product
-from .gradcam import generate_gradcam, overlay_heatmap, to_base64
 
 
 def insights_index(request):
@@ -33,36 +30,79 @@ def recommendation_insights(request):
             messages.error(request, "Customer not found.")
             return render(request, "admin/insights/recommendation.html", context)
 
-        service = LSTMServiceV5_1()
-        service.load_model()
+        from orders.models import OrderItem
+        from products.models import Product
+
+        order_items = OrderItem.objects.filter(
+            producer_order__payment__user_id=customer.user.id,
+            producer_order__payment__payment_status="paid",
+        ).select_related("producer_order__payment").order_by(
+            "producer_order__payment__created_at",
+            "producer_order__id",
+        )
+        purchase_history = [
+            {
+                "product_id": item.product_id,
+                "timestamp": item.producer_order.payment.created_at.isoformat(),
+            }
+            for item in order_items
+            for _ in range(item.quantity)
+        ]
 
         TOP_K = 10
-        result = service.get_predictions_with_explanation(
-            user_id=customer.user.id,
-            top_k=TOP_K
-        )
+        try:
+            response = http_client.post(
+                f"{ML_SERVICE_URL}/predict/recommendations/explanation",
+                json={"user_id": customer.user.id, "purchase_history": purchase_history, "top_k": TOP_K},
+                timeout=15,
+            )
+            response.raise_for_status()
+            result = response.json()
+        except Exception as e:
+            messages.error(request, f"ML service unavailable: {e}")
+            return render(request, "admin/insights/recommendation.html", context)
+
+        raw_recs = result.get("recommendations", [])
+        product_ids = [r["product_id"] for r in raw_recs]
+        products_by_id = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
+        recommendations = [
+            {**r, "product": products_by_id[r["product_id"]], "display_score": r["score"] * 100}
+            for r in raw_recs
+            if r["product_id"] in products_by_id
+        ]
 
         salient_products = []
-        if result.get('recommendations'):
-            top_rec = result['recommendations'][0]
-            if hasattr(top_rec.get('product'), 'id'):
-                salient_products = service.get_product_saliency(
-                    customer.user.id,
-                    top_rec['product'].id
+        if recommendations:
+            top_product_id = recommendations[0]["product_id"]
+            try:
+                sal_response = http_client.post(
+                    f"{ML_SERVICE_URL}/predict/recommendations/saliency",
+                    json={
+                        "user_id": customer.user.id,
+                        "target_product_id": top_product_id,
+                        "purchase_history": purchase_history,
+                    },
+                    timeout=15,
                 )
-
-        recommendations = result.get('recommendations', [])
-        # Add display_score (percentage) for the score bars
-        for rec in recommendations:
-            rec['display_score'] = rec['score'] * 100
+                sal_response.raise_for_status()
+                sal_data = sal_response.json().get("salient_products", [])
+                sal_product_ids = [s["product_id"] for s in sal_data]
+                sal_products_by_id = {p.id: p for p in Product.objects.filter(id__in=sal_product_ids)}
+                salient_products = [
+                    {**s, "product_name": sal_products_by_id[s["product_id"]].name}
+                    for s in sal_data
+                    if s["product_id"] in sal_products_by_id
+                ]
+            except Exception:
+                salient_products = []
 
         context.update({
             "customer": customer,
             "TOP_K_used": TOP_K,
             "recommendations": recommendations,
-            "attention_weights": result.get('attention_weights', []),
-            "order_details": result.get('order_details', []),
-            "num_orders": result.get('num_orders', 0),
+            "attention_weights": result.get("attention_weights", []),
+            "order_details": result.get("order_details", []),
+            "num_orders": result.get("num_orders", 0),
             "salient_products": salient_products,
         })
 
@@ -75,8 +115,15 @@ def classification_insights(request):
     if request.method == "POST" and request.FILES.get("image"):
         image_file = request.FILES["image"]
 
-        result = predictor.predict(image_file)
-        if result is None:
+        try:
+            response = http_client.post(
+                f"{ML_SERVICE_URL}/predict/quality",
+                files={"image": (image_file.name, image_file.read(), image_file.content_type)},
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+        except Exception:
             messages.error(request, "ML service unavailable. Please try again later.")
             return render(request, "admin/insights/classification.html", context)
 
